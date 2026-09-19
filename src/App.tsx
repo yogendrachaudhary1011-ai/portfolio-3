@@ -11,15 +11,17 @@ import Skills from "./components/Skills";
 import Contact from "./components/Contact";
 import ProjectsArchive from "./components/ProjectsArchive";
 import CaseStudy from "./components/CaseStudy";
-import { initialCaseStudies, type Project } from "./data";
 import { Atmosphere, ScrollProgress } from "./components/Atmosphere";
+import { SiteProvider, useSite } from "./siteContext";
+import { type Project } from "./data";
 
 /* ─── Intro splash ─────────────────────────────────────────────────── */
-const NAME = "YOGENDRA CHAUDHARY";
-const TAGLINE = "JUNIOR · UI/UX · DESIGNER";
-
 function IntroScreen({ onDone }: { onDone: () => void }) {
+  const { config } = useSite();
   const [lifting, setLifting] = useState(false);
+
+  const NAME = config.hero.marqueeName || "YOGENDRA CHAUDHARY";
+  const TAGLINE = (config.hero.tagline || "JUNIOR · UI/UX · DESIGNER").toUpperCase();
 
   useEffect(() => {
     // letters finish ~0.9s → hold → curtain lifts at 1.6s → fully gone at 2.35s
@@ -104,31 +106,17 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-/* ─── App ────────────────────────────────────────────────────────────── */
-export default function App() {
+/* ─── Portfolio Content ─────────────────────────────────────────────── */
+function PortfolioApp() {
   const [view, setView] = useState<"home" | "projects" | "case-study">("home");
   const [projectIndex, setProjectIndex] = useState(0);
-  const [projects, setProjects] = useState<Project[]>(initialCaseStudies);
-  const [selectedProject, setSelectedProject] = useState<Project>(initialCaseStudies[0]);
   const [transitioning, setTransitioning] = useState(false);
   const [introVisible, setIntroVisible] = useState(true);
 
-  const doneIntro = useCallback(() => setIntroVisible(false), []);
+  const { projects } = useSite();
+  const [selectedProject, setSelectedProject] = useState<Project>(projects[0] ?? null);
 
-  useEffect(() => {
-    const loadProjects = (event?: Event) => {
-      const changedProjects = (event as CustomEvent<Project[]> | undefined)?.detail;
-      if (Array.isArray(changedProjects)) {
-        setProjects(changedProjects);
-        return;
-      }
-      try { setProjects(JSON.parse(localStorage.getItem("yogendra-case-studies") ?? "null") ?? initialCaseStudies); }
-      catch { setProjects(initialCaseStudies); }
-    };
-    loadProjects();
-    window.addEventListener("portfolio-projects-updated", loadProjects);
-    return () => window.removeEventListener("portfolio-projects-updated", loadProjects);
-  }, []);
+  const doneIntro = useCallback(() => setIntroVisible(false), []);
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
@@ -147,7 +135,7 @@ export default function App() {
   };
 
   return (
-    <ThemeProvider>
+    <>
       {introVisible && <IntroScreen onDone={doneIntro} />}
       <Atmosphere />
       <ScrollProgress />
@@ -168,7 +156,15 @@ export default function App() {
             <Navbar variant="home" onNav={scrollTo} onHome={() => scrollTo("home")} />
             <main>
               <Hero />
-              <WorkGallery projects={projects} onMore={() => navigate("projects")} onProject={(index) => { setProjectIndex(index); setSelectedProject(projects[index]); navigate("case-study"); }} />
+              <WorkGallery
+                projects={projects}
+                onMore={() => navigate("projects")}
+                onProject={(index) => {
+                  setProjectIndex(index);
+                  setSelectedProject(projects[index]);
+                  navigate("case-study");
+                }}
+              />
               <Capabilities />
               <MyProcess />
               <About />
@@ -185,7 +181,15 @@ export default function App() {
               onHome={() => navigate("home", "home")}
               onContact={() => navigate("home", "contact")}
             />
-            <ProjectsArchive projects={projects} onContact={() => navigate("home", "contact")} onProject={(project, index) => { setProjectIndex(index); setSelectedProject(project); navigate("case-study"); }} />
+            <ProjectsArchive
+              projects={projects}
+              onContact={() => navigate("home", "contact")}
+              onProject={(project, index) => {
+                setProjectIndex(index);
+                setSelectedProject(project);
+                navigate("case-study");
+              }}
+            />
           </>
         ) : (
           <>
@@ -196,11 +200,25 @@ export default function App() {
               onHome={() => navigate("home", "home")}
               onContact={() => navigate("home", "contact")}
             />
-            <CaseStudy project={projects[projectIndex] ?? selectedProject} index={projectIndex} onBack={() => navigate("projects")} />
+            <CaseStudy
+              project={projects[projectIndex] ?? selectedProject}
+              index={projectIndex}
+              onBack={() => navigate("projects")}
+            />
           </>
         )}
       </div>
+    </>
+  );
+}
 
+/* ─── Root App ───────────────────────────────────────────────────────── */
+export default function App() {
+  return (
+    <ThemeProvider>
+      <SiteProvider>
+        <PortfolioApp />
+      </SiteProvider>
     </ThemeProvider>
   );
 }

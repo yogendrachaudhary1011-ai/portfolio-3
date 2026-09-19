@@ -1,64 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Reveal, SplitText, WordReveal } from "./common";
-
-/* ─── Content ─────────────────────────────────────────────────────────── */
-type Step = {
-  title: string;
-  desc: string;
-  tags: string[];
-  principle: string;
-};
-
-const STEPS: Step[] = [
-  {
-    title: "Understand",
-    desc: "Understand the product, users, business context, constraints and desired outcomes before designing.",
-    tags: ["Context", "Stakeholders", "Constraints", "Goals"],
-    principle: "Good solutions begin with understanding the right context.",
-  },
-  {
-    title: "Research",
-    desc: "Explore user behaviour, pain points, workflows and market patterns to replace assumptions with evidence.",
-    tags: ["Research", "Data", "Insights", "Competitors"],
-    principle: "Research turns assumptions into evidence.",
-  },
-  {
-    title: "Define",
-    desc: "Turn research into a clear problem, priorities and shared direction.",
-    tags: ["Synthesis", "Problem statement", "User goals", "Priorities"],
-    principle: "Clarity creates momentum.",
-  },
-  {
-    title: "Explore",
-    desc: "Generate multiple approaches before committing to a single direction.",
-    tags: ["Ideation", "Flows", "Sketches", "Concepts"],
-    principle: "Exploring broadly reveals stronger solutions.",
-  },
-  {
-    title: "Design",
-    desc: "Turn the strongest ideas into clear, useful and visually cohesive interfaces.",
-    tags: ["UX", "UI", "Design system", "Interaction"],
-    principle: "Every visual decision should improve understanding.",
-  },
-  {
-    title: "Prototype",
-    desc: "Create realistic interactive flows to test behaviour and assumptions before development.",
-    tags: ["Prototyping", "Interactions", "Validation", "Flow"],
-    principle: "Prototypes make assumptions visible.",
-  },
-  {
-    title: "Iterate",
-    desc: "Use testing, feedback and evidence to continuously refine the experience.",
-    tags: ["Testing", "Feedback", "Refinement", "Learning"],
-    principle: "Great products improve through continuous learning.",
-  },
-];
+import { useSite } from "../siteContext";
 
 /* Sticky stack geometry */
 const NAV_OFFSET = 88; // px — clears the floating navbar
 const HEAD_GAP = 16; // px — breathing room below the pinned heading
 const PEEK = 12; // px — exposed top edge of each covered card
-/* Cards pin below the sticky heading so it never gets covered as they stack. */
 const stickyTop = (i: number, headH: number) => NAV_OFFSET + headH + HEAD_GAP + i * PEEK;
 const stackTop = (i: number, headH: number, headingExit: number) =>
   NAV_OFFSET + headH * (1 - headingExit) + HEAD_GAP + i * PEEK;
@@ -71,7 +18,7 @@ const V = {
 };
 
 function StepVisual({ index }: { index: number }) {
-  switch (index) {
+  switch (index % 7) {
     case 0: // Understand — four foundation cards
       return (
         <div className="grid grid-cols-2 gap-2.5">
@@ -168,6 +115,10 @@ function StepVisual({ index }: { index: number }) {
 
 /* ─── Section ─────────────────────────────────────────────────────────── */
 export default function MyProcess() {
+  const { config } = useSite();
+  const processConfig = config.process;
+  const STEPS = processConfig.steps;
+
   const [active, setActive] = useState(0);
   const [headH, setHeadH] = useState(0);
   const [headingExit, setHeadingExit] = useState(0);
@@ -205,7 +156,7 @@ export default function MyProcess() {
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [STEPS.length]);
 
   const goTo = (i: number) => cardRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -218,7 +169,7 @@ export default function MyProcess() {
       <div className="pointer-events-none absolute -left-28 top-40 size-[26rem] rounded-full bg-[var(--glow-2)] opacity-50 blur-[130px]" />
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6">
-        {/* Pinned heading — stays visible while the cards stack below it */}
+        {/* Pinned heading */}
         <div
           ref={headingRef}
           className="sticky z-30 grid max-w-6xl gap-6 pb-5 md:grid-cols-[1fr_290px] md:items-end"
@@ -232,17 +183,17 @@ export default function MyProcess() {
             <Reveal>
               <p className="section-kicker mb-4 flex items-center gap-3 text-[var(--process-muted)]">
                 <span className="h-px w-8 bg-[#a99dff]" />
-                My Process
+                {processConfig.kicker}
               </p>
             </Reveal>
             <SplitText
-              text="How I approach design."
+              text={processConfig.title}
               className="section-title max-w-xl"
               stagger={0.02}
             />
           </div>
           <WordReveal
-            text="A structured, human-centered process that turns complex problems into simple, meaningful experiences."
+            text={processConfig.subtitle}
             className="max-w-xs text-sm leading-relaxed text-[var(--process-muted)] md:mb-1 md:justify-self-end"
             delay={0.15}
           />
@@ -257,7 +208,7 @@ export default function MyProcess() {
               const brightness = depth > 0 ? 1 - Math.min(depth, 4) * 0.05 : 1;
               return (
                 <div
-                  key={step.title}
+                  key={`${step.title}-${i}`}
                   ref={(el) => { cardRefs.current[i] = el; }}
                   className="sticky mb-5"
                   style={{
@@ -315,7 +266,7 @@ export default function MyProcess() {
             <div className="sticky flex flex-col items-center gap-4" style={{ top: "42vh" }}>
               <span className="font-mono text-[0.62rem] tracking-[0.14em] text-[var(--process-fg)]">
                 {String(active + 1).padStart(2, "0")}
-                <span className="text-[var(--process-muted)]"> / 07</span>
+                <span className="text-[var(--process-muted)]"> / {String(STEPS.length).padStart(2, "0")}</span>
               </span>
               <div className="flex flex-col items-center gap-2.5">
                 {STEPS.map((step, i) => {

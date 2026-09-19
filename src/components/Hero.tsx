@@ -1,12 +1,15 @@
 import { useRef, useState } from "react";
-import yogendraProfile from "../imports/Untitled_-_29_August_2026_at_21.30.43.png";
 import { useParallax } from "./common";
+import { useSite } from "../siteContext";
 
 /* Intro curtain starts lifting at 1.6s. Hero elements animate in
    starting at 1.75s so they're already mid-reveal when fully visible. */
 const BASE = 1.75;
 
 export default function Hero() {
+  const { config } = useSite();
+  const heroConfig = config.hero;
+
   const { ref: portraitRef, y } = useParallax<HTMLDivElement>(50);
   const sectionRef = useRef<HTMLElement>(null);
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
@@ -20,8 +23,9 @@ export default function Hero() {
   const tiltX = (mouse.x - 0.5) * 18;
   const tiltY = (mouse.y - 0.5) * 18;
 
-  const bio = "Creating thoughtful, intuitive, and engaging digital experiences.";
+  const bio = heroConfig.bio || "Creating thoughtful, intuitive, and engaging digital experiences.";
   const bioWords = bio.split(" ");
+  const marqueeName = heroConfig.marqueeName || "YOGENDRA CHAUDHARY";
 
   return (
     <section
@@ -30,7 +34,7 @@ export default function Hero() {
       onMouseMove={onMove}
       className="relative flex min-h-[44rem] items-end overflow-hidden pt-20 sm:min-h-screen sm:pt-24"
     >
-      <h1 className="sr-only">Yogendra Chaudhary, Junior UI/UX Designer in Kathmandu</h1>
+      <h1 className="sr-only">{marqueeName}, {heroConfig.tagline}</h1>
       {/* dotted grid + spotlight */}
       <div className="grid-bg pointer-events-none absolute inset-0" />
       <div
@@ -56,7 +60,7 @@ export default function Hero() {
               className="outline-text font-display font-extrabold leading-none"
               style={{ fontSize: "clamp(9rem, 26vw, 22rem)", paddingInline: "0.15em" }}
             >
-              YOGENDRA&nbsp;CHAUDHARY&nbsp;
+              {marqueeName}&nbsp;
             </span>
           ))}
         </div>
@@ -86,8 +90,8 @@ export default function Hero() {
             }}
           />
           <img
-            src={yogendraProfile}
-            alt="Yogendra Chaudhary"
+            src={heroConfig.portraitImage}
+            alt={marqueeName}
             className="h-[66vh] max-h-[760px] w-auto object-contain object-bottom drop-shadow-2xl sm:h-[74vh]"
             style={{
               maskImage: "linear-gradient(to bottom, black 86%, transparent)",
@@ -98,8 +102,8 @@ export default function Hero() {
       </div>
 
       <div className="absolute inset-x-6 bottom-7 z-20 md:hidden">
-        <p className="label !text-[0.55rem] text-[var(--fg)]/65">Junior UI/UX Designer · Kathmandu</p>
-        <p className="mt-2 max-w-[17rem] text-sm leading-relaxed text-[var(--fg)]/80">Creating thoughtful, intuitive, and engaging digital experiences.</p>
+        <p className="label !text-[0.55rem] text-[var(--fg)]/65">{heroConfig.tagline}</p>
+        <p className="mt-2 max-w-[17rem] text-sm leading-relaxed text-[var(--fg)]/80">{heroConfig.bio}</p>
       </div>
 
       {/* left meta */}
@@ -109,7 +113,7 @@ export default function Hero() {
           className="label mb-2 !text-[0.55rem]"
           style={{ animation: `load-up 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.3}s both` }}
         >
-          Junior UI/UX Designer
+          {heroConfig.tagline.split("·")[0]?.trim() || "Junior UI/UX Designer"}
         </p>
 
         {/* bio — word-by-word clip reveal */}
@@ -143,7 +147,7 @@ export default function Hero() {
           animation: `load-right 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.65}s both`,
         }}
       >
-        <span className="label !text-[0.6rem]">Scroll Down</span>
+        <span className="label !text-[0.6rem]">{heroConfig.scrollText || "Scroll Down"}</span>
         <span className="h-10 w-px animate-pulse bg-[var(--muted)]" />
       </div>
     </section>

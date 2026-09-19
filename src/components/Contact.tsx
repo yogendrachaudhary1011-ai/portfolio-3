@@ -1,12 +1,23 @@
 import { useState } from "react";
-import { contacts } from "../data";
-import { Mail, Linkedin, External, Arrow } from "../icons";
+import { Mail, Linkedin, External, Arrow, Github, Dribbble } from "../icons";
 import { Reveal, Tilt } from "./common";
 import AdminPanel from "./AdminPanel";
+import { useSite } from "../siteContext";
 
-const iconFor = (label: string) => (label === "Email" ? Mail : label === "LinkedIn" ? Linkedin : External);
+const iconFor = (label: string) => {
+  const l = label.toLowerCase();
+  if (l.includes("email") || l.includes("mail")) return Mail;
+  if (l.includes("linkedin")) return Linkedin;
+  if (l.includes("github")) return Github;
+  if (l.includes("dribbble")) return Dribbble;
+  return External;
+};
 
 export default function Contact() {
+  const { config } = useSite();
+  const contactConfig = config.contact;
+  const contacts = contactConfig.contacts;
+
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
@@ -34,24 +45,23 @@ export default function Contact() {
       <Reveal>
         <p className="section-kicker mb-5 flex items-center gap-3">
           <span className="inline-block h-px w-8 bg-[var(--accent)]" />
-          Get In Touch
+          {contactConfig.kicker || "Get In Touch"}
         </p>
       </Reveal>
       <div className="grid gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* left */}
         <div>
           <h2 className="max-w-[9ch] font-display text-[clamp(3.25rem,7vw,6.1rem)] font-bold leading-[0.88] tracking-[-0.065em]">
-            {["LET'S", "WORK", "TOGETHER"].map((w, i) => (
-              <Reveal key={w} delay={i * 0.12} dir="up">
+            {(contactConfig.titleLines || ["LET'S", "WORK", "TOGETHER"]).map((w, i) => (
+              <Reveal key={`${w}-${i}`} delay={i * 0.12} dir="up">
                 <span className={i === 2 ? "text-gradient block" : "block"}>{w}</span>
               </Reveal>
             ))}
           </h2>
           <Reveal delay={0.3}>
-            <p className="mt-8 max-w-sm text-lg font-semibold">Let’s create something meaningful.</p>
+            <p className="mt-8 max-w-sm text-lg font-semibold">{contactConfig.subtitleHeadline}</p>
             <p className="mt-4 max-w-sm text-[0.95rem] leading-relaxed text-[var(--muted)]">
-              I’m looking for opportunities to contribute, learn from experienced teams, and work on real product challenges.
-              Whether you’re building something new, improving an existing experience, or simply want to talk about design, I’d be happy to connect.
+              {contactConfig.subtitleBody}
             </p>
           </Reveal>
         </div>
@@ -61,7 +71,7 @@ export default function Contact() {
           {contacts.map((c, i) => {
             const Icon = iconFor(c.label);
             return (
-              <Reveal key={c.num} delay={i * 0.1} dir="left">
+              <Reveal key={`${c.num}-${i}`} delay={i * 0.1} dir="left">
                 <Tilt max={6} className="group relative rounded-2xl [transform-style:preserve-3d]">
                   <a
                     href={c.href}
@@ -94,7 +104,7 @@ export default function Contact() {
             >
               <p className="mb-5 flex items-center gap-2 font-display font-semibold">
                 <span className="size-2 animate-pulse rounded-full bg-[var(--accent)]" />
-                Send Me a Message
+                {contactConfig.formTitle || "Send Me a Message"}
               </p>
               {["Full Name", "Email Address"].map((f) => (
                 <label key={f} className="mb-4 block">
@@ -135,8 +145,11 @@ export default function Contact() {
       </div>
 
       <footer className="mt-28 flex flex-col items-center justify-between gap-4 border-t border-[var(--hairline)] pt-8 text-[0.75rem] text-[var(--muted)] sm:flex-row">
-        <span>© 2026 Yogendra Chaudhary. All rights reserved.</span>
-        <span className="flex items-center gap-2 font-mono">Designed &amp; crafted by Yogendra. <AdminPanel /></span>
+        <span>{contactConfig.footerCopyright || "© 2026 Yogendra Chaudhary. All rights reserved."}</span>
+        <span className="inline-flex items-center font-mono">
+          <span>{(contactConfig.footerCredit || "Designed & crafted by Yogendra").replace(/\.+$/, "")}</span>
+          <AdminPanel />
+        </span>
       </footer>
     </section>
   );

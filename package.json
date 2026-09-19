@@ -1,12 +1,13 @@
 {
-  "name": "figma-make-app",
+  "name": "yogendra-chaudhary-portfolio",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
-    "preview": "vite preview",
+    "lint": "tsc --noEmit",
+    "preview": "vite preview --host 0.0.0.0 --port 3000",
     "format": "oxfmt"
   },
   "dependencies": {

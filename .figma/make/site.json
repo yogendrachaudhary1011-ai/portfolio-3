@@ -1,7 +1,8 @@
 {
-  "description": "Effortlessly replicate any portfolio website with pixel-perfect accuracy, ensuring a seamless user experience and maintaining the original's visual identity.",
+  "title": "Yogendra Chaudhary Portfolio",
+  "description": "Portfolio of Yogendra Chaudhary, Junior UI/UX Designer featuring case studies, creative experiments, skills, and design process.",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,

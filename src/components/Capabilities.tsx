@@ -1,53 +1,12 @@
 import { useState } from "react";
 import { Reveal, SplitText, WordReveal } from "./common";
-
-const practices = [
-  {
-    num: "01",
-    title: "Product Strategy",
-    desc: "Clarifying the opportunity, defining the right problem, and creating a sharp path from business intent to customer value.",
-    skills: ["Product vision", "Discovery", "Roadmaps", "Stakeholder workshops"],
-  },
-  {
-    num: "02",
-    title: "UX Research",
-    desc: "Finding the useful signal in real behaviours, needs, and friction — then turning insight into practical design direction.",
-    skills: ["User interviews", "Usability tests", "Journey mapping", "Synthesis"],
-  },
-  {
-    num: "03",
-    title: "Experience Design",
-    desc: "Structuring flows, information, and interactions so every moment makes sense and earns the next one.",
-    skills: ["Information architecture", "User flows", "Wireframes", "Prototypes"],
-  },
-  {
-    num: "04",
-    title: "Interface Design",
-    desc: "Creating crisp, expressive interfaces with hierarchy, rhythm, and the small details that make products feel alive.",
-    skills: ["Visual systems", "Responsive UI", "Interaction states", "Motion direction"],
-  },
-  {
-    num: "05",
-    title: "Design Systems",
-    desc: "Building the shared language behind a product: adaptable components, tokens, and guidelines teams can rely on.",
-    skills: ["Components", "Design tokens", "Documentation", "Figma libraries"],
-  },
-  {
-    num: "06",
-    title: "Accessibility",
-    desc: "Designing with range in mind — inclusive patterns, readable hierarchy, and interfaces that work in the real world.",
-    skills: ["WCAG", "Inclusive design", "Keyboard flows", "Content hierarchy"],
-  },
-  {
-    num: "07",
-    title: "Design Partnership",
-    desc: "Working closely with product and engineering to make strong decisions, protect craft, and ship with confidence.",
-    skills: ["Design critique", "Developer handoff", "QA", "Team alignment"],
-  },
-];
+import { useSite } from "../siteContext";
 
 export default function Capabilities() {
   const [active, setActive] = useState(0);
+  const { config } = useSite();
+  const cap = config.capabilities;
+  const practices = cap.items;
 
   return (
     <section id="what-i-can-do" className="relative overflow-hidden bg-[var(--process-bg)] py-24 text-[var(--process-fg)] sm:py-32">
@@ -60,16 +19,16 @@ export default function Capabilities() {
             <Reveal>
               <p className="section-kicker mb-5 flex items-center gap-3 text-[var(--process-muted)]">
                 <span className="h-px w-8 bg-[#a99dff]" />
-                02 / What I can do
+                {cap.kicker}
               </p>
             </Reveal>
             <SplitText
-              text="Make the complex feel inevitable."
+              text={cap.title}
               className="section-title max-w-4xl"
               stagger={0.018}
             />
           </div>
-          <WordReveal text="A complete product-design practice, from the first question to the final pixel." className="max-w-xs text-sm leading-relaxed text-[var(--process-muted)] md:mb-1" delay={0.2} />
+          <WordReveal text={cap.subtitle} className="max-w-xs text-sm leading-relaxed text-[var(--process-muted)] md:mb-1" delay={0.2} />
         </div>
 
         <div className="mt-6">

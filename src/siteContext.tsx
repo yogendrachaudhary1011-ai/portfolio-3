@@ -1,0 +1,501 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import yogendraProfileDefault from "./imports/yogendra-profile.png";
+import {
+  initialCaseStudies,
+  digitalProjects as initialDigitalProjects,
+  capabilities as initialCapabilities,
+  trainings as initialTrainings,
+  contacts as initialContacts,
+  type Project,
+} from "./data";
+
+export interface SkillTool {
+  name: string;
+  number: string;
+  icon: string;
+  role: string;
+  detail: string;
+  accent: string;
+}
+
+export interface PracticeCapability {
+  num: string;
+  title: string;
+  desc: string;
+  skills: string[];
+}
+
+export interface ProcessStep {
+  title: string;
+  desc: string;
+  tags: string[];
+  principle: string;
+}
+
+export interface TrainingItem {
+  title: string;
+  org: string;
+  date: string;
+  desc: string;
+  cert: string;
+  image: string;
+}
+
+export interface ContactItem {
+  num: string;
+  label: string;
+  value: string;
+  href: string;
+}
+
+export interface DigitalExploration {
+  title: string;
+  desc: string;
+  image?: string;
+}
+
+export interface SiteConfig {
+  hero: {
+    marqueeName: string;
+    tagline: string;
+    bio: string;
+    portraitImage: string;
+    scrollText: string;
+    availableBadge: string;
+  };
+  about: {
+    kicker: string;
+    title: string;
+    name: string;
+    avatarImage: string;
+    stats: { k: string; v: string }[];
+    bioParagraph1: string;
+    bioParagraph2: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
+  capabilities: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+    items: PracticeCapability[];
+  };
+  process: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+    steps: ProcessStep[];
+  };
+  skills: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+    tools: SkillTool[];
+  };
+  trainings: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+    items: TrainingItem[];
+  };
+  contact: {
+    kicker: string;
+    titleLines: string[];
+    subtitleHeadline: string;
+    subtitleBody: string;
+    formTitle: string;
+    footerCopyright: string;
+    footerCredit: string;
+    contacts: ContactItem[];
+  };
+  projectsArchive: {
+    archiveTitle: string;
+    archiveSubtitle: string;
+    explorationsTitle: string;
+    explorationsSubtitle: string;
+    ctaTitle: string;
+    ctaSubtitle: string;
+    ctaButton: string;
+    digitalProjects: DigitalExploration[];
+  };
+}
+
+const defaultPracticeItems: PracticeCapability[] = [
+  {
+    num: "01",
+    title: "Product Strategy",
+    desc: "Clarifying the opportunity, defining the right problem, and creating a sharp path from business intent to customer value.",
+    skills: ["Product vision", "Discovery", "Roadmaps", "Stakeholder workshops"],
+  },
+  {
+    num: "02",
+    title: "UX Research",
+    desc: "Finding the useful signal in real behaviours, needs, and friction — then turning insight into practical design direction.",
+    skills: ["User interviews", "Usability tests", "Journey mapping", "Synthesis"],
+  },
+  {
+    num: "03",
+    title: "Experience Design",
+    desc: "Structuring flows, information, and interactions so every moment makes sense and earns the next one.",
+    skills: ["Information architecture", "User flows", "Wireframes", "Prototypes"],
+  },
+  {
+    num: "04",
+    title: "Interface Design",
+    desc: "Creating crisp, expressive interfaces with hierarchy, rhythm, and the small details that make products feel alive.",
+    skills: ["Visual systems", "Responsive UI", "Interaction states", "Motion direction"],
+  },
+  {
+    num: "05",
+    title: "Design Systems",
+    desc: "Building the shared language behind a product: adaptable components, tokens, and guidelines teams can rely on.",
+    skills: ["Components", "Design tokens", "Documentation", "Figma libraries"],
+  },
+  {
+    num: "06",
+    title: "Accessibility",
+    desc: "Designing with range in mind — inclusive patterns, readable hierarchy, and interfaces that work in the real world.",
+    skills: ["WCAG", "Inclusive design", "Keyboard flows", "Content hierarchy"],
+  },
+  {
+    num: "07",
+    title: "Design Partnership",
+    desc: "Working closely with product and engineering to make strong decisions, protect craft, and ship with confidence.",
+    skills: ["Design critique", "Developer handoff", "QA", "Team alignment"],
+  },
+];
+
+const defaultProcessSteps: ProcessStep[] = [
+  {
+    title: "Understand",
+    desc: "Understand the product, users, business context, constraints and desired outcomes before designing.",
+    tags: ["Context", "Stakeholders", "Constraints", "Goals"],
+    principle: "Good solutions begin with understanding the right context.",
+  },
+  {
+    title: "Research",
+    desc: "Explore user behaviour, pain points, workflows and market patterns to replace assumptions with evidence.",
+    tags: ["Research", "Data", "Insights", "Competitors"],
+    principle: "Research turns assumptions into evidence.",
+  },
+  {
+    title: "Define",
+    desc: "Turn research into a clear problem, priorities and shared direction.",
+    tags: ["Synthesis", "Problem statement", "User goals", "Priorities"],
+    principle: "Clarity creates momentum.",
+  },
+  {
+    title: "Explore",
+    desc: "Generate multiple approaches before committing to a single direction.",
+    tags: ["Ideation", "Flows", "Sketches", "Concepts"],
+    principle: "Exploring broadly reveals stronger solutions.",
+  },
+  {
+    title: "Design",
+    desc: "Turn the strongest ideas into clear, useful and visually cohesive interfaces.",
+    tags: ["UX", "UI", "Design system", "Interaction"],
+    principle: "Every visual decision should improve understanding.",
+  },
+  {
+    title: "Prototype",
+    desc: "Create realistic interactive flows to test behaviour and assumptions before development.",
+    tags: ["Prototyping", "Interactions", "Validation", "Flow"],
+    principle: "Prototypes make assumptions visible.",
+  },
+  {
+    title: "Iterate",
+    desc: "Use testing, feedback and evidence to continuously refine the experience.",
+    tags: ["Testing", "Feedback", "Refinement", "Learning"],
+    principle: "Great products improve through continuous learning.",
+  },
+];
+
+const defaultSkillsTools: SkillTool[] = [
+  {
+    name: "Figma",
+    number: "01",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg",
+    role: "Interface design & prototyping",
+    detail: "Components · Auto Layout · Design systems",
+    accent: "#a99dff",
+  },
+  {
+    name: "Photoshop",
+    number: "02",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photoshop/photoshop-plain.svg",
+    role: "Image editing & visual craft",
+    detail: "Mockups · Retouching · Art direction",
+    accent: "#7db6ff",
+  },
+  {
+    name: "Illustrator",
+    number: "03",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/illustrator/illustrator-plain.svg",
+    role: "Vector design & illustration",
+    detail: "Icons · Brand assets · Graphics",
+    accent: "#ff9a5c",
+  },
+  {
+    name: "Canva",
+    number: "04",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/canva/canva-original.svg",
+    role: "Visual content & presentations",
+    detail: "Social design · Decks · Fast concepts",
+    accent: "#52d8e5",
+  },
+];
+
+export const defaultSiteConfig: SiteConfig = {
+  hero: {
+    marqueeName: "YOGENDRA CHAUDHARY",
+    tagline: "Junior UI/UX Designer · Kathmandu",
+    bio: "Creating thoughtful, intuitive, and engaging digital experiences.",
+    portraitImage: yogendraProfileDefault,
+    scrollText: "Scroll Down",
+    availableBadge: "Available for new opportunities",
+  },
+  about: {
+    kicker: "About Me",
+    title: "Junior UI/UX Designer",
+    name: "YOGENDRA CHAUDHARY",
+    avatarImage: yogendraProfileDefault,
+    stats: [
+      { k: "Experience", v: "Internship" },
+      { k: "Focus", v: "UI/UX" },
+      { k: "Based in", v: "Kathmandu" },
+    ],
+    bioParagraph1:
+      "I’m a Junior UI/UX Designer passionate about turning ideas, requirements, and real-world problems into clear, meaningful digital experiences. After completing my UI/UX design internship, I gained hands-on experience in wireframing, user flows, high-fidelity interface design, prototyping, components, responsive layouts, and iterative design within real product workflows.",
+    bioParagraph2:
+      "I start with the problem, the user, and the friction — then refine the details that make an experience feel natural and consistent.",
+    ctaLabel: "View selected work",
+    ctaHref: "#work",
+  },
+  capabilities: {
+    kicker: "02 / What I can do",
+    title: "Make the complex feel inevitable.",
+    subtitle: "A complete product-design practice, from the first question to the final pixel.",
+    items: defaultPracticeItems,
+  },
+  process: {
+    kicker: "My Process",
+    title: "How I approach design.",
+    subtitle: "A structured, human-centered process that turns complex problems into simple, meaningful experiences.",
+    steps: defaultProcessSteps,
+  },
+  skills: {
+    kicker: "Selected tools / 04",
+    title: "My design toolkit.",
+    subtitle: "The focused set of tools I use to take work from the first frame to the final detail.",
+    tools: defaultSkillsTools,
+  },
+  trainings: {
+    kicker: "Experience",
+    title: "Learning by Doing",
+    subtitle: "Hands-on experience designing real product flows, interfaces, components, and responsive digital experiences.",
+    items: initialTrainings,
+  },
+  contact: {
+    kicker: "Get In Touch",
+    titleLines: ["LET'S", "WORK", "TOGETHER"],
+    subtitleHeadline: "Let’s create something meaningful.",
+    subtitleBody:
+      "I’m looking for opportunities to contribute, learn from experienced teams, and work on real product challenges. Whether you’re building something new, improving an existing experience, or simply want to talk about design, I’d be happy to connect.",
+    formTitle: "Send Me a Message",
+    footerCopyright: "© 2026 Yogendra Chaudhary. All rights reserved.",
+    footerCredit: "Designed & crafted by Yogendra.",
+    contacts: initialContacts,
+  },
+  projectsArchive: {
+    archiveTitle: "Case Studies",
+    archiveSubtitle:
+      "A growing collection of product-design work — from early concepts and user flows to refined, high-fidelity interfaces.",
+    explorationsTitle: "Beyond the Brief",
+    explorationsSubtitle:
+      "Ongoing explorations in product thinking, responsive interfaces, prototypes, and design-to-development workflows.",
+    ctaTitle: "Let's design",
+    ctaSubtitle: "something great.",
+    ctaButton: "Start a conversation",
+    digitalProjects: initialDigitalProjects,
+  },
+};
+
+export interface PortfolioSettings {
+  accent: string;
+  accent2: string;
+  background: string;
+  radius: number;
+  sectionSpace: string;
+}
+
+export const defaultSettings: PortfolioSettings = {
+  accent: "#a99dff",
+  accent2: "#d0a8ff",
+  background: "#f5f4f8",
+  radius: 14,
+  sectionSpace: "clamp(6rem, 10vw, 8rem)",
+};
+
+const SITE_CONFIG_KEY = "yogendra-portfolio-site-config";
+const SETTINGS_KEY = "yogendra-portfolio-settings";
+const PROJECTS_KEY = "yogendra-case-studies";
+
+interface SiteContextType {
+  config: SiteConfig;
+  updateConfig: (updater: (prev: SiteConfig) => SiteConfig) => void;
+  resetConfig: () => void;
+  settings: PortfolioSettings;
+  updateSettings: (updater: (prev: PortfolioSettings) => PortfolioSettings) => void;
+  resetSettings: () => void;
+  projects: Project[];
+  setProjects: (projects: Project[]) => void;
+  saveProjects: (projects: Project[]) => void;
+  resetProjects: () => void;
+}
+
+const SiteContext = createContext<SiteContextType | null>(null);
+
+export function SiteProvider({ children }: { children: ReactNode }) {
+  const [config, setConfigState] = useState<SiteConfig>(() => {
+    try {
+      const stored = localStorage.getItem(SITE_CONFIG_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Merge deep with defaultSiteConfig to guard against schema changes
+        return {
+          ...defaultSiteConfig,
+          ...parsed,
+          hero: { ...defaultSiteConfig.hero, ...parsed.hero },
+          about: { ...defaultSiteConfig.about, ...parsed.about },
+          capabilities: { ...defaultSiteConfig.capabilities, ...parsed.capabilities },
+          process: { ...defaultSiteConfig.process, ...parsed.process },
+          skills: { ...defaultSiteConfig.skills, ...parsed.skills },
+          trainings: { ...defaultSiteConfig.trainings, ...parsed.trainings },
+          contact: { ...defaultSiteConfig.contact, ...parsed.contact },
+          projectsArchive: { ...defaultSiteConfig.projectsArchive, ...parsed.projectsArchive },
+        };
+      }
+    } catch {
+      // fallback
+    }
+    return defaultSiteConfig;
+  });
+
+  const [settings, setSettingsState] = useState<PortfolioSettings>(() => {
+    try {
+      const stored = localStorage.getItem(SETTINGS_KEY);
+      if (stored) return { ...defaultSettings, ...JSON.parse(stored) };
+    } catch {
+      // fallback
+    }
+    return defaultSettings;
+  });
+
+  const [projects, setProjectsState] = useState<Project[]>(() => {
+    try {
+      const stored = localStorage.getItem(PROJECTS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return initialCaseStudies;
+  });
+
+  const applyCSSVariables = (nextSettings: PortfolioSettings) => {
+    const root = document.documentElement;
+    root.style.setProperty("--accent", nextSettings.accent);
+    root.style.setProperty("--accent-2", nextSettings.accent2 || nextSettings.accent);
+    root.style.setProperty("--bg", nextSettings.background);
+    root.style.setProperty("--radius", `${nextSettings.radius}px`);
+    root.style.setProperty("--section-space", nextSettings.sectionSpace);
+  };
+
+  useEffect(() => {
+    applyCSSVariables(settings);
+  }, [settings]);
+
+  const updateConfig = (updater: (prev: SiteConfig) => SiteConfig) => {
+    setConfigState((prev) => {
+      const next = updater(prev);
+      try {
+        localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.error("Failed to save site config", e);
+      }
+      return next;
+    });
+  };
+
+  const resetConfig = () => {
+    localStorage.removeItem(SITE_CONFIG_KEY);
+    setConfigState(defaultSiteConfig);
+  };
+
+  const updateSettings = (updater: (prev: PortfolioSettings) => PortfolioSettings) => {
+    setSettingsState((prev) => {
+      const next = updater(prev);
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.error("Failed to save settings", e);
+      }
+      applyCSSVariables(next);
+      return next;
+    });
+  };
+
+  const resetSettings = () => {
+    localStorage.removeItem(SETTINGS_KEY);
+    const root = document.documentElement;
+    ["--accent", "--accent-2", "--bg", "--radius", "--section-space"].forEach((key) =>
+      root.style.removeProperty(key)
+    );
+    setSettingsState(defaultSettings);
+    applyCSSVariables(defaultSettings);
+  };
+
+  const saveProjects = (next: Project[]) => {
+    setProjectsState(next);
+    try {
+      localStorage.setItem(PROJECTS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("Failed to save projects to localStorage", e);
+    }
+    window.dispatchEvent(new CustomEvent<Project[]>("portfolio-projects-updated", { detail: next }));
+  };
+
+  const resetProjects = () => {
+    localStorage.removeItem(PROJECTS_KEY);
+    saveProjects(initialCaseStudies);
+  };
+
+  return (
+    <SiteContext.Provider
+      value={{
+        config,
+        updateConfig,
+        resetConfig,
+        settings,
+        updateSettings,
+        resetSettings,
+        projects,
+        setProjects: setProjectsState,
+        saveProjects,
+        resetProjects,
+      }}
+    >
+      {children}
+    </SiteContext.Provider>
+  );
+}
+
+export function useSite() {
+  const ctx = useContext(SiteContext);
+  if (!ctx) {
+    throw new Error("useSite must be used within a SiteProvider");
+  }
+  return ctx;
+}
