@@ -1,0 +1,10 @@
+{
+  "description": "Effortlessly replicate any portfolio website with pixel-perfect accuracy, ensuring a seamless user experience and maintaining the original's visual identity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
