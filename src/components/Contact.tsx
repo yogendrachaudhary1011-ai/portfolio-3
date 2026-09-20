@@ -48,7 +48,7 @@ export default function Contact() {
           {contactConfig.kicker || "Get In Touch"}
         </p>
       </Reveal>
-      <div className="grid gap-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
         {/* left */}
         <div>
           <h2 className="max-w-[9ch] font-display text-[clamp(3.25rem,7vw,6.1rem)] font-bold leading-[0.88] tracking-[-0.065em]">

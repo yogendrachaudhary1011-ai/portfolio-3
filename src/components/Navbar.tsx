@@ -119,9 +119,13 @@ export default function Navbar({
     const frame = requestAnimationFrame(measure);
     const observer = new ResizeObserver(measure);
     if (desktopNavRef.current) observer.observe(desktopNavRef.current);
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
     };
   }, [current, variant]);
 
@@ -390,7 +394,7 @@ export default function Navbar({
                     onNav?.(l.id);
                   }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative z-10 rounded-full px-3.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] transition-colors duration-300 hover:text-[var(--fg)] ${
+                  className={`relative z-10 rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 font-mono text-[0.58rem] sm:text-[0.62rem] uppercase tracking-[0.12em] sm:tracking-[0.14em] whitespace-nowrap transition-colors duration-300 hover:text-[var(--fg)] ${
                     isActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
                   }`}
                   style={{

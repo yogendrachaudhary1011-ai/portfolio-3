@@ -28,7 +28,7 @@ export default function Skills() {
           </Reveal>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           {tools.map((tool, index) => (
             <Reveal key={`${tool.name}-${index}`} dir="up" delay={0.08 + index * 0.07}>
               <Tilt className="group relative h-full overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 transition-colors duration-500 hover:border-[var(--accent)]/40" max={4}>

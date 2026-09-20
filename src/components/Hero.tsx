@@ -7,8 +7,13 @@ import { useSite } from "../siteContext";
 const BASE = 1.75;
 
 export default function Hero() {
-  const { config } = useSite();
+  const { config, settings } = useSite();
   const heroConfig = config.hero;
+
+  const showKicker = settings?.textVisibility?.showKickers ?? true;
+  const showSub = settings?.textVisibility?.showSubheadings ?? true;
+  const showBio = settings?.textVisibility?.showDescriptions ?? true;
+  const showBadges = settings?.textVisibility?.showBadges ?? true;
 
   const { ref: portraitRef, y } = useParallax<HTMLDivElement>(50);
   const sectionRef = useRef<HTMLElement>(null);
@@ -102,54 +107,67 @@ export default function Hero() {
       </div>
 
       <div className="absolute inset-x-6 bottom-7 z-20 md:hidden">
-        <p className="label !text-[0.55rem] text-[var(--fg)]/65">{heroConfig.tagline}</p>
-        <p className="mt-2 max-w-[17rem] text-sm leading-relaxed text-[var(--fg)]/80">{heroConfig.bio}</p>
+        {showSub && <p className="label !text-[0.55rem] text-[var(--fg)]/65">{heroConfig.tagline}</p>}
+        {showBio && (
+          <p
+            className="mt-2 max-w-[17rem] leading-relaxed text-[var(--fg)]/80"
+            style={{ fontSize: "calc(0.875rem * var(--subheading-scale, 1))" }}
+          >
+            {heroConfig.bio}
+          </p>
+        )}
       </div>
 
       {/* left meta */}
-      <div className="absolute bottom-24 left-6 z-10 hidden max-w-[180px] lg:block">
+      <div className="absolute bottom-20 left-6 z-10 hidden max-w-[200px] md:block lg:bottom-24 lg:max-w-[220px]">
         {/* label */}
-        <p
-          className="label mb-2 !text-[0.55rem]"
-          style={{ animation: `load-up 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.3}s both` }}
-        >
-          {heroConfig.tagline.split("·")[0]?.trim() || "Junior UI/UX Designer"}
-        </p>
+        {showKicker && (
+          <p
+            className="label mb-2 !text-[0.55rem]"
+            style={{ animation: `load-up 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.3}s both` }}
+          >
+            {heroConfig.tagline.split("·")[0]?.trim() || "Junior UI/UX Designer"}
+          </p>
+        )}
 
         {/* bio — word-by-word clip reveal */}
-        <p style={{ margin: 0 }}>
-          {bioWords.map((word, i) => (
-            <span
-              key={i}
-              style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom", marginRight: "0.28em" }}
-            >
+        {showBio && (
+          <p style={{ margin: 0 }}>
+            {bioWords.map((word, i) => (
               <span
-                style={{
-                  display: "inline-block",
-                  fontSize: "0.875rem",
-                  lineHeight: 1.625,
-                  color: "var(--muted)",
-                  animation: `load-word-clip 0.5s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.42 + i * 0.048}s both`,
-                }}
+                key={i}
+                style={{ display: "inline-block", overflow: "hidden", verticalAlign: "bottom", marginRight: "0.28em" }}
               >
-                {word}
+                <span
+                  style={{
+                    display: "inline-block",
+                    fontSize: "calc(0.875rem * var(--subheading-scale, 1))",
+                    lineHeight: 1.625,
+                    color: "var(--muted)",
+                    animation: `load-word-clip 0.5s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.42 + i * 0.048}s both`,
+                  }}
+                >
+                  {word}
+                </span>
               </span>
-            </span>
-          ))}
-        </p>
+            ))}
+          </p>
+        )}
       </div>
 
       {/* scroll down */}
-      <div
-        className="absolute bottom-24 right-6 z-10 hidden items-center gap-3 md:flex"
-        style={{
-          writingMode: "vertical-rl",
-          animation: `load-right 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.65}s both`,
-        }}
-      >
-        <span className="label !text-[0.6rem]">{heroConfig.scrollText || "Scroll Down"}</span>
-        <span className="h-10 w-px animate-pulse bg-[var(--muted)]" />
-      </div>
+      {showBadges && (
+        <div
+          className="absolute bottom-24 right-6 z-10 hidden items-center gap-3 md:flex"
+          style={{
+            writingMode: "vertical-rl",
+            animation: `load-right 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.65}s both`,
+          }}
+        >
+          <span className="label !text-[0.6rem]">{heroConfig.scrollText || "Scroll Down"}</span>
+          <span className="h-10 w-px animate-pulse bg-[var(--muted)]" />
+        </div>
+      )}
     </section>
   );
 }

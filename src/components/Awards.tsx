@@ -13,7 +13,7 @@ export default function Awards() {
         sub="A collection of academic and professional recognitions that reflect my dedication to excellence."
       />
 
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-12">
         {/* collage */}
         <div className="grid grid-cols-3 gap-3">
           {awardPhotos.map((p, i) => (

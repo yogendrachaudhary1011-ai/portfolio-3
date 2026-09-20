@@ -321,12 +321,54 @@ export const defaultSiteConfig: SiteConfig = {
   },
 };
 
+export interface EnabledSections {
+  hero: boolean;
+  work: boolean;
+  capabilities: boolean;
+  process: boolean;
+  about: boolean;
+  trainings: boolean;
+  skills: boolean;
+  contact: boolean;
+}
+
+export const defaultEnabledSections: EnabledSections = {
+  hero: true,
+  work: true,
+  capabilities: true,
+  process: true,
+  about: true,
+  trainings: true,
+  skills: true,
+  contact: true,
+};
+
+export interface TextVisibility {
+  showKickers: boolean;
+  showSubheadings: boolean;
+  showDescriptions: boolean;
+  showBadges: boolean;
+  showStats: boolean;
+}
+
+export const defaultTextVisibility: TextVisibility = {
+  showKickers: true,
+  showSubheadings: true,
+  showDescriptions: true,
+  showBadges: true,
+  showStats: true,
+};
+
 export interface PortfolioSettings {
   accent: string;
   accent2: string;
   background: string;
   radius: number;
   sectionSpace: string;
+  headingScale: number;
+  subheadingScale: number;
+  sections: EnabledSections;
+  textVisibility: TextVisibility;
 }
 
 export const defaultSettings: PortfolioSettings = {
@@ -335,6 +377,10 @@ export const defaultSettings: PortfolioSettings = {
   background: "",
   radius: 14,
   sectionSpace: "clamp(6rem, 10vw, 8rem)",
+  headingScale: 1.0,
+  subheadingScale: 1.0,
+  sections: defaultEnabledSections,
+  textVisibility: defaultTextVisibility,
 };
 
 const SITE_CONFIG_KEY = "yogendra-portfolio-site-config";
@@ -399,7 +445,14 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         if (parsed.background === "#f5f4f8" || parsed.background === "#08080a" || parsed.background === "#0b0b0e") {
           parsed.background = "";
         }
-        return { ...defaultSettings, ...parsed };
+        return {
+          ...defaultSettings,
+          ...parsed,
+          sections: { ...defaultEnabledSections, ...parsed.sections },
+          textVisibility: { ...defaultTextVisibility, ...parsed.textVisibility },
+          headingScale: typeof parsed.headingScale === "number" ? parsed.headingScale : 1.0,
+          subheadingScale: typeof parsed.subheadingScale === "number" ? parsed.subheadingScale : 1.0,
+        };
       }
     } catch {
       // fallback
@@ -436,6 +489,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     }
     root.style.setProperty("--radius", `${nextSettings.radius}px`);
     root.style.setProperty("--section-space", nextSettings.sectionSpace);
+    root.style.setProperty("--heading-scale", String(nextSettings.headingScale || 1.0));
+    root.style.setProperty("--subheading-scale", String(nextSettings.subheadingScale || 1.0));
   };
 
   useEffect(() => {
@@ -507,7 +562,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(SETTINGS_KEY);
     } catch {}
     const root = document.documentElement;
-    ["--accent", "--accent-2", "--bg", "--radius", "--section-space"].forEach((key) =>
+    ["--accent", "--accent-2", "--bg", "--radius", "--section-space", "--heading-scale", "--subheading-scale"].forEach((key) =>
       root.style.removeProperty(key)
     );
     setSettingsState(defaultSettings);

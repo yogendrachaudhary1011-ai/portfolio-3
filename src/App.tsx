@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { ThemeProvider } from "./theme";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -30,6 +30,8 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [onDone]);
 
+  const words = useMemo(() => NAME.trim().split(/\s+/), [NAME]);
+
   return (
     <div
       style={{
@@ -41,40 +43,52 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "1.4rem",
+        gap: "1.2rem",
         /* clip-path curtain rises upward when lifting */
         clipPath: lifting ? "inset(100% 0 0 0)" : "inset(0 0 0 0)",
         transition: lifting ? "clip-path 0.75s cubic-bezier(0.76,0,0.24,1)" : "none",
         pointerEvents: lifting ? "none" : "all",
       }}
     >
-      {/* letter cascade */}
-      <div style={{ display: "flex", overflow: "hidden", lineHeight: 1 }}>
-        {NAME.split("").map((ch, i) => (
-          <span
-            key={i}
-            style={{
-              display: "inline-block",
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(2.6rem, 8vw, 6rem)",
-              fontWeight: 800,
-              color: "#ececec",
-              letterSpacing: ch === " " ? "0.25em" : "-0.015em",
-              whiteSpace: "pre",
-              /* each letter slides up with stagger */
-              animation: `intro-char 0.62s cubic-bezier(0.22,1,0.36,1) ${i * 0.06}s both`,
-            }}
-          >
-            {ch}
-          </span>
-        ))}
+      {/* subtle ambient glow in center */}
+      <div
+        className="pointer-events-none absolute -z-10 size-[280px] sm:size-[480px] rounded-full bg-white/[0.035] blur-3xl"
+        style={{ transform: "translateZ(0)" }}
+      />
+
+      {/* letter cascade — stacked on mobile so name fills the screen without any side clipping; inline on tablet & desktop */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 max-w-[94vw] px-2 text-center select-none">
+        {words.map((word, wIdx) => {
+          const startIndex = words.slice(0, wIdx).reduce((acc, w) => acc + w.length, 0);
+          return (
+            <div
+              key={wIdx}
+              className="flex items-center justify-center overflow-hidden py-0.5 leading-none"
+            >
+              {word.split("").map((ch, cIdx) => {
+                const idx = startIndex + cIdx;
+                return (
+                  <span
+                    key={cIdx}
+                    className="inline-block font-display font-extrabold text-[#ececec] tracking-[-0.025em] leading-none text-[clamp(2.5rem,10vw,3.8rem)] sm:text-[clamp(2.4rem,4.8vw,5.5rem)]"
+                    style={{
+                      animation: `intro-char 0.62s cubic-bezier(0.22,1,0.36,1) ${idx * 0.045}s both`,
+                    }}
+                  >
+                    {ch}
+                  </span>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
 
       {/* hairline that expands from center */}
       <div
         style={{
           height: "1px",
-          width: "clamp(100px, 18vw, 260px)",
+          width: "clamp(90px, 20vw, 240px)",
           background: "#ececec",
           opacity: 0.25,
           transformOrigin: "center",
@@ -87,9 +101,13 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         style={{
           display: "block",
           fontFamily: "var(--font-mono)",
-          fontSize: "clamp(0.5rem, 1.3vw, 0.68rem)",
+          fontSize: "clamp(0.52rem, 1.4vw, 0.7rem)",
           color: "#ececec",
           textTransform: "uppercase",
+          maxWidth: "90vw",
+          textAlign: "center",
+          padding: "0 0.5rem",
+          letterSpacing: "0.22em",
           animation: "intro-sub 0.65s cubic-bezier(0.22,1,0.36,1) 0.88s both",
         }}
       >
@@ -98,7 +116,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
       <button
         type="button"
         onClick={onDone}
-        className="mt-4 rounded-full border border-white/20 px-4 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-white"
+        className="mt-2 sm:mt-4 rounded-full border border-white/20 px-4 py-1.5 sm:py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-all hover:border-white/50 hover:text-white active:scale-95 focus-visible:outline-white"
       >
         Skip intro
       </button>

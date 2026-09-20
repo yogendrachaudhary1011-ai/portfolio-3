@@ -261,8 +261,8 @@ export default function MyProcess() {
             })}
           </div>
 
-          {/* Progress rail — desktop */}
-          <div className="hidden w-12 shrink-0 lg:block">
+          {/* Progress rail — desktop & tablet */}
+          <div className="hidden w-12 shrink-0 md:block">
             <div className="sticky flex flex-col items-center gap-4" style={{ top: "42vh" }}>
               <span className="font-mono text-[0.62rem] tracking-[0.14em] text-[var(--process-fg)]">
                 {String(active + 1).padStart(2, "0")}

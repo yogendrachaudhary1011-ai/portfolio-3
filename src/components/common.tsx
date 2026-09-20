@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useSite } from "../siteContext";
 
 export function useInView<T extends HTMLElement>(once = true) {
   const ref = useRef<T>(null);
@@ -251,22 +252,28 @@ export function SectionHead({
   sub?: string;
   action?: ReactNode;
 }) {
+  const { settings } = useSite();
+  const showKicker = settings?.textVisibility?.showKickers ?? true;
+  const showSub = settings?.textVisibility?.showSubheadings ?? true;
+
   return (
     <div className="mb-12 flex flex-col gap-6 border-b border-[var(--hairline)] pb-9 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
-        <Reveal dir="up">
-          <p className="section-kicker mb-4 flex items-center gap-3">
-            <span className="inline-block h-px w-8 bg-[var(--accent)]" />
-            {label}
-          </p>
-        </Reveal>
+        {showKicker && (
+          <Reveal dir="up">
+            <p className="section-kicker mb-4 flex items-center gap-3">
+              <span className="inline-block h-px w-8 bg-[var(--accent)]" />
+              {label}
+            </p>
+          </Reveal>
+        )}
         <SplitText
           text={title}
           className="section-title"
         />
-        {sub && (
+        {sub && showSub && (
           <Reveal delay={0.15} dir="up">
-            <p className="mt-5 max-w-xl text-[0.96rem] leading-relaxed text-[var(--muted)]">{sub}</p>
+            <p className="section-subheading mt-5 max-w-xl text-[var(--muted)]">{sub}</p>
           </Reveal>
         )}
       </div>
@@ -335,6 +342,8 @@ export function Magnetic({
       ref={ref}
       onMouseMove={onMove}
       onMouseLeave={() => set([0, 0])}
+      onTouchEnd={() => set([0, 0])}
+      onTouchCancel={() => set([0, 0])}
       className={className}
       style={{ display: "inline-block", willChange: "transform" }}
     >
@@ -378,6 +387,8 @@ export function Tilt({
       ref={ref}
       onMouseMove={onMove}
       onMouseLeave={() => set([0, 0, 50, 50])}
+      onTouchEnd={() => set([0, 0, 50, 50])}
+      onTouchCancel={() => set([0, 0, 50, 50])}
       className={className}
       style={{ transformStyle: "preserve-3d", willChange: "transform" }}
     >

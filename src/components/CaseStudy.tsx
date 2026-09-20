@@ -67,14 +67,14 @@ export default function CaseStudy({ project, index, onBack }: { project: Project
         >
           <Arrow className="size-4 rotate-180" /> Back to work
         </button>
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+        <div className="grid gap-10 md:grid-cols-[0.9fr_1.1fr] md:items-end">
           <div><p className="section-kicker mb-4">Case study / {String(index + 1).padStart(2, "0")}</p><h1 className="font-display text-[clamp(3rem,6vw,5.5rem)] font-bold leading-[0.92] tracking-[-0.065em]">{project.title}</h1></div>
           <p className="max-w-xl text-base leading-relaxed text-[var(--muted)]">{project.desc}</p>
         </div>
         <div className="mt-12 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card)]"><img src={img(project.thumbnail ?? imageSet[0], 1600, 980)} alt={`${project.title} cover`} className="aspect-[16/9] w-full object-cover" /></div>
       </section>
       <section className="border-y border-[var(--hairline)] bg-[var(--bg-2)]"><div className="mx-auto grid max-w-6xl gap-px px-5 sm:grid-cols-3 sm:px-6"><div className="py-6"><p className="label !text-[0.55rem]">Focus</p><p className="mt-2 text-sm font-medium">{project.stack ?? "Product design"}</p></div><div className="py-6"><p className="label !text-[0.55rem]">Deliverables</p><p className="mt-2 text-sm font-medium">Research · UX · UI</p></div><div className="py-6"><p className="label !text-[0.55rem]">Status</p><p className="mt-2 text-sm font-medium">Concept case study</p></div></div></section>
-      <section className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:py-28"><div><p className="section-kicker">The project</p><h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em]">A clearer path from need to outcome.</h2></div><div className="space-y-7 text-[0.98rem] leading-relaxed text-[var(--muted)]"><p>This case-study template is ready for the full project story: the problem, constraints, research, key decisions, interface explorations, and the outcome.</p><p>Replace this content with project-specific evidence and decisions when the final case study is ready to publish.</p></div></section>
+      <section className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-6 md:grid-cols-[0.75fr_1.25fr] md:py-28"><div><p className="section-kicker">The project</p><h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em]">A clearer path from need to outcome.</h2></div><div className="space-y-7 text-[0.98rem] leading-relaxed text-[var(--muted)]"><p>This case-study template is ready for the full project story: the problem, constraints, research, key decisions, interface explorations, and the outcome.</p><p>Replace this content with project-specific evidence and decisions when the final case study is ready to publish.</p></div></section>
       <section className="mx-auto max-w-6xl px-5 pb-20 sm:px-6 sm:pb-28"><div className="grid gap-5 md:grid-cols-2">{imageSet.slice(1).map((image, i) => <img key={`${image}-${i}`} src={img(image, 900, 700)} alt={`${project.title} visual ${i + 1}`} className="aspect-[4/3] w-full rounded-2xl border border-[var(--card-border)] object-cover" />)}</div></section>
     </main>
   );

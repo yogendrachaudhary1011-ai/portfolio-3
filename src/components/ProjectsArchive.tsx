@@ -109,7 +109,7 @@ export default function ProjectsArchive({
           </p>
         </Reveal>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {digitalProjects.map((d, i) => (
             <Reveal key={`${d.title}-${i}`} delay={i * 0.08} dir="up">
               <Tilt max={7} className="group h-full">
