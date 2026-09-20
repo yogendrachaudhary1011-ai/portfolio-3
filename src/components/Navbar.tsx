@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "../theme";
 import { Sun, Moon } from "../icons";
-import { Home } from "lucide-react";
+import { Home, Menu, X, ArrowUpRight, ArrowLeft, Mail, Sparkles } from "lucide-react";
 import { NAV } from "../data";
 import { Magnetic } from "./common";
 
@@ -15,11 +15,10 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className="group grid size-12 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
-      style={{ animation: `load-fade 0.5s ease ${BASE + 0.5}s both` }}
+      className="group grid size-10 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)] active:scale-95 sm:size-12"
     >
       <span className="transition-transform duration-500 group-hover:rotate-45">
-        {theme === "dark" ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}
+        {theme === "dark" ? <Moon className="size-4 sm:size-[18px]" /> : <Sun className="size-4 sm:size-[18px]" />}
       </span>
     </button>
   );
@@ -40,6 +39,7 @@ export default function Navbar({
   onHome?: () => void;
   onContact?: () => void;
 }) {
+  const { theme, toggle } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [current, setCurrent] = useState(active ?? "");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,18 +47,37 @@ export default function Navbar({
   const desktopNavRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const links = NAV.map((n) => ({ label: n, id: n === "Experience" ? "trainings" : n.toLowerCase().replace(/[^a-z]+/g, "-") }));
+  const links = NAV.map((n, i) => {
+    let id = n.toLowerCase().replace(/[^a-z]+/g, "-");
+    if (n === "Experience") id = "trainings";
+    return { label: n, id, num: String(i + 1).padStart(2, "0") };
+  });
 
   useEffect(() => {
     if (active !== undefined) setCurrent(active);
   }, [active]);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      setScrolled(scrollY > 20);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     const ids = links.map((l) => l.id);
@@ -106,33 +125,246 @@ export default function Navbar({
     };
   }, [current, variant]);
 
+  const handleContact = (event: React.MouseEvent) => {
+    setMenuOpen(false);
+    if (onContact) {
+      event.preventDefault();
+      onContact();
+    } else if (onNav) {
+      event.preventDefault();
+      onNav("contact");
+    }
+  };
+
   return (
     <>
-      {/* whole header slides down from top */}
+      {/* ─── REDESIGNED MOBILE NAVIGATION (md:hidden) ─────────────────── */}
+      {/* 1. Fixed Top Mobile App Bar */}
       <header
-        className="fixed inset-x-0 top-3 z-50 flex justify-center px-3 sm:top-4 sm:px-4"
-        style={{ animation: `load-down 0.7s cubic-bezier(0.22,1,0.36,1) ${BASE - 0.05}s both` }}
+        className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-[var(--hairline)] bg-[var(--bg)]/90 px-4 backdrop-blur-xl transition-colors duration-300 md:hidden"
+        style={{
+          boxShadow: scrolled ? "var(--shadow-soft)" : "none",
+        }}
       >
+        {/* Left: Brand Identity / Back Button */}
+        {showHomeButton ? (
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              onHome?.();
+            }}
+            aria-label="Back to home"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--card-border)] bg-[var(--chip)] px-3 py-1.5 font-mono text-[0.68rem] font-medium uppercase tracking-wider text-[var(--fg)] transition-transform active:scale-95"
+          >
+            <ArrowLeft size={13} className="text-[var(--accent)]" />
+            <span>Home</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              onNav?.("home");
+            }}
+            className="flex flex-col text-left transition-transform active:scale-95"
+          >
+            <span className="font-display text-[0.88rem] font-semibold leading-tight tracking-tight text-[var(--fg)]">
+              Yogendra C.
+            </span>
+            <span className="mt-0.5 flex items-center gap-1.5">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-[0.55rem] uppercase tracking-wider text-[var(--muted)]">
+                UI/UX Designer
+              </span>
+            </span>
+          </button>
+        )}
+
+        {/* Right: Theme Toggle + Menu Button */}
+        <div className="flex items-center gap-2">
+          {/* Quick Theme Switcher */}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            className="grid size-9 place-items-center rounded-full border border-[var(--card-border)] bg-[var(--chip)] text-[var(--fg)] transition-all hover:border-[var(--accent)] active:scale-90"
+          >
+            {theme === "dark" ? (
+              <Moon className="size-4 text-[var(--accent)]" />
+            ) : (
+              <Sun className="size-4 text-[var(--accent)]" />
+            )}
+          </button>
+
+          {/* Morphing Menu Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={menuOpen}
+            className={`flex h-9 items-center gap-1.5 rounded-full border px-3 transition-all active:scale-95 ${
+              menuOpen
+                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--bg)] shadow-sm font-semibold"
+                : "border-[var(--card-border)] bg-[var(--chip)] text-[var(--fg)] font-medium"
+            }`}
+          >
+            {menuOpen ? (
+              <>
+                <X size={14} className="stroke-[2.5]" />
+                <span className="font-mono text-[0.66rem] uppercase tracking-wider">Close</span>
+              </>
+            ) : (
+              <>
+                <Menu size={14} className="stroke-[2.5]" />
+                <span className="font-mono text-[0.66rem] uppercase tracking-wider">Menu</span>
+              </>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* 2. Full-Screen Immersive Mobile Menu Overlay */}
+      <div
+        className={`fixed inset-x-0 bottom-0 top-14 z-40 flex flex-col justify-between overflow-y-auto bg-[var(--bg)]/98 px-5 pb-6 pt-4 backdrop-blur-2xl transition-all duration-300 md:hidden ${
+          menuOpen
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-4 opacity-0"
+        }`}
+      >
+        {/* Navigation Section */}
+        <div>
+          <div className="mb-2 flex items-center justify-between border-b border-[var(--hairline)] pb-2.5">
+            <span className="font-mono text-[0.62rem] uppercase tracking-[0.2em] text-[var(--muted)]">
+              Navigation Directory
+            </span>
+            <span className="font-mono text-[0.62rem] font-medium text-[var(--accent)]">
+              {theme === "dark" ? "Dark Mode" : "Light Mode"}
+            </span>
+          </div>
+
+          <div className="flex flex-col">
+            {showHomeButton && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onHome?.();
+                }}
+                className="group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 text-left transition-colors"
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="font-mono text-xs text-[var(--muted)] group-hover:text-[var(--accent)]">
+                    00
+                  </span>
+                  <span className="font-display text-lg font-semibold tracking-tight text-[var(--fg)] group-hover:translate-x-1 transition-transform">
+                    Return to Home
+                  </span>
+                </div>
+                <div className="grid size-7 place-items-center rounded-full border border-[var(--hairline)] text-[var(--muted)] transition-all group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]">
+                  <ArrowUpRight size={14} />
+                </div>
+              </button>
+            )}
+
+            {links.map((link) => {
+              const isActive = current === link.id;
+              return (
+                <button
+                  key={link.id}
+                  type="button"
+                  onClick={() => {
+                    setCurrent(link.id);
+                    onNav?.(link.id);
+                    setMenuOpen(false);
+                  }}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 text-left transition-colors ${
+                    isActive ? "text-[var(--accent)]" : "text-[var(--fg)]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <span
+                      className={`font-mono text-xs transition-colors ${
+                        isActive
+                          ? "font-bold text-[var(--accent)]"
+                          : "text-[var(--muted)] group-hover:text-[var(--accent)]"
+                      }`}
+                    >
+                      {link.num}
+                    </span>
+                    <span className="font-display text-lg font-semibold tracking-tight group-hover:translate-x-1 transition-transform">
+                      {link.label}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`grid size-7 place-items-center rounded-full transition-all ${
+                      isActive
+                        ? "bg-[var(--accent)] text-[var(--bg)] shadow-xs"
+                        : "border border-[var(--hairline)] text-[var(--muted)] group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]"
+                    }`}
+                  >
+                    <ArrowUpRight size={14} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bottom Actions and Contact Panel */}
+        <div className="mt-6 flex flex-col gap-3 pt-3">
+          {/* Main CTA */}
+          <a
+            href="#contact"
+            onClick={handleContact}
+            className="btn-shine flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--fg)] text-[0.84rem] font-medium text-[var(--bg)] shadow-md transition-transform active:scale-98"
+          >
+            <Sparkles size={14} />
+            <span>Let’s Talk — Start a Project</span>
+            <ArrowUpRight size={14} />
+          </a>
+
+          {/* Quick Contact & Info Card */}
+          <div className="flex items-center justify-between rounded-xl border border-[var(--card-border)] bg-[var(--chip)] px-3.5 py-2.5">
+            <a
+              href="mailto:yogendrachaudhary2004@gmail.com"
+              className="flex items-center gap-2 font-mono text-[0.68rem] text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+            >
+              <Mail size={13} className="text-[var(--accent)]" />
+              <span className="truncate">yogendrachaudhary2004@gmail.com</span>
+            </a>
+            <span className="font-mono text-[0.62rem] text-[var(--muted)]">
+              Kathmandu (NPT)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── DESKTOP FLOATING CAPSULE NAVIGATION (md:flex) ─────────────── */}
+      <header className="fixed inset-x-0 top-0 z-50 hidden justify-center px-4 pt-3.5 transition-all duration-300 md:flex">
         <nav
           aria-label="Primary navigation"
-          className="glass liquid-nav relative flex w-full items-center justify-center rounded-[1.75rem] px-2.5 backdrop-blur-xl transition-all duration-500 sm:px-3"
+          className="glass liquid-nav relative flex items-center justify-center rounded-[1.75rem] px-3 backdrop-blur-xl transition-all duration-500"
           style={{
-            maxWidth: scrolled ? "59rem" : "69rem",
-            paddingBlock: scrolled ? "0.4rem" : "0.52rem",
+            maxWidth: scrolled ? "56rem" : "64rem",
+            paddingBlock: scrolled ? "0.3rem" : "0.42rem",
             boxShadow: scrolled ? "var(--shadow-soft)" : "0 12px 30px -25px var(--shadow-soft)",
           }}
         >
-          {showHomeButton && (
-            <button
-              type="button"
-              onClick={onHome}
-              aria-label="Go home"
-              className="control-surface mr-1 hidden size-9 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)] md:grid"
-            >
-              <Home size={15} />
-            </button>
-          )}
-          <div ref={desktopNavRef} className="relative hidden items-center gap-1.5 md:flex">
+          <div ref={desktopNavRef} className="relative flex items-center gap-1">
+            {showHomeButton && (
+              <button
+                type="button"
+                onClick={onHome}
+                aria-label="Go home"
+                className="relative z-10 grid size-8 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+              >
+                <Home size={14} />
+              </button>
+            )}
+
             <span
               aria-hidden
               className="pointer-events-none absolute inset-y-0 rounded-full bg-[var(--fg)] shadow-[0_8px_18px_-14px_var(--fg)]"
@@ -140,18 +372,25 @@ export default function Navbar({
                 left: activePill.left,
                 width: activePill.width,
                 opacity: activePill.visible ? 1 : 0,
-                transition: "left 420ms cubic-bezier(0.22, 1, 0.36, 1), width 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease",
+                transition:
+                  "left 420ms cubic-bezier(0.22, 1, 0.36, 1), width 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease",
               }}
             />
+
             {links.map((l, i) => {
               const isActive = current === l.id;
               return (
                 <button
                   key={l.id}
-                  ref={(element) => { linkRefs.current[i] = element; }}
-                  onClick={() => { setCurrent(l.id); onNav?.(l.id); }}
+                  ref={(element) => {
+                    linkRefs.current[i] = element;
+                  }}
+                  onClick={() => {
+                    setCurrent(l.id);
+                    onNav?.(l.id);
+                  }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative z-10 rounded-full px-4 py-2.5 font-mono text-[0.62rem] uppercase tracking-[0.14em] transition-colors duration-300 hover:text-[var(--fg)] ${
+                  className={`relative z-10 rounded-full px-3.5 py-2 font-mono text-[0.62rem] uppercase tracking-[0.14em] transition-colors duration-300 hover:text-[var(--fg)] ${
                     isActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
                   }`}
                   style={{
@@ -163,65 +402,27 @@ export default function Navbar({
               );
             })}
           </div>
-
-          <div className="flex w-full items-center justify-between px-1.5 md:hidden">
-            <span className="font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[var(--muted)]">Navigate</span>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((open) => !open)}
-              aria-label="Toggle navigation"
-              aria-expanded={menuOpen}
-              className="control-surface grid size-10 place-items-center rounded-full text-[var(--fg)]"
-            >
-              <span className="flex w-4 flex-col gap-1.5">
-                <span className={`h-px w-full bg-current transition-transform duration-300 ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
-                <span className={`h-px w-full bg-current transition-transform duration-300 ${menuOpen ? "-translate-y-[3.5px] -rotate-45" : ""}`} />
-              </span>
-            </button>
-          </div>
-
-          <div className={`liquid-menu absolute left-0 right-0 top-[calc(100%+0.5rem)] overflow-hidden rounded-[1.5rem] border border-[var(--card-border)] p-2 transition-all duration-300 md:hidden ${menuOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"}`}>
-            {showHomeButton && (
-              <button
-                type="button"
-                onClick={() => { onHome?.(); setMenuOpen(false); }}
-                className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-mono text-[0.66rem] uppercase tracking-[0.16em] text-[var(--muted)] transition-colors"
-              >
-                <Home size={12} /><span>Home</span>
-              </button>
-            )}
-            {links.map((link) => (
-              <button
-                key={link.id}
-                type="button"
-                onClick={() => { setCurrent(link.id); onNav?.(link.id); setMenuOpen(false); }}
-                aria-current={current === link.id ? "page" : undefined}
-                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left font-mono text-[0.66rem] uppercase tracking-[0.16em] transition-colors ${current === link.id ? "bg-[var(--chip)] text-[var(--fg)]" : "text-[var(--muted)]"}`}
-              >
-                {link.label}<span aria-hidden>↗</span>
-              </button>
-            ))}
-          </div>
         </nav>
       </header>
-      <div className="glass fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full p-2 shadow-[var(--shadow-soft)]">
+
+      {/* Floating Action Bar (Bottom Right) - Always visible at all times */}
+      <div
+        id="floating-action-bar"
+        className="glass fixed bottom-4 right-4 z-[90] flex items-center gap-1.5 rounded-full p-1.5 shadow-[var(--shadow-soft)] transition-all duration-300 pointer-events-auto opacity-100 translate-y-0 sm:bottom-5 sm:right-5 sm:gap-2 sm:p-2"
+      >
         <ThemeToggle />
         <Magnetic strength={0.22}>
           <a
             href="#contact"
-            onClick={(event) => {
-              setMenuOpen(false);
-              if (onContact) {
-                event.preventDefault();
-                onContact();
-              }
-            }}
-            className="btn-shine inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--fg)] px-5 text-[0.84rem] font-medium text-[var(--bg)] transition-transform hover:scale-[1.02]"
+            onClick={handleContact}
+            className="btn-shine inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[var(--fg)] px-4 text-[0.78rem] font-medium text-[var(--bg)] transition-transform hover:scale-[1.02] active:scale-95 sm:min-h-12 sm:gap-2 sm:px-5 sm:text-[0.84rem]"
           >
-            Let’s Talk
+            <span>Let’s Talk</span>
+            <span aria-hidden>→</span>
           </a>
         </Magnetic>
       </div>
     </>
   );
 }
+

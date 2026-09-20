@@ -42,15 +42,31 @@ export default function CaseStudy({ project, index, onBack }: { project: Project
 
   if (pdfUrl || project.pdfKey) {
     return (
-      <main className="min-h-screen pt-20">
-        {viewerUrl ? <iframe title={`${project.title} case study`} src={viewerUrl} className="h-[calc(100vh-5rem)] min-h-[42rem] w-full bg-white" /> : <div className="grid h-[calc(100vh-5rem)] min-h-[42rem] place-items-center text-sm text-[var(--muted)]">Loading case study…</div>}
+      <main className="min-h-screen bg-[var(--bg)] text-[var(--fg)] pt-20 transition-colors duration-300">
+        {viewerUrl ? (
+          <iframe
+            title={`${project.title} case study`}
+            src={viewerUrl}
+            className="h-[calc(100vh-5rem)] min-h-[42rem] w-full rounded-2xl border border-[var(--card-border)] bg-[var(--card)]"
+          />
+        ) : (
+          <div className="grid h-[calc(100vh-5rem)] min-h-[42rem] place-items-center text-sm text-[var(--muted)]">
+            Loading case study…
+          </div>
+        )}
       </main>
     );
   }
   return (
-    <main className="min-h-screen pt-28">
+    <main className="min-h-screen bg-[var(--bg)] text-[var(--fg)] pt-28 transition-colors duration-300">
       <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-6 sm:pb-24">
-        <button type="button" onClick={onBack} className="mb-10 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--card-border)] px-4 text-sm font-medium transition-colors hover:bg-[var(--chip)]"><Arrow className="size-4 rotate-180" /> Back to work</button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-10 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-4 text-sm font-medium text-[var(--fg)] transition-colors hover:bg-[var(--chip)]"
+        >
+          <Arrow className="size-4 rotate-180" /> Back to work
+        </button>
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <div><p className="section-kicker mb-4">Case study / {String(index + 1).padStart(2, "0")}</p><h1 className="font-display text-[clamp(3rem,6vw,5.5rem)] font-bold leading-[0.92] tracking-[-0.065em]">{project.title}</h1></div>
           <p className="max-w-xl text-base leading-relaxed text-[var(--muted)]">{project.desc}</p>

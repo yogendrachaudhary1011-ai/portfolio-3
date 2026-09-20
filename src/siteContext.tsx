@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import yogendraProfileDefault from "./imports/yogendra-profile.png";
+import { safeSetLocalStorage, saveToIndexedDB, getFromIndexedDB } from "./storage";
 import {
   initialCaseStudies,
   digitalProjects as initialDigitalProjects,
@@ -222,15 +223,15 @@ const defaultSkillsTools: SkillTool[] = [
   {
     name: "Photoshop",
     number: "02",
-    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photoshop/photoshop-plain.svg",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photoshop/photoshop-original.svg",
     role: "Image editing & visual craft",
     detail: "Mockups · Retouching · Art direction",
-    accent: "#7db6ff",
+    accent: "#31a8ff",
   },
   {
     name: "Illustrator",
     number: "03",
-    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/illustrator/illustrator-plain.svg",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/illustrator/illustrator-original.svg",
     role: "Vector design & illustration",
     detail: "Icons · Brand assets · Graphics",
     accent: "#ff9a5c",
@@ -331,7 +332,7 @@ export interface PortfolioSettings {
 export const defaultSettings: PortfolioSettings = {
   accent: "#a99dff",
   accent2: "#d0a8ff",
-  background: "#f5f4f8",
+  background: "",
   radius: 14,
   sectionSpace: "clamp(6rem, 10vw, 8rem)",
 };
@@ -369,7 +370,16 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           about: { ...defaultSiteConfig.about, ...parsed.about },
           capabilities: { ...defaultSiteConfig.capabilities, ...parsed.capabilities },
           process: { ...defaultSiteConfig.process, ...parsed.process },
-          skills: { ...defaultSiteConfig.skills, ...parsed.skills },
+          skills: {
+            ...defaultSiteConfig.skills,
+            ...parsed.skills,
+            tools: (parsed.skills?.tools ?? defaultSiteConfig.skills.tools).map((t: SkillTool) => ({
+              ...t,
+              icon: t.icon
+                ?.replace("/photoshop/photoshop-plain.svg", "/photoshop/photoshop-original.svg")
+                .replace("/illustrator/illustrator-plain.svg", "/illustrator/illustrator-original.svg"),
+            })),
+          },
           trainings: { ...defaultSiteConfig.trainings, ...parsed.trainings },
           contact: { ...defaultSiteConfig.contact, ...parsed.contact },
           projectsArchive: { ...defaultSiteConfig.projectsArchive, ...parsed.projectsArchive },
@@ -384,7 +394,13 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const [settings, setSettingsState] = useState<PortfolioSettings>(() => {
     try {
       const stored = localStorage.getItem(SETTINGS_KEY);
-      if (stored) return { ...defaultSettings, ...JSON.parse(stored) };
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.background === "#f5f4f8" || parsed.background === "#08080a" || parsed.background === "#0b0b0e") {
+          parsed.background = "";
+        }
+        return { ...defaultSettings, ...parsed };
+      }
     } catch {
       // fallback
     }
@@ -408,7 +424,16 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.style.setProperty("--accent", nextSettings.accent);
     root.style.setProperty("--accent-2", nextSettings.accent2 || nextSettings.accent);
-    root.style.setProperty("--bg", nextSettings.background);
+    if (
+      nextSettings.background &&
+      nextSettings.background !== "#f5f4f8" &&
+      nextSettings.background !== "#08080a" &&
+      nextSettings.background !== "#0b0b0e"
+    ) {
+      root.style.setProperty("--bg", nextSettings.background);
+    } else {
+      root.style.removeProperty("--bg");
+    }
     root.style.setProperty("--radius", `${nextSettings.radius}px`);
     root.style.setProperty("--section-space", nextSettings.sectionSpace);
   };
@@ -417,38 +442,70 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     applyCSSVariables(settings);
   }, [settings]);
 
+  // Asynchronously hydrate any full assets or updates from IndexedDB
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const idbConfig = await getFromIndexedDB<SiteConfig>(SITE_CONFIG_KEY);
+        if (idbConfig && mounted) {
+          setConfigState((prev) => ({
+            ...prev,
+            ...idbConfig,
+            hero: { ...prev.hero, ...idbConfig.hero },
+            about: { ...prev.about, ...idbConfig.about },
+            capabilities: { ...prev.capabilities, ...idbConfig.capabilities },
+            process: { ...prev.process, ...idbConfig.process },
+            skills: { ...prev.skills, ...idbConfig.skills },
+            trainings: { ...prev.trainings, ...idbConfig.trainings },
+            contact: { ...prev.contact, ...idbConfig.contact },
+            projectsArchive: { ...prev.projectsArchive, ...idbConfig.projectsArchive },
+          }));
+        }
+
+        const idbProjects = await getFromIndexedDB<Project[]>(PROJECTS_KEY);
+        if (Array.isArray(idbProjects) && idbProjects.length > 0 && mounted) {
+          setProjectsState(idbProjects);
+        }
+      } catch {
+        // Keep in-memory and localStorage state
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const updateConfig = (updater: (prev: SiteConfig) => SiteConfig) => {
     setConfigState((prev) => {
       const next = updater(prev);
-      try {
-        localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.error("Failed to save site config", e);
-      }
+      safeSetLocalStorage(SITE_CONFIG_KEY, next);
       return next;
     });
   };
 
   const resetConfig = () => {
-    localStorage.removeItem(SITE_CONFIG_KEY);
+    try {
+      localStorage.removeItem(SITE_CONFIG_KEY);
+    } catch {}
+    saveToIndexedDB(SITE_CONFIG_KEY, defaultSiteConfig);
     setConfigState(defaultSiteConfig);
   };
 
   const updateSettings = (updater: (prev: PortfolioSettings) => PortfolioSettings) => {
     setSettingsState((prev) => {
       const next = updater(prev);
-      try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.error("Failed to save settings", e);
-      }
+      safeSetLocalStorage(SETTINGS_KEY, next);
       applyCSSVariables(next);
       return next;
     });
   };
 
   const resetSettings = () => {
-    localStorage.removeItem(SETTINGS_KEY);
+    try {
+      localStorage.removeItem(SETTINGS_KEY);
+    } catch {}
     const root = document.documentElement;
     ["--accent", "--accent-2", "--bg", "--radius", "--section-space"].forEach((key) =>
       root.style.removeProperty(key)
@@ -459,16 +516,15 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
   const saveProjects = (next: Project[]) => {
     setProjectsState(next);
-    try {
-      localStorage.setItem(PROJECTS_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.error("Failed to save projects to localStorage", e);
-    }
+    safeSetLocalStorage(PROJECTS_KEY, next);
     window.dispatchEvent(new CustomEvent<Project[]>("portfolio-projects-updated", { detail: next }));
   };
 
   const resetProjects = () => {
-    localStorage.removeItem(PROJECTS_KEY);
+    try {
+      localStorage.removeItem(PROJECTS_KEY);
+    } catch {}
+    saveToIndexedDB(PROJECTS_KEY, initialCaseStudies);
     saveProjects(initialCaseStudies);
   };
 

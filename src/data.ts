@@ -70,8 +70,8 @@ export const capabilities = [
 
 export const techStack = [
   { name: "Figma", icon: "figma/figma-original" },
-  { name: "Photoshop", icon: "photoshop/photoshop-plain" },
-  { name: "Illustrator", icon: "illustrator/illustrator-plain" },
+  { name: "Photoshop", icon: "photoshop/photoshop-original" },
+  { name: "Illustrator", icon: "illustrator/illustrator-original" },
   { name: "Adobe XD", icon: "xd/xd-plain" },
   { name: "After Effects", icon: "aftereffects/aftereffects-plain" },
   { name: "Premiere", icon: "premierepro/premierepro-plain" },
@@ -127,19 +127,19 @@ export const technicalProjects = [
     title: "Vedic Sewa — Spiritual Services Platform",
     desc: "A mobile booking experience for discovering services, consulting gurus, managing pujas, and keeping users informed at every step.",
     stack: "Mobile · UX · UI",
-    tech: ["figma/figma-original", "photoshop/photoshop-plain", "aftereffects/aftereffects-plain"],
+    tech: ["figma/figma-original", "photoshop/photoshop-original", "aftereffects/aftereffects-plain"],
   },
   {
     title: "Mero Route — Kathmandu Transit",
     desc: "A clearer way to discover routes, compare transport options, save frequent destinations, and navigate Kathmandu with confidence.",
     stack: "Mobile · Information Design",
-    tech: ["figma/figma-original", "illustrator/illustrator-plain", "aftereffects/aftereffects-plain"],
+    tech: ["figma/figma-original", "illustrator/illustrator-original", "aftereffects/aftereffects-plain"],
   },
   {
     title: "Office Management System",
     desc: "A central workplace platform for employee management, attendance, visitor registration, reporting, and role-based administration.",
     stack: "Web · Dashboard UX",
-    tech: ["figma/figma-original", "xd/xd-plain", "photoshop/photoshop-plain"],
+    tech: ["figma/figma-original", "xd/xd-plain", "photoshop/photoshop-original"],
   },
   {
     title: "Career Launchpad",
@@ -157,7 +157,7 @@ export const technicalProjects = [
     title: "Responsive Interface Studies",
     desc: "Ongoing practice in mobile, web, dashboard, and component design — focused on clarity, consistency, and adaptable layouts.",
     stack: "UI · Responsive Design",
-    tech: ["figma/figma-original", "photoshop/photoshop-plain", "illustrator/illustrator-plain"],
+    tech: ["figma/figma-original", "photoshop/photoshop-original", "illustrator/illustrator-original"],
   },
 ];
 

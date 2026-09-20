@@ -11,6 +11,7 @@ import {
 } from "../siteContext";
 import { type Project } from "../data";
 import { savePdf } from "../pdfStore";
+import { compressImageFile } from "../storage";
 import {
   Sliders,
   FolderGit2,
@@ -259,18 +260,24 @@ export default function AdminPanel() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  // Image upload helper
-  const handleFileUpload = (
+  // Image upload helper with automatic optimization
+  const handleFileUpload = async (
     file: File | undefined,
     onSuccess: (dataUrl: string) => void
   ) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      onSuccess(String(reader.result));
+    try {
+      const optimizedUrl = await compressImageFile(file);
+      onSuccess(optimizedUrl);
       showSaved();
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        onSuccess(String(reader.result));
+        showSaved();
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const uploadProjectPdf = async (index: number, files: FileList | null) => {

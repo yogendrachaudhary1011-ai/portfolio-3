@@ -32,7 +32,7 @@ export default function ProjectsArchive({
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] transition-colors duration-300">
       <section id="technical" className="mx-auto max-w-6xl px-5 pb-20 pt-32 sm:px-6 sm:pb-24 sm:pt-36">
         <Reveal>
           <p className="section-kicker mb-4 flex items-center gap-3">
