@@ -1,6 +1,18 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import yogendraProfileDefault from "./imports/yogendra-profile.png";
 import { safeSetLocalStorage, saveToIndexedDB, getFromIndexedDB } from "./storage";
+import {
+  saveConfigToCloud,
+  saveSettingsToCloud,
+  saveProjectsToCloud,
+  loadConfigFromCloud,
+  loadSettingsFromCloud,
+  loadProjectsFromCloud,
+  subscribeToCloudProjects,
+  subscribeToCloudConfig,
+  subscribeToCloudSettings,
+  type CloudSyncStatus,
+} from "./cloudStore";
 import {
   initialCaseStudies,
   digitalProjects as initialDigitalProjects,
@@ -64,9 +76,15 @@ export interface SiteConfig {
     scrollText: string;
     availableBadge: string;
   };
+  work: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+  };
   about: {
     kicker: string;
     title: string;
+    subtitle: string;
     name: string;
     avatarImage: string;
     stats: { k: string; v: string }[];
@@ -255,9 +273,15 @@ export const defaultSiteConfig: SiteConfig = {
     scrollText: "Scroll Down",
     availableBadge: "Available for new opportunities",
   },
+  work: {
+    kicker: "Selected Work",
+    title: "Work Gallery",
+    subtitle: "A selection of internship, academic, and personal projects exploring different users, industries, and product challenges.",
+  },
   about: {
     kicker: "About Me",
     title: "Junior UI/UX Designer",
+    subtitle: "Product Designer & Frontend Engineer creating human-centered digital experiences.",
     name: "YOGENDRA CHAUDHARY",
     avatarImage: yogendraProfileDefault,
     stats: [
@@ -398,11 +422,20 @@ interface SiteContextType {
   setProjects: (projects: Project[]) => void;
   saveProjects: (projects: Project[]) => void;
   resetProjects: () => void;
+  cloudStatus: CloudSyncStatus;
+  syncAllToCloud: () => Promise<void>;
+  loadAllFromCloud: () => Promise<void>;
 }
 
 const SiteContext = createContext<SiteContextType | null>(null);
 
 export function SiteProvider({ children }: { children: ReactNode }) {
+  const [cloudStatus, setCloudStatus] = useState<CloudSyncStatus>({
+    status: "idle",
+  });
+
+  const configDebounceRef = useRef<number | null>(null);
+  const settingsDebounceRef = useRef<number | null>(null);
   const [config, setConfigState] = useState<SiteConfig>(() => {
     try {
       const stored = localStorage.getItem(SITE_CONFIG_KEY);
@@ -413,7 +446,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           ...defaultSiteConfig,
           ...parsed,
           hero: { ...defaultSiteConfig.hero, ...parsed.hero },
-          about: { ...defaultSiteConfig.about, ...parsed.about },
+          work: { ...defaultSiteConfig.work, ...(parsed.work || {}) },
+          about: { ...defaultSiteConfig.about, ...(parsed.about || {}) },
           capabilities: { ...defaultSiteConfig.capabilities, ...parsed.capabilities },
           process: { ...defaultSiteConfig.process, ...parsed.process },
           skills: {
@@ -497,10 +531,12 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     applyCSSVariables(settings);
   }, [settings]);
 
-  // Asynchronously hydrate any full assets or updates from IndexedDB
+  // Asynchronously hydrate from IndexedDB and sync with Cloud Firestore
   useEffect(() => {
     let mounted = true;
+
     (async () => {
+      // Step 1: Rapid local cache hydration
       try {
         const idbConfig = await getFromIndexedDB<SiteConfig>(SITE_CONFIG_KEY);
         if (idbConfig && mounted) {
@@ -525,17 +561,182 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       } catch {
         // Keep in-memory and localStorage state
       }
+
+      // Step 2: Fetch authoritative data from Cloud Firestore database
+      try {
+        setCloudStatus({ status: "syncing" });
+        const [cloudProjects, cloudConfig, cloudSettings] = await Promise.all([
+          loadProjectsFromCloud(),
+          loadConfigFromCloud(),
+          loadSettingsFromCloud(),
+        ]);
+
+        if (!mounted) return;
+
+        let hasCloudData = false;
+
+        if (Array.isArray(cloudProjects) && cloudProjects.length > 0) {
+          hasCloudData = true;
+          setProjectsState(cloudProjects);
+          safeSetLocalStorage(PROJECTS_KEY, cloudProjects);
+          saveToIndexedDB(PROJECTS_KEY, cloudProjects);
+        }
+
+        if (cloudConfig) {
+          hasCloudData = true;
+          setConfigState((prev) => ({
+            ...prev,
+            ...cloudConfig,
+            hero: { ...prev.hero, ...(cloudConfig.hero || {}) },
+            about: { ...prev.about, ...(cloudConfig.about || {}) },
+            capabilities: { ...prev.capabilities, ...(cloudConfig.capabilities || {}) },
+            process: { ...prev.process, ...(cloudConfig.process || {}) },
+            skills: { ...prev.skills, ...(cloudConfig.skills || {}) },
+            trainings: { ...prev.trainings, ...(cloudConfig.trainings || {}) },
+            contact: { ...prev.contact, ...(cloudConfig.contact || {}) },
+            projectsArchive: { ...prev.projectsArchive, ...(cloudConfig.projectsArchive || {}) },
+          }));
+          safeSetLocalStorage(SITE_CONFIG_KEY, cloudConfig);
+          saveToIndexedDB(SITE_CONFIG_KEY, cloudConfig);
+        }
+
+        if (cloudSettings) {
+          hasCloudData = true;
+          setSettingsState(cloudSettings);
+          safeSetLocalStorage(SETTINGS_KEY, cloudSettings);
+          applyCSSVariables(cloudSettings);
+        }
+
+        // If cloud database is newly created and empty, automatically seed it with initial site data
+        if (!hasCloudData) {
+          await Promise.all([
+            saveProjectsToCloud(projects),
+            saveConfigToCloud(config),
+            saveSettingsToCloud(settings),
+          ]);
+        }
+
+        setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
+      } catch (cloudErr) {
+        console.warn("Cloud Firestore initial sync warning:", cloudErr);
+        setCloudStatus({
+          status: "error",
+          error: cloudErr instanceof Error ? cloudErr.message : "Cloud sync failed",
+        });
+      }
     })();
+
+    // Step 3: Realtime database subscriptions
+    const unsubProjects = subscribeToCloudProjects((updatedProjects) => {
+      if (mounted && Array.isArray(updatedProjects) && updatedProjects.length > 0) {
+        setProjectsState(updatedProjects);
+        safeSetLocalStorage(PROJECTS_KEY, updatedProjects);
+        setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
+      }
+    });
+
+    const unsubConfig = subscribeToCloudConfig((updatedConfig) => {
+      if (mounted && updatedConfig) {
+        setConfigState((prev) => ({ ...prev, ...updatedConfig }));
+        safeSetLocalStorage(SITE_CONFIG_KEY, updatedConfig);
+        setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
+      }
+    });
+
+    const unsubSettings = subscribeToCloudSettings((updatedSettings) => {
+      if (mounted && updatedSettings) {
+        setSettingsState((prev) => {
+          const merged = { ...prev, ...updatedSettings };
+          applyCSSVariables(merged);
+          return merged;
+        });
+        safeSetLocalStorage(SETTINGS_KEY, updatedSettings);
+        setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
+      }
+    });
 
     return () => {
       mounted = false;
+      unsubProjects();
+      unsubConfig();
+      unsubSettings();
     };
   }, []);
+
+  // Manual explicit cloud actions
+  const syncAllToCloud = async () => {
+    setCloudStatus({ status: "syncing" });
+    try {
+      await Promise.all([
+        saveProjectsToCloud(projects),
+        saveConfigToCloud(config),
+        saveSettingsToCloud(settings),
+      ]);
+      setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
+    } catch (err) {
+      setCloudStatus({
+        status: "error",
+        error: err instanceof Error ? err.message : "Manual sync failed",
+      });
+      throw err;
+    }
+  };
+
+  const loadAllFromCloud = async () => {
+    setCloudStatus({ status: "syncing" });
+    try {
+      const [cloudProjects, cloudConfig, cloudSettings] = await Promise.all([
+        loadProjectsFromCloud(),
+        loadConfigFromCloud(),
+        loadSettingsFromCloud(),
+      ]);
+      if (cloudProjects) {
+        setProjectsState(cloudProjects);
+        safeSetLocalStorage(PROJECTS_KEY, cloudProjects);
+        saveToIndexedDB(PROJECTS_KEY, cloudProjects);
+      }
+      if (cloudConfig) {
+        setConfigState(cloudConfig);
+        safeSetLocalStorage(SITE_CONFIG_KEY, cloudConfig);
+        saveToIndexedDB(SITE_CONFIG_KEY, cloudConfig);
+      }
+      if (cloudSettings) {
+        setSettingsState(cloudSettings);
+        safeSetLocalStorage(SETTINGS_KEY, cloudSettings);
+        applyCSSVariables(cloudSettings);
+      }
+      setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
+    } catch (err) {
+      setCloudStatus({
+        status: "error",
+        error: err instanceof Error ? err.message : "Load failed",
+      });
+      throw err;
+    }
+  };
 
   const updateConfig = (updater: (prev: SiteConfig) => SiteConfig) => {
     setConfigState((prev) => {
       const next = updater(prev);
       safeSetLocalStorage(SITE_CONFIG_KEY, next);
+      saveToIndexedDB(SITE_CONFIG_KEY, next);
+
+      // Debounced Cloud Firestore write
+      if (configDebounceRef.current) {
+        window.clearTimeout(configDebounceRef.current);
+      }
+      setCloudStatus({ status: "syncing" });
+      configDebounceRef.current = window.setTimeout(() => {
+        saveConfigToCloud(next)
+          .then(() => setCloudStatus({ status: "saved", lastSyncedAt: new Date() }))
+          .catch((err) =>
+            setCloudStatus({
+              status: "error",
+              error: err instanceof Error ? err.message : "Config cloud save error",
+            })
+          );
+      }, 600);
+
       return next;
     });
   };
@@ -546,6 +747,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     } catch {}
     saveToIndexedDB(SITE_CONFIG_KEY, defaultSiteConfig);
     setConfigState(defaultSiteConfig);
+    saveConfigToCloud(defaultSiteConfig).catch(() => {});
   };
 
   const updateSettings = (updater: (prev: PortfolioSettings) => PortfolioSettings) => {
@@ -553,6 +755,23 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       const next = updater(prev);
       safeSetLocalStorage(SETTINGS_KEY, next);
       applyCSSVariables(next);
+
+      // Debounced Cloud Firestore write
+      if (settingsDebounceRef.current) {
+        window.clearTimeout(settingsDebounceRef.current);
+      }
+      setCloudStatus({ status: "syncing" });
+      settingsDebounceRef.current = window.setTimeout(() => {
+        saveSettingsToCloud(next)
+          .then(() => setCloudStatus({ status: "saved", lastSyncedAt: new Date() }))
+          .catch((err) =>
+            setCloudStatus({
+              status: "error",
+              error: err instanceof Error ? err.message : "Settings cloud save error",
+            })
+          );
+      }, 600);
+
       return next;
     });
   };
@@ -567,12 +786,26 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     );
     setSettingsState(defaultSettings);
     applyCSSVariables(defaultSettings);
+    saveSettingsToCloud(defaultSettings).catch(() => {});
   };
 
   const saveProjects = (next: Project[]) => {
     setProjectsState(next);
     safeSetLocalStorage(PROJECTS_KEY, next);
+    saveToIndexedDB(PROJECTS_KEY, next);
     window.dispatchEvent(new CustomEvent<Project[]>("portfolio-projects-updated", { detail: next }));
+
+    // Instant Cloud Firestore save for projects & case study media
+    setCloudStatus({ status: "syncing" });
+    saveProjectsToCloud(next)
+      .then(() => setCloudStatus({ status: "saved", lastSyncedAt: new Date() }))
+      .catch((err) => {
+        console.error("Cloud projects save error:", err);
+        setCloudStatus({
+          status: "error",
+          error: err instanceof Error ? err.message : "Failed to save projects to cloud",
+        });
+      });
   };
 
   const resetProjects = () => {
@@ -596,6 +829,9 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         setProjects: setProjectsState,
         saveProjects,
         resetProjects,
+        cloudStatus,
+        syncAllToCloud,
+        loadAllFromCloud,
       }}
     >
       {children}

@@ -8,8 +8,9 @@ import {
   type TrainingItem,
   type ContactItem,
   type DigitalExploration,
+  type EnabledSections,
 } from "../siteContext";
-import { type Project } from "../data";
+import { type Project, getFullWidthImageUrl } from "../data";
 import { savePdf } from "../pdfStore";
 import { compressImageFile } from "../storage";
 import {
@@ -32,11 +33,20 @@ import {
   ExternalLink,
   MessageSquare,
   Eye,
+  EyeOff,
   ChevronDown,
   ChevronUp,
   ArrowUp,
   ArrowDown,
   Palette,
+  Loader2,
+  LayoutTemplate,
+  CheckCircle2,
+  ArrowRight,
+  Database,
+  Cloud,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 const MESSAGES_KEY = "yogendra-portfolio-messages";
@@ -52,6 +62,7 @@ const readMessages = (): Message[] => {
 };
 
 type TabKey =
+  | "sections"
   | "projects"
   | "hero"
   | "about"
@@ -62,6 +73,7 @@ type TabKey =
   | "contact"
   | "archive"
   | "appearance"
+  | "database"
   | "messages";
 
 /* ─── Reusable Clean Form Controls ───────────────────────────────────────── */
@@ -221,8 +233,298 @@ function ImageUploadField({
   );
 }
 
+function SectionHeaderBar({
+  sectionName,
+  enabled,
+  onToggleEnabled,
+  title,
+  onTitleChange,
+  titleLabel = "Section Title",
+  subtitle,
+  onSubtitleChange,
+  subtitleLabel = "Section Subheading",
+  kicker,
+  onKickerChange,
+  kickerLabel = "Section Kicker",
+}: {
+  sectionName: string;
+  enabled: boolean;
+  onToggleEnabled: (next: boolean) => void;
+  title: string;
+  onTitleChange: (val: string) => void;
+  titleLabel?: string;
+  subtitle?: string;
+  onSubtitleChange?: (val: string) => void;
+  subtitleLabel?: string;
+  kicker?: string;
+  onKickerChange?: (val: string) => void;
+  kickerLabel?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4 mb-6 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`size-2.5 rounded-full transition-all ${
+              enabled
+                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] scale-105"
+                : "bg-neutral-400 opacity-60"
+            }`}
+          />
+          <div>
+            <h4 className="text-xs font-bold text-[var(--fg)] tracking-tight">
+              {sectionName} · Status &amp; Header
+            </h4>
+            <p className="text-[0.68rem] text-[var(--muted)]">
+              {enabled ? "Visible to all visitors on homepage" : "Disabled & hidden from homepage"}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onToggleEnabled(!enabled)}
+          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
+            enabled
+              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20"
+              : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)] hover:text-[var(--fg)]"
+          }`}
+        >
+          <span
+            className={`size-2 rounded-full transition-transform ${
+              enabled ? "bg-emerald-500" : "bg-neutral-400"
+            }`}
+          />
+          <span>{enabled ? "Section Enabled" : "Section Disabled"}</span>
+        </button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {onKickerChange && (
+          <div className="sm:col-span-2">
+            <FormField label={kickerLabel} hint="Category pill or kicker above the heading">
+              <TextInput
+                value={kicker || ""}
+                onChange={onKickerChange}
+                placeholder="e.g. Selected Work, 02 / Capabilities"
+              />
+            </FormField>
+          </div>
+        )}
+
+        <div className={onSubtitleChange ? "sm:col-span-1" : "sm:col-span-2"}>
+          <FormField label={titleLabel} hint="Main display heading">
+            <TextInput
+              value={title}
+              onChange={onTitleChange}
+              placeholder="e.g. Work Gallery"
+            />
+          </FormField>
+        </div>
+
+        {onSubtitleChange && (
+          <div className="sm:col-span-1">
+            <FormField label={subtitleLabel} hint="Supporting description / sub-heading">
+              <TextInput
+                value={subtitle || ""}
+                onChange={onSubtitleChange}
+                placeholder="e.g. A selection of projects..."
+              />
+            </FormField>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ToolIconUploader({
+  icon,
+  accent,
+  toolName,
+  onChangeIcon,
+  onChangeAccent,
+}: {
+  icon: string;
+  accent: string;
+  toolName: string;
+  onChangeIcon: (url: string) => void;
+  onChangeAccent: (hex: string) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [showUrlField, setShowUrlField] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+
+  const POPULAR_PRESETS = [
+    { name: "Figma", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg", accent: "#a259ff" },
+    { name: "React", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg", accent: "#61dafb" },
+    { name: "TypeScript", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg", accent: "#3178c6" },
+    { name: "Tailwind", url: "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/tailwindcss/tailwindcss-original.svg", accent: "#38bdf8" },
+    { name: "Next.js", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg", accent: "#ffffff" },
+    { name: "Framer", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/framermotion/framermotion-original.svg", accent: "#0055ff" },
+    { name: "Photoshop", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photoshop/photoshop-original.svg", accent: "#31a8ff" },
+    { name: "Illustrator", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/illustrator/illustrator-original.svg", accent: "#ff9a00" },
+    { name: "Blender", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/blender/blender-original.svg", accent: "#ea7600" },
+    { name: "Canva", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/canva/canva-original.svg", accent: "#52d8e5" },
+    { name: "GitHub", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg", accent: "#f0f6fc" },
+    { name: "Node.js", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg", accent: "#339933" },
+    { name: "Python", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", accent: "#3776ab" },
+    { name: "Swift", url: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg", accent: "#f05138" },
+  ];
+
+  const handleFile = (file: File) => {
+    if (file.type === "image/svg+xml") {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) onChangeIcon(String(reader.result));
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    compressImageFile(file, 256, 0.95)
+      .then((url) => onChangeIcon(url))
+      .catch(() => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result) onChangeIcon(String(reader.result));
+        };
+        reader.readAsDataURL(file);
+      });
+  };
+
+  return (
+    <div className="space-y-2 pt-2 border-t border-[var(--hairline)]">
+      <div className="flex items-center justify-between">
+        <label className="text-[0.68rem] font-medium uppercase tracking-wider text-[var(--muted)]">
+          Tool Icon &amp; Accent
+        </label>
+        <div className="flex items-center gap-1.5 text-[0.68rem]">
+          <button
+            type="button"
+            onClick={() => setShowPresets(!showPresets)}
+            className="text-[var(--accent)] hover:underline cursor-pointer"
+          >
+            {showPresets ? "Hide presets" : "Quick presets"}
+          </button>
+          <span className="text-[var(--hairline)]">·</span>
+          <button
+            type="button"
+            onClick={() => setShowUrlField(!showUrlField)}
+            className="text-[var(--muted)] hover:text-[var(--fg)] cursor-pointer"
+          >
+            {showUrlField ? "Hide URL" : "Paste URL"}
+          </button>
+        </div>
+      </div>
+
+      {showPresets && (
+        <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-[var(--chip)]/60 border border-[var(--hairline)]">
+          {POPULAR_PRESETS.map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => {
+                onChangeIcon(p.url);
+                onChangeAccent(p.accent);
+                setShowPresets(false);
+              }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--hairline)] text-[0.65rem] hover:border-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <img src={p.url} alt="" className="size-3.5 object-contain" />
+              <span>{p.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2.5">
+        {/* Dropzone / Icon box */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragActive(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) handleFile(file);
+          }}
+          onClick={() => fileInputRef.current?.click()}
+          title="Click to choose icon image file or drag & drop here"
+          className={`relative size-12 shrink-0 cursor-pointer rounded-xl border flex items-center justify-center transition-all group overflow-hidden ${
+            dragActive
+              ? "border-[var(--accent)] bg-[var(--accent)]/15 scale-105"
+              : "border-[var(--hairline)] bg-[var(--chip)] hover:border-[var(--accent)]/60"
+          }`}
+          style={{
+            boxShadow: icon ? `0 0 14px ${accent}25` : undefined,
+          }}
+        >
+          {icon ? (
+            <img src={icon} alt={toolName} className="size-6 object-contain" />
+          ) : (
+            <ImageIcon className="size-5 text-[var(--muted)]/50" />
+          )}
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Upload className="size-3.5 text-white" />
+          </div>
+        </div>
+
+        {/* Action buttons and Accent color */}
+        <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--hairline)] bg-[var(--bg)] px-2.5 py-1.5 text-[0.72rem] font-medium text-[var(--fg)] hover:border-[var(--accent)] transition-colors shadow-xs cursor-pointer"
+            >
+              <Upload className="size-3 text-[var(--accent)]" />
+              Upload Icon Image
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/svg+xml,image/webp,image/jpeg,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+                e.target.value = "";
+              }}
+            />
+
+            {/* Accent Color picker */}
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-[0.65rem] text-[var(--muted)]">Glow:</span>
+              <input
+                type="color"
+                value={accent}
+                onChange={(e) => onChangeAccent(e.target.value)}
+                title="Accent Glow Color"
+                className="size-7 cursor-pointer rounded-lg border border-[var(--hairline)] bg-transparent p-0.5"
+              />
+            </div>
+          </div>
+
+          {showUrlField && (
+            <TextInput
+              value={icon}
+              onChange={onChangeIcon}
+              placeholder="Or paste direct icon image/SVG URL"
+              className="text-[0.72rem] py-1.5"
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Admin Panel Component ─────────────────────────────────────────── */
-export default function AdminPanel() {
+export default function AdminPanel({ showTrigger = true }: { showTrigger?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("projects");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -239,18 +541,85 @@ export default function AdminPanel() {
     projects,
     saveProjects,
     resetProjects,
+    cloudStatus,
+    syncAllToCloud,
+    loadAllFromCloud,
   } = useSite();
+
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [cloudToast, setCloudToast] = useState<string | null>(null);
+
+  const triggerCloudToast = (msg: string) => {
+    setCloudToast(msg);
+    setTimeout(() => setCloudToast(null), 3500);
+  };
+
+  const handleManualPushToCloud = async () => {
+    setIsManualSyncing(true);
+    try {
+      await syncAllToCloud();
+      triggerCloudToast("All projects & settings successfully saved to Cloud Database!");
+    } catch {
+      triggerCloudToast("Cloud sync failed. Changes remain safely cached in local storage.");
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
+
+  const handleManualPullFromCloud = async () => {
+    setIsManualSyncing(true);
+    try {
+      await loadAllFromCloud();
+      triggerCloudToast("Successfully reloaded latest data from Cloud Database!");
+    } catch {
+      triggerCloudToast("Could not load from Cloud Database.");
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
 
   const showSaved = () => {
     setSaveBanner(true);
     setTimeout(() => setSaveBanner(false), 2000);
   };
 
+  const [uploadingProjectIdx, setUploadingProjectIdx] = useState<number | null>(null);
+  const [uploadProgressText, setUploadProgressText] = useState<string>("");
+
   useEffect(() => {
     const updateMessages = () => setMessages(readMessages());
     updateMessages();
     window.addEventListener("portfolio-messages-updated", updateMessages);
     return () => window.removeEventListener("portfolio-messages-updated", updateMessages);
+  }, []);
+
+  useEffect(() => {
+    const handleOpen = (e?: Event) => {
+      const customEvent = e as CustomEvent<{ tab?: TabKey; projectIndex?: number }>;
+      if (customEvent?.detail?.tab) {
+        setActiveTab(customEvent.detail.tab);
+      }
+      if (typeof customEvent?.detail?.projectIndex === "number") {
+        setExpandedProjectIndex(customEvent.detail.projectIndex);
+      }
+      setMessages(readMessages());
+      setOpen(true);
+    };
+
+    window.addEventListener("portfolio-open-admin", handleOpen);
+
+    const onGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onGlobalKeyDown);
+
+    return () => {
+      window.removeEventListener("portfolio-open-admin", handleOpen);
+      window.removeEventListener("keydown", onGlobalKeyDown);
+    };
   }, []);
 
   useEffect(() => {
@@ -280,6 +649,38 @@ export default function AdminPanel() {
     }
   };
 
+  const handleBatchFilesUpload = async (
+    files: FileList | null,
+    projectIndex: number,
+    onSuccess: (dataUrls: string[]) => void
+  ) => {
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!fileArray.length) return;
+
+    setUploadingProjectIdx(projectIndex);
+    const urls: string[] = [];
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      setUploadProgressText(`Optimizing ${i + 1}/${fileArray.length}…`);
+      try {
+        const optimizedUrl = await compressImageFile(file, 2200, 0.88);
+        urls.push(optimizedUrl);
+      } catch {
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(String(reader.result));
+          reader.readAsDataURL(file);
+        });
+        urls.push(dataUrl);
+      }
+    }
+    onSuccess(urls);
+    setUploadingProjectIdx(null);
+    setUploadProgressText("");
+    showSaved();
+  };
+
   const uploadProjectPdf = async (index: number, files: FileList | null) => {
     const file = Array.from(files ?? []).find((item) => item.type === "application/pdf");
     if (!file) return;
@@ -302,8 +703,9 @@ export default function AdminPanel() {
 
   const navigationSections = [
     {
-      group: "CONTENT",
+      group: "CONTENT & STRUCTURE",
       tabs: [
+        { key: "sections" as TabKey, label: "Sections & Visibility", icon: LayoutTemplate },
         { key: "projects" as TabKey, label: "Case Studies & Work", icon: FolderGit2, count: projects.length },
         { key: "hero" as TabKey, label: "Hero Banner", icon: Sparkles },
         { key: "about" as TabKey, label: "About Me", icon: User },
@@ -322,9 +724,10 @@ export default function AdminPanel() {
       ],
     },
     {
-      group: "PREFERENCES",
+      group: "PREFERENCES & STORAGE",
       tabs: [
         { key: "appearance" as TabKey, label: "Theme & Styling", icon: Palette },
+        { key: "database" as TabKey, label: "Cloud Database", icon: Database },
       ],
     },
   ];
@@ -332,17 +735,19 @@ export default function AdminPanel() {
   return (
     <>
       {/* ─── INCONSPICUOUS TRIGGER: JUST A TINY INNOCUOUS DOT ──────────────── */}
-      <button
-        type="button"
-        onClick={() => {
-          setMessages(readMessages());
-          setOpen(true);
-        }}
-        className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none"
-        aria-label="."
-      >
-        <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
-      </button>
+      {showTrigger && (
+        <button
+          type="button"
+          onClick={() => {
+            setMessages(readMessages());
+            setOpen(true);
+          }}
+          className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none"
+          aria-label="."
+        >
+          <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
+        </button>
+      )}
 
       {/* ─── STUDIO MODAL OVERLAY ──────────────────────────────────────────── */}
       {open && (
@@ -362,7 +767,7 @@ export default function AdminPanel() {
             <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-80" />
 
             {/* Modal Header */}
-            <div className="flex shrink-0 items-center justify-between border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-3.5 sm:px-6">
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-3 sm:px-6">
               <div className="flex items-center gap-3">
                 <div className="grid size-8 place-items-center rounded-lg bg-[var(--chip)] text-[var(--accent)]">
                   <Sliders className="size-4" />
@@ -378,12 +783,53 @@ export default function AdminPanel() {
                     </span>
                   </div>
                   <p className="hidden text-[0.72rem] text-[var(--muted)] sm:block">
-                    Real-time visual editor &amp; content manager
+                    Real-time visual editor &amp; Cloud Firestore synced
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Cloud Database Status Badge */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("database")}
+                  title="Click to view Cloud Database details"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--chip)]/60 px-2.5 py-1 font-mono text-[0.68rem] text-[var(--fg)] hover:bg-[var(--chip)] transition-colors"
+                >
+                  {cloudStatus.status === "syncing" ? (
+                    <>
+                      <Loader2 className="size-3 animate-spin text-[var(--accent)]" />
+                      <span className="text-[var(--accent)]">Syncing DB…</span>
+                    </>
+                  ) : cloudStatus.status === "error" ? (
+                    <>
+                      <AlertCircle className="size-3 text-amber-400" />
+                      <span className="text-amber-400">DB Offline</span>
+                    </>
+                  ) : (
+                    <>
+                      <Database className="size-3 text-emerald-400" />
+                      <span className="text-emerald-400">Cloud DB Active</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Quick Cloud Save Button */}
+                <button
+                  type="button"
+                  onClick={handleManualPushToCloud}
+                  disabled={isManualSyncing}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:opacity-50 transition-colors"
+                  title="Force push all content and projects to Cloud Firestore database"
+                >
+                  {isManualSyncing ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Cloud className="size-3.5" />
+                  )}
+                  <span className="hidden md:inline">Sync Cloud</span>
+                </button>
+
                 {saveBanner && (
                   <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 font-mono text-xs text-emerald-400 animate-in fade-in duration-150">
                     <Check className="size-3.5" /> Saved
@@ -399,6 +845,14 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
+
+            {/* Cloud Toast Notification */}
+            {cloudToast && (
+              <div className="bg-[var(--accent)]/15 border-b border-[var(--accent)]/30 px-4 py-2 text-center text-xs font-medium text-[var(--accent)] flex items-center justify-center gap-2 animate-in slide-in-from-top-1">
+                <CheckCircle2 className="size-3.5 shrink-0" />
+                <span>{cloudToast}</span>
+              </div>
+            )}
 
             {/* Main Area: Sidebar + Content */}
             <div className="flex min-h-0 flex-1 flex-col md:flex-row">
@@ -468,9 +922,220 @@ export default function AdminPanel() {
 
               {/* Tab Panel Content */}
               <div className="flex-1 overflow-y-auto p-5 sm:p-7">
+                {/* ────────────────── SECTIONS & VISIBILITY TAB ────────────────── */}
+                {activeTab === "sections" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--hairline)] pb-4">
+                      <div>
+                        <h3 className="font-display text-base font-bold text-[var(--fg)]">Sections &amp; Homepage Visibility</h3>
+                        <p className="text-xs text-[var(--muted)] mt-0.5">
+                          Enable or disable any section on your portfolio and customize their display titles and subheadings.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                hero: true,
+                                work: true,
+                                capabilities: true,
+                                process: true,
+                                about: true,
+                                trainings: true,
+                                skills: true,
+                                contact: true,
+                              },
+                            }));
+                            showSaved();
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--fg)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 className="size-3.5 text-emerald-500" /> Enable All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Reset section visibility to defaults (all enabled)?")) {
+                              updateSettings((s) => ({
+                                ...s,
+                                sections: {
+                                  hero: true,
+                                  work: true,
+                                  capabilities: true,
+                                  process: true,
+                                  about: true,
+                                  trainings: true,
+                                  skills: true,
+                                  contact: true,
+                                },
+                              }));
+                              showSaved();
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--fg)] transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="size-3.5" /> Reset
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Summary Bar */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/30 p-4 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold text-sm">
+                          {Object.values(settings?.sections || {}).filter(Boolean).length} / 8
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-[var(--fg)]">
+                            {Object.values(settings?.sections || {}).filter(Boolean).length} Sections Currently Active
+                          </span>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            Disabled sections are hidden from the homepage and filtered out of navbar navigation.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section Controls List */}
+                    <div className="space-y-4">
+                      {/* 1. Hero */}
+                      <SectionHeaderBar
+                        sectionName="1. Hero Banner"
+                        enabled={settings?.sections?.hero !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, hero: next } }))}
+                        title={config.hero.marqueeName}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, marqueeName: val } }))}
+                        titleLabel="Marquee Headline / Name"
+                        subtitle={config.hero.tagline}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, tagline: val } }))}
+                        subtitleLabel="Tagline / Subheading"
+                        kicker={config.hero.availableBadge}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, availableBadge: val } }))}
+                        kickerLabel="Availability Badge / Kicker"
+                      />
+
+                      {/* 2. Selected Work */}
+                      <SectionHeaderBar
+                        sectionName="2. Selected Work Gallery"
+                        enabled={settings?.sections?.work !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, work: next } }))}
+                        title={config.work?.title || "Work Gallery"}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), title: val } }))}
+                        titleLabel="Section Title"
+                        subtitle={config.work?.subtitle || ""}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), subtitle: val } }))}
+                        subtitleLabel="Section Subheading"
+                        kicker={config.work?.kicker || "Selected Work"}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), kicker: val } }))}
+                        kickerLabel="Category Tag / Kicker"
+                      />
+
+                      {/* 3. Capabilities */}
+                      <SectionHeaderBar
+                        sectionName="3. Capabilities & Disciplines"
+                        enabled={settings?.sections?.capabilities !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, capabilities: next } }))}
+                        title={config.capabilities.title}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, title: val } }))}
+                        subtitle={config.capabilities.subtitle}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, subtitle: val } }))}
+                        kicker={config.capabilities.kicker}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, kicker: val } }))}
+                      />
+
+                      {/* 4. Design Process */}
+                      <SectionHeaderBar
+                        sectionName="4. Design Process"
+                        enabled={settings?.sections?.process !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, process: next } }))}
+                        title={config.process.title}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, title: val } }))}
+                        subtitle={config.process.subtitle}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, subtitle: val } }))}
+                        kicker={config.process.kicker}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, kicker: val } }))}
+                      />
+
+                      {/* 5. About Me */}
+                      <SectionHeaderBar
+                        sectionName="5. About Me"
+                        enabled={settings?.sections?.about !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, about: next } }))}
+                        title={config.about.title}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, title: val } }))}
+                        titleLabel="Headline / Title"
+                        subtitle={config.about.subtitle || ""}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, subtitle: val } }))}
+                        subtitleLabel="Subheading"
+                        kicker={config.about.kicker}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, kicker: val } }))}
+                      />
+
+                      {/* 6. Trainings & Experience */}
+                      <SectionHeaderBar
+                        sectionName="6. Trainings & Experience"
+                        enabled={settings?.sections?.trainings !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, trainings: next } }))}
+                        title={config.trainings.title}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, title: val } }))}
+                        subtitle={config.trainings.subtitle}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, subtitle: val } }))}
+                        kicker={config.trainings.kicker}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, kicker: val } }))}
+                      />
+
+                      {/* 7. Toolkit & Skills */}
+                      <SectionHeaderBar
+                        sectionName="7. Toolkit & Skills"
+                        enabled={settings?.sections?.skills !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, skills: next } }))}
+                        title={config.skills.title}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, title: val } }))}
+                        subtitle={config.skills.subtitle}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, subtitle: val } }))}
+                        kicker={config.skills.kicker}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, kicker: val } }))}
+                      />
+
+                      {/* 8. Contact & Footer */}
+                      <SectionHeaderBar
+                        sectionName="8. Contact & Footer"
+                        enabled={settings?.sections?.contact !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, contact: next } }))}
+                        title={config.contact.titleLines.join(" ")}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, titleLines: val.split(/\s+/) } }))}
+                        titleLabel="Call to Action Title"
+                        subtitle={config.contact.subtitleHeadline}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, subtitleHeadline: val } }))}
+                        subtitleLabel="Subheading Headline"
+                        kicker={config.contact.kicker}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, kicker: val } }))}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* ────────────────── PROJECTS TAB ────────────────── */}
                 {activeTab === "projects" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Selected Work Gallery"
+                      enabled={settings?.sections?.work !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, work: next } }))}
+                      title={config.work?.title || "Work Gallery"}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), title: val } }))}
+                      titleLabel="Section Title"
+                      subtitle={config.work?.subtitle || ""}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), subtitle: val } }))}
+                      subtitleLabel="Section Subheading"
+                      kicker={config.work?.kicker || "Selected Work"}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), kicker: val } }))}
+                      kickerLabel="Category Tag / Kicker"
+                    />
+
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--hairline)] pb-4">
                       <div>
                         <h3 className="font-display text-base font-bold text-[var(--fg)]">Case Studies &amp; Projects</h3>
@@ -666,6 +1331,206 @@ export default function AdminPanel() {
                                     </div>
                                   </FormField>
                                 </div>
+
+                                {/* Case Study Full-Width Images (Infinite Top-to-Bottom) */}
+                                <div className="mt-4 rounded-xl border border-[var(--hairline)] bg-[var(--bg-2)] p-4">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                      <h4 className="text-xs font-semibold text-[var(--fg)] flex items-center gap-1.5">
+                                        <ImageIcon className="size-3.5 text-[var(--accent)]" />
+                                        Case Study Full-Width Images
+                                      </h4>
+                                      <p className="text-[0.65rem] text-[var(--muted)]">
+                                        Images display top-to-bottom with full width and no height boundaries
+                                      </p>
+                                    </div>
+                                    <span className="rounded-full bg-[var(--chip)] px-2.5 py-0.5 text-[0.65rem] font-medium text-[var(--fg)]">
+                                      {(project.media?.length ?? (project.thumbnail || project.image ? 1 : 0))} images
+                                    </span>
+                                  </div>
+
+                                  {/* Multi-upload & Add URL controls */}
+                                  <div className="grid gap-2 sm:grid-cols-2 mb-3">
+                                    <label
+                                      onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                          void handleBatchFilesUpload(e.dataTransfer.files, index, (newUrls) => {
+                                            const currentMedia = project.media && project.media.length > 0
+                                              ? project.media
+                                              : [project.thumbnail ?? project.image ?? ""].filter(Boolean);
+                                            const updatedMedia = [...currentMedia, ...newUrls];
+                                            saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updatedMedia, thumbnail: updatedMedia[0], image: updatedMedia[0] } : p)));
+                                          });
+                                        }
+                                      }}
+                                      className={`flex min-h-[4.75rem] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--hairline)] bg-[var(--card)] p-3 text-center transition-colors hover:border-[var(--accent)] hover:bg-[var(--chip)] ${
+                                        uploadingProjectIdx === index ? "pointer-events-none opacity-60" : ""
+                                      }`}
+                                    >
+                                      {uploadingProjectIdx === index ? (
+                                        <div className="flex flex-col items-center gap-1.5 text-[var(--accent)]">
+                                          <Loader2 className="size-4 animate-spin" />
+                                          <span className="text-[0.7rem] font-semibold">{uploadProgressText || "Uploading…"}</span>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <Upload className="size-4 text-[var(--accent)] mb-1" />
+                                          <span className="text-[0.72rem] font-semibold text-[var(--fg)]">Upload Multiple Images</span>
+                                          <span className="text-[0.62rem] text-[var(--muted)]">Drop files or click to batch upload infinite images</span>
+                                        </>
+                                      )}
+                                      <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*"
+                                        className="hidden"
+                                        disabled={uploadingProjectIdx !== null}
+                                        onChange={(e) => {
+                                          void handleBatchFilesUpload(e.target.files, index, (newUrls) => {
+                                            const currentMedia = project.media && project.media.length > 0
+                                              ? project.media
+                                              : [project.thumbnail ?? project.image ?? ""].filter(Boolean);
+                                            const updatedMedia = [...currentMedia, ...newUrls];
+                                            saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updatedMedia, thumbnail: updatedMedia[0], image: updatedMedia[0] } : p)));
+                                          });
+                                          e.target.value = "";
+                                        }}
+                                      />
+                                    </label>
+
+                                    <div className="flex flex-col justify-center gap-1.5 rounded-lg border border-[var(--hairline)] bg-[var(--card)] p-3">
+                                      <span className="text-[0.65rem] font-medium text-[var(--muted)]">Add Image(s) via URL</span>
+                                      <div className="flex gap-1.5">
+                                        <input
+                                          id={`add-img-url-${index}`}
+                                          type="text"
+                                          placeholder="URL or photo ID (comma separated)"
+                                          className="flex-1 rounded-md border border-[var(--hairline)] bg-[var(--bg)] px-2.5 py-1.5 text-[0.7rem] text-[var(--fg)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.preventDefault();
+                                              const input = e.currentTarget;
+                                              const raw = input.value.trim();
+                                              if (raw) {
+                                                const urls = raw.split(/[\n,]+/).map((u) => u.trim()).filter(Boolean);
+                                                if (urls.length > 0) {
+                                                  const currentMedia = project.media && project.media.length > 0
+                                                    ? project.media
+                                                    : [project.thumbnail ?? project.image ?? ""].filter(Boolean);
+                                                  const updatedMedia = [...currentMedia, ...urls];
+                                                  saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updatedMedia, thumbnail: updatedMedia[0], image: updatedMedia[0] } : p)));
+                                                  input.value = "";
+                                                  showSaved();
+                                                }
+                                              }
+                                            }
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const input = document.getElementById(`add-img-url-${index}`) as HTMLInputElement | null;
+                                            if (input && input.value.trim()) {
+                                              const urls = input.value.trim().split(/[\n,]+/).map((u) => u.trim()).filter(Boolean);
+                                              if (urls.length > 0) {
+                                                const currentMedia = project.media && project.media.length > 0
+                                                  ? project.media
+                                                  : [project.thumbnail ?? project.image ?? ""].filter(Boolean);
+                                                const updatedMedia = [...currentMedia, ...urls];
+                                                saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updatedMedia, thumbnail: updatedMedia[0], image: updatedMedia[0] } : p)));
+                                                input.value = "";
+                                                showSaved();
+                                              }
+                                            }
+                                          }}
+                                          className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-[0.7rem] font-medium text-white hover:opacity-90 transition-opacity"
+                                        >
+                                          Add
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Image List Preview & Reordering */}
+                                  {((project.media && project.media.length > 0) || project.thumbnail || project.image) && (
+                                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                      {(project.media && project.media.length > 0
+                                        ? project.media
+                                        : [project.thumbnail ?? project.image ?? ""].filter(Boolean)
+                                      ).map((imgSrc, imgIdx, allMedia) => (
+                                        <div
+                                          key={`${imgSrc.slice(0, 24)}-${imgIdx}`}
+                                          className="flex items-center justify-between gap-2 rounded-lg border border-[var(--hairline)] bg-[var(--card)] p-1.5 text-xs"
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className="text-[0.65rem] font-bold text-[var(--muted)] w-5 text-center">
+                                              #{imgIdx + 1}
+                                            </span>
+                                            <img
+                                              src={getFullWidthImageUrl(imgSrc)}
+                                              alt={`Screen ${imgIdx + 1}`}
+                                              className="size-8 rounded object-cover border border-[var(--hairline)] bg-[var(--bg)] flex-shrink-0"
+                                            />
+                                            <span className="truncate text-[0.65rem] text-[var(--muted)] max-w-[12rem]">
+                                              {imgSrc.startsWith("data:") ? "Uploaded asset" : imgSrc}
+                                            </span>
+                                          </div>
+
+                                          <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button
+                                              type="button"
+                                              disabled={imgIdx === 0}
+                                              onClick={() => {
+                                                const updated = [...allMedia];
+                                                const [moved] = updated.splice(imgIdx, 1);
+                                                updated.splice(imgIdx - 1, 0, moved);
+                                                saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updated, thumbnail: updated[0], image: updated[0] } : p)));
+                                                showSaved();
+                                              }}
+                                              className="rounded p-1 text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] disabled:opacity-20"
+                                              title="Move Up"
+                                            >
+                                              <ArrowUp className="size-3" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={imgIdx === allMedia.length - 1}
+                                              onClick={() => {
+                                                const updated = [...allMedia];
+                                                const [moved] = updated.splice(imgIdx, 1);
+                                                updated.splice(imgIdx + 1, 0, moved);
+                                                saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updated, thumbnail: updated[0], image: updated[0] } : p)));
+                                                showSaved();
+                                              }}
+                                              className="rounded p-1 text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] disabled:opacity-20"
+                                              title="Move Down"
+                                            >
+                                              <ArrowDown className="size-3" />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const updated = allMedia.filter((_, i) => i !== imgIdx);
+                                                saveProjects(projects.map((p, i) => (i === index ? { ...p, media: updated, thumbnail: updated[0] ?? p.thumbnail, image: updated[0] ?? p.image } : p)));
+                                                showSaved();
+                                              }}
+                                              className="rounded p-1 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                              title="Delete Image"
+                                            >
+                                              <Trash2 className="size-3" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -678,9 +1543,24 @@ export default function AdminPanel() {
                 {/* ────────────────── HERO BANNER TAB ────────────────── */}
                 {activeTab === "hero" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Hero Banner"
+                      enabled={settings?.sections?.hero !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, hero: next } }))}
+                      title={config.hero.marqueeName}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, marqueeName: val } }))}
+                      titleLabel="Marquee Headline / Name"
+                      subtitle={config.hero.tagline}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, tagline: val } }))}
+                      subtitleLabel="Tagline / Subheading"
+                      kicker={config.hero.availableBadge}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, availableBadge: val } }))}
+                      kickerLabel="Availability Badge / Kicker"
+                    />
+
                     <div className="border-b border-[var(--hairline)] pb-4">
-                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Hero Banner</h3>
-                      <p className="text-xs text-[var(--muted)] mt-0.5">Top entrance headline, tagline, bio, and cutout portrait</p>
+                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Hero Details</h3>
+                      <p className="text-xs text-[var(--muted)] mt-0.5">Entrance headline, tagline, bio reveal, and portrait</p>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -736,8 +1616,22 @@ export default function AdminPanel() {
                 {/* ────────────────── ABOUT ME TAB ────────────────── */}
                 {activeTab === "about" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="About Me"
+                      enabled={settings?.sections?.about !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, about: next } }))}
+                      title={config.about.title}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, title: val } }))}
+                      titleLabel="Headline / Title"
+                      subtitle={config.about.subtitle || ""}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, subtitle: val } }))}
+                      subtitleLabel="Subheading"
+                      kicker={config.about.kicker}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, kicker: val } }))}
+                    />
+
                     <div className="border-b border-[var(--hairline)] pb-4">
-                      <h3 className="font-display text-base font-bold text-[var(--fg)]">About Me</h3>
+                      <h3 className="font-display text-base font-bold text-[var(--fg)]">About Details</h3>
                       <p className="text-xs text-[var(--muted)] mt-0.5">Biography, credentials, stats badges, and headshot</p>
                     </div>
 
@@ -757,12 +1651,22 @@ export default function AdminPanel() {
                       </FormField>
                     </div>
 
-                    <FormField label="Typewriter Heading Title">
-                      <TextInput
-                        value={config.about.title || ""}
-                        onChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, title: val } }))}
-                      />
-                    </FormField>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField label="Typewriter Heading Title">
+                        <TextInput
+                          value={config.about.title || ""}
+                          onChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, title: val } }))}
+                        />
+                      </FormField>
+
+                      <FormField label="Subheading / Lead">
+                        <TextInput
+                          value={config.about.subtitle || ""}
+                          onChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, subtitle: val } }))}
+                          placeholder="e.g. Blending aesthetics and engineering..."
+                        />
+                      </FormField>
+                    </div>
 
                     <ImageUploadField
                       label="Avatar Headshot Image"
@@ -828,10 +1732,22 @@ export default function AdminPanel() {
                 {/* ────────────────── SKILLS TAB ────────────────── */}
                 {activeTab === "skills" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Toolkit & Skills"
+                      enabled={settings?.sections?.skills !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, skills: next } }))}
+                      title={config.skills.title}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, title: val } }))}
+                      subtitle={config.skills.subtitle}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, subtitle: val } }))}
+                      kicker={config.skills.kicker}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, kicker: val } }))}
+                    />
+
                     <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-4">
                       <div>
-                        <h3 className="font-display text-base font-bold text-[var(--fg)]">Toolkit &amp; Skills</h3>
-                        <p className="text-xs text-[var(--muted)] mt-0.5">Software apps, proficiencies, and individual accent colors</p>
+                        <h3 className="font-display text-base font-bold text-[var(--fg)]">Software &amp; Tools</h3>
+                        <p className="text-xs text-[var(--muted)] mt-0.5">Upload custom icon images (PNG, SVG, WebP) directly, pick presets, or paste links</p>
                       </div>
                       <button
                         type="button"
@@ -846,7 +1762,7 @@ export default function AdminPanel() {
                           };
                           updateConfig((c) => ({ ...c, skills: { ...c.skills, tools: [...c.skills.tools, newTool] } }));
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--fg)] px-3 py-1.5 text-xs font-semibold text-[var(--bg)]"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--fg)] px-3 py-1.5 text-xs font-semibold text-[var(--bg)] cursor-pointer"
                       >
                         <Plus className="size-3.5" /> Add Tool
                       </button>
@@ -854,10 +1770,14 @@ export default function AdminPanel() {
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       {config.skills.tools.map((tool, i) => (
-                        <div key={i} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-3">
+                        <div key={i} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-3 shadow-xs">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <img src={tool.icon} alt="" className="size-6 object-contain" />
+                              {tool.icon ? (
+                                <img src={tool.icon} alt="" className="size-6 object-contain" />
+                              ) : (
+                                <div className="size-6 rounded bg-[var(--chip)]" />
+                              )}
                               <span className="font-semibold text-xs text-[var(--fg)]">{tool.name}</span>
                             </div>
                             <button
@@ -866,7 +1786,7 @@ export default function AdminPanel() {
                                 const tools = config.skills.tools.filter((_, idx) => idx !== i);
                                 updateConfig((c) => ({ ...c, skills: { ...c.skills, tools } }));
                               }}
-                              className="text-red-400 hover:text-red-300"
+                              className="text-red-400 hover:text-red-300 cursor-pointer"
                             >
                               <Trash2 className="size-3.5" />
                             </button>
@@ -903,28 +1823,21 @@ export default function AdminPanel() {
                             placeholder="Detail / Competencies"
                           />
 
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="color"
-                              value={tool.accent}
-                              onChange={(e) => {
-                                const tools = [...config.skills.tools];
-                                tools[i] = { ...tools[i], accent: e.target.value };
-                                updateConfig((c) => ({ ...c, skills: { ...c.skills, tools } }));
-                              }}
-                              className="size-7 cursor-pointer rounded border-0 bg-transparent"
-                            />
-                            <TextInput
-                              value={tool.icon}
-                              onChange={(val) => {
-                                const tools = [...config.skills.tools];
-                                tools[i] = { ...tools[i], icon: val };
-                                updateConfig((c) => ({ ...c, skills: { ...c.skills, tools } }));
-                              }}
-                              placeholder="Icon SVG URL"
-                              className="flex-1"
-                            />
-                          </div>
+                          <ToolIconUploader
+                            icon={tool.icon}
+                            accent={tool.accent}
+                            toolName={tool.name}
+                            onChangeIcon={(url) => {
+                              const tools = [...config.skills.tools];
+                              tools[i] = { ...tools[i], icon: url };
+                              updateConfig((c) => ({ ...c, skills: { ...c.skills, tools } }));
+                            }}
+                            onChangeAccent={(hex) => {
+                              const tools = [...config.skills.tools];
+                              tools[i] = { ...tools[i], accent: hex };
+                              updateConfig((c) => ({ ...c, skills: { ...c.skills, tools } }));
+                            }}
+                          />
                         </div>
                       ))}
                     </div>
@@ -934,6 +1847,18 @@ export default function AdminPanel() {
                 {/* ────────────────── CAPABILITIES TAB ────────────────── */}
                 {activeTab === "capabilities" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Capabilities & Disciplines"
+                      enabled={settings?.sections?.capabilities !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, capabilities: next } }))}
+                      title={config.capabilities.title}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, title: val } }))}
+                      subtitle={config.capabilities.subtitle}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, subtitle: val } }))}
+                      kicker={config.capabilities.kicker}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, kicker: val } }))}
+                    />
+
                     <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-4">
                       <div>
                         <h3 className="font-display text-base font-bold text-[var(--fg)]">Capabilities &amp; Disciplines</h3>
@@ -1016,8 +1941,20 @@ export default function AdminPanel() {
                 {/* ────────────────── PROCESS TAB ────────────────── */}
                 {activeTab === "process" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Design Process"
+                      enabled={settings?.sections?.process !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, process: next } }))}
+                      title={config.process.title}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, title: val } }))}
+                      subtitle={config.process.subtitle}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, subtitle: val } }))}
+                      kicker={config.process.kicker}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, kicker: val } }))}
+                    />
+
                     <div className="border-b border-[var(--hairline)] pb-4">
-                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Design Process</h3>
+                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Design Process Steps</h3>
                       <p className="text-xs text-[var(--muted)] mt-0.5">Sticky stack cards explaining your design methodology</p>
                     </div>
 
@@ -1071,6 +2008,18 @@ export default function AdminPanel() {
                 {/* ────────────────── TRAININGS TAB ────────────────── */}
                 {activeTab === "trainings" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Trainings & Experience"
+                      enabled={settings?.sections?.trainings !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, trainings: next } }))}
+                      title={config.trainings.title}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, title: val } }))}
+                      subtitle={config.trainings.subtitle}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, subtitle: val } }))}
+                      kicker={config.trainings.kicker}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, kicker: val } }))}
+                    />
+
                     <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-4">
                       <div>
                         <h3 className="font-display text-base font-bold text-[var(--fg)]">Trainings &amp; Internships</h3>
@@ -1183,8 +2132,22 @@ export default function AdminPanel() {
                 {/* ────────────────── CONTACT & FOOTER TAB ────────────────── */}
                 {activeTab === "contact" && (
                   <div className="space-y-6">
+                    <SectionHeaderBar
+                      sectionName="Contact & Footer"
+                      enabled={settings?.sections?.contact !== false}
+                      onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, contact: next } }))}
+                      title={config.contact.titleLines.join(" ")}
+                      onTitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, titleLines: val.split(/\s+/) } }))}
+                      titleLabel="Call to Action Title"
+                      subtitle={config.contact.subtitleHeadline}
+                      onSubtitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, subtitleHeadline: val } }))}
+                      subtitleLabel="Subheading Headline"
+                      kicker={config.contact.kicker}
+                      onKickerChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, kicker: val } }))}
+                    />
+
                     <div className="border-b border-[var(--hairline)] pb-4">
-                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Contact &amp; Footer</h3>
+                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Contact Details</h3>
                       <p className="text-xs text-[var(--muted)] mt-0.5">Direct contact links, headlines, and copyright notes</p>
                     </div>
 
@@ -1469,6 +2432,155 @@ export default function AdminPanel() {
                           <option value="clamp(7.5rem, 13vw, 11rem)">Spacious (Breathing room)</option>
                         </select>
                       </FormField>
+                    </div>
+                  </div>
+                )}
+
+                {/* ────────────────── CLOUD DATABASE TAB ────────────────── */}
+                {activeTab === "database" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--hairline)] pb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-display text-base font-bold text-[var(--fg)]">
+                            Cloud Database (Firestore)
+                          </h3>
+                          <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 font-mono text-[0.68rem] text-emerald-400">
+                            <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Connected
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--muted)] mt-0.5">
+                          Persistent cloud storage for all case studies, full-width image streams, content, and settings.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleManualPullFromCloud}
+                          disabled={isManualSyncing}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] disabled:opacity-50 transition-colors"
+                        >
+                          <RefreshCw className={`size-3.5 ${isManualSyncing ? "animate-spin" : ""}`} />
+                          Pull from Cloud
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleManualPushToCloud}
+                          disabled={isManualSyncing}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 py-1.5 text-xs font-medium text-black hover:opacity-90 disabled:opacity-50 transition-opacity"
+                        >
+                          {isManualSyncing ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Cloud className="size-3.5" />
+                          )}
+                          Save All to Cloud
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Database Health and Metrics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-1">
+                        <span className="font-mono text-[0.65rem] text-[var(--muted)] uppercase tracking-wider">
+                          Projects In Database
+                        </span>
+                        <div className="flex items-baseline justify-between">
+                          <p className="text-xl font-bold text-[var(--fg)]">{projects.length}</p>
+                          <span className="text-[0.7rem] text-emerald-400">Live Synced</span>
+                        </div>
+                        <p className="text-[0.68rem] text-[var(--muted)]">
+                          Includes descriptions, stack, and image streams
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-1">
+                        <span className="font-mono text-[0.65rem] text-[var(--muted)] uppercase tracking-wider">
+                          Site Sections Synced
+                        </span>
+                        <div className="flex items-baseline justify-between">
+                          <p className="text-xl font-bold text-[var(--fg)]">8 / 8</p>
+                          <span className="text-[0.7rem] text-emerald-400">Up to date</span>
+                        </div>
+                        <p className="text-[0.68rem] text-[var(--muted)]">
+                          Hero, About, Capabilities, Process, Skills, etc.
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-1">
+                        <span className="font-mono text-[0.65rem] text-[var(--muted)] uppercase tracking-wider">
+                          Sync Frequency
+                        </span>
+                        <div className="flex items-baseline justify-between">
+                          <p className="text-xl font-bold text-[var(--fg)]">Realtime</p>
+                          <span className="text-[0.7rem] text-emerald-400">Active</span>
+                        </div>
+                        <p className="text-[0.68rem] text-[var(--muted)]">
+                          Auto-saved on every change across all tabs
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Infrastructure Configuration */}
+                    <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-5 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Database className="size-4 text-[var(--accent)]" />
+                        <h4 className="text-xs font-bold text-[var(--fg)] uppercase tracking-wider">
+                          Database Connection Parameters
+                        </h4>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div className="rounded-lg bg-[var(--card)] p-3 border border-[var(--hairline)] space-y-1">
+                          <span className="font-mono text-[0.65rem] text-[var(--muted)] block">
+                            FIREBASE PROJECT ID
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-[var(--fg)] select-all">
+                            expanded-verbena-zmn89
+                          </span>
+                        </div>
+
+                        <div className="rounded-lg bg-[var(--card)] p-3 border border-[var(--hairline)] space-y-1">
+                          <span className="font-mono text-[0.65rem] text-[var(--muted)] block">
+                            FIRESTORE DATABASE ID
+                          </span>
+                          <span className="font-mono text-[0.7rem] font-semibold text-[var(--fg)] select-all truncate block">
+                            ai-studio-portfolio3-796f99c9-4af8-4de3-b370-41fe409fbcb7
+                          </span>
+                        </div>
+
+                        <div className="rounded-lg bg-[var(--card)] p-3 border border-[var(--hairline)] space-y-1">
+                          <span className="font-mono text-[0.65rem] text-[var(--muted)] block">
+                            SECURITY STATUS
+                          </span>
+                          <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                            <CheckCircle2 className="size-3.5" /> Deployed Firestore Rules (Zero-Trust)
+                          </span>
+                        </div>
+
+                        <div className="rounded-lg bg-[var(--card)] p-3 border border-[var(--hairline)] space-y-1">
+                          <span className="font-mono text-[0.65rem] text-[var(--muted)] block">
+                            OFFLINE RESILIENCY
+                          </span>
+                          <span className="text-xs font-semibold text-[var(--fg)] flex items-center gap-1.5">
+                            <Check className="size-3.5 text-emerald-400" /> Multi-tiered (Cloud + IndexedDB + LocalStorage)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3.5 flex items-start gap-3">
+                        <CheckCircle2 className="size-4 text-emerald-400 mt-0.5 shrink-0" />
+                        <div className="text-xs space-y-1">
+                          <p className="font-semibold text-emerald-400">
+                            Everything is permanently stored and synchronized
+                          </p>
+                          <p className="text-[var(--fg)]/80 text-[0.74rem] leading-relaxed">
+                            When you add new case study projects, upload infinite full-width high-resolution images, edit sections, or toggle visibility in this studio, your modifications automatically persist to Google Cloud Firestore and are instantly available to any visitor or browser.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

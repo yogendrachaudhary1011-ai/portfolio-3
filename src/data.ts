@@ -1,6 +1,12 @@
 export const img = (id: string, w: number, h: number) =>
   id.startsWith("http") || id.startsWith("data:") ? id : `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format`;
 
+export const getFullWidthImageUrl = (id: string) => {
+  if (!id) return "";
+  if (id.startsWith("http") || id.startsWith("data:")) return id;
+  return `https://images.unsplash.com/photo-${id}?w=2400&auto=format&q=90`;
+};
+
 export const PORTRAIT = "1573496359142-b8d87734a5a2";
 
 export const NAV = ["Work", "What I Can Do", "Process", "About", "Experience", "Skills"];

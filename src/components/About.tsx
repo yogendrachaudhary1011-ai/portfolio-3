@@ -24,6 +24,13 @@ export default function About() {
         text={about.title}
         className="section-title"
       />
+      {about.subtitle && (
+        <Reveal dir="up" delay={0.1}>
+          <p className="mt-3 max-w-2xl text-base text-[var(--muted)] leading-relaxed">
+            {about.subtitle}
+          </p>
+        </Reveal>
+      )}
 
       <div className="mt-14 max-w-3xl">
         <Reveal dir="up">

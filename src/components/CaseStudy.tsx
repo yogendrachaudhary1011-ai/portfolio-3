@@ -1,81 +1,196 @@
 import { useEffect, useState } from "react";
-import { img, type Project } from "../data";
-import { Arrow } from "../icons";
-import { getPdf } from "../pdfStore";
+import { ArrowLeft, Maximize2, X } from "lucide-react";
+import { getFullWidthImageUrl, type Project } from "../data";
+import { useSite } from "../siteContext";
 
-export default function CaseStudy({ project, index, onBack }: { project: Project; index: number; onBack: () => void }) {
-  const imageSet = project.media?.length ? project.media : [project.image ?? "1551288049-bebda4e38f71", "1686061592689-312bbfb5c055", "1599658880436-c61792e70672"];
-  const pdfUrl = project.pdfUrls?.[0];
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+interface CaseStudyProps {
+  project: Project;
+  index: number;
+  onBack: () => void;
+}
+
+export default function CaseStudy({ project, index, onBack }: CaseStudyProps) {
+  const { projects } = useSite();
+
+  // Retrieve current live state of this project from siteContext
+  const currentProject = projects[index] ?? projects.find((p) => p.title === project.title) ?? project;
+
+  // Resolve media array uploaded via Admin Panel (fallback to thumbnail/image if available)
+  const images = currentProject.media && currentProject.media.length > 0
+    ? currentProject.media
+    : [currentProject.thumbnail ?? currentProject.image ?? ""].filter(Boolean);
+
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   useEffect(() => {
-    setViewerUrl(null);
-    let objectUrl: string | null = null;
-    let cancelled = false;
-    const loadPdf = async () => {
-      try {
-        const storedPdf = project.pdfKey ? await getPdf(project.pdfKey) : undefined;
-        if (storedPdf) {
-          objectUrl = URL.createObjectURL(storedPdf);
-          if (!cancelled) setViewerUrl(objectUrl);
-          return;
-        }
-        if (!pdfUrl) return;
-        if (!pdfUrl.startsWith("data:")) {
-          if (!cancelled) setViewerUrl(pdfUrl);
-          return;
-        }
-        const blob = await fetch(pdfUrl).then((response) => response.blob());
-        objectUrl = URL.createObjectURL(blob);
-        if (!cancelled) setViewerUrl(objectUrl);
-      } catch {
-        if (!cancelled && pdfUrl) setViewerUrl(pdfUrl);
-      }
-    };
-    void loadPdf();
+    window.scrollTo(0, 0);
+  }, [project.title]);
 
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [pdfUrl, project.pdfKey]);
+  return (
+    <main
+      id="case-study-page"
+      className="min-h-screen bg-[var(--bg)] text-[var(--fg)] pb-28 pt-14 md:pt-16 transition-colors duration-300"
+    >
+      {/* Top Bar Navigation */}
+      <div className="sticky top-14 md:top-[4.25rem] z-30 border-b border-[var(--hairline)] bg-[var(--bg)]/90 backdrop-blur-md transition-colors">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <button
+            id="back-to-work-btn"
+            type="button"
+            onClick={onBack}
+            className="group inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)]"
+          >
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
+            <span>Back to Work</span>
+          </button>
 
-  if (pdfUrl || project.pdfKey) {
-    return (
-      <main className="min-h-screen bg-[var(--bg)] text-[var(--fg)] pt-20 transition-colors duration-300">
-        {viewerUrl ? (
-          <iframe
-            title={`${project.title} case study`}
-            src={viewerUrl}
-            className="h-[calc(100vh-5rem)] min-h-[42rem] w-full rounded-2xl border border-[var(--card-border)] bg-[var(--card)]"
-          />
+          <span className="font-mono text-xs text-[var(--muted)]">
+            {images.length} {images.length === 1 ? "Visual" : "Visuals"}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Container: Project Name and Full-Width Image Stream */}
+      <div className="w-full">
+        {/* ONLY Project Name Header */}
+        <header className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 text-center">
+          <h1
+            id="case-study-title"
+            className="font-display text-[clamp(2.5rem,7.5vw,6rem)] font-bold leading-[1.04] tracking-[-0.035em] text-[var(--fg)] break-words"
+          >
+            {currentProject.title}
+          </h1>
+        </header>
+
+        {/* Full-width, no height boundary images stacked from top to bottom */}
+        {images.length > 0 ? (
+          <div
+            id="case-study-images-stream"
+            className="w-full flex flex-col gap-0 md:gap-2 items-center"
+          >
+            {images.map((imgSrc, idx) => {
+              const resolvedUrl = getFullWidthImageUrl(imgSrc);
+              return (
+                <div
+                  key={`${imgSrc.slice(0, 32)}-${idx}`}
+                  className="group relative w-full bg-[var(--bg)]"
+                >
+                  {/* Discreet Full View expander button on hover */}
+                  <button
+                    type="button"
+                    onClick={() => setLightboxImage(resolvedUrl)}
+                    className="absolute right-4 top-4 z-10 hidden items-center gap-1.5 rounded-full border border-black/20 bg-black/60 px-3 py-1.5 text-xs text-white backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 md:inline-flex hover:bg-black/80 cursor-pointer shadow-md"
+                    title="View Fullscreen"
+                  >
+                    <Maximize2 className="size-3.5" />
+                    <span>Expand</span>
+                  </button>
+
+                  {/* Full-width image with natural height, no height bounds */}
+                  <img
+                    src={resolvedUrl}
+                    alt={`${currentProject.title} - Visual ${idx + 1}`}
+                    loading={idx < 2 ? "eager" : "lazy"}
+                    decoding="async"
+                    onClick={() => setLightboxImage(resolvedUrl)}
+                    className="w-full h-auto block object-cover md:object-contain cursor-zoom-in"
+                    style={{
+                      maxHeight: "none",
+                      height: "auto",
+                      width: "100%",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         ) : (
-          <div className="grid h-[calc(100vh-5rem)] min-h-[42rem] place-items-center text-sm text-[var(--muted)]">
-            Loading case study…
+          <div className="mx-auto max-w-3xl px-4 py-16">
+            <div className="rounded-3xl border border-[var(--hairline)] bg-[var(--card)]/40 p-12 text-center shadow-xs">
+              <p className="font-display text-xl font-semibold text-[var(--fg)]">
+                No case study visuals uploaded yet.
+              </p>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Images for this project can be uploaded from the Admin Panel.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("portfolio-open-admin", {
+                      detail: { tab: "projects", projectIndex: index },
+                    })
+                  );
+                }}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Open Admin Panel to Upload
+              </button>
+            </div>
           </div>
         )}
-      </main>
-    );
-  }
-  return (
-    <main className="min-h-screen bg-[var(--bg)] text-[var(--fg)] pt-28 transition-colors duration-300">
-      <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-6 sm:pb-24">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-10 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-4 text-sm font-medium text-[var(--fg)] transition-colors hover:bg-[var(--chip)]"
-        >
-          <Arrow className="size-4 rotate-180" /> Back to work
-        </button>
-        <div className="grid gap-10 md:grid-cols-[0.9fr_1.1fr] md:items-end">
-          <div><p className="section-kicker mb-4">Case study / {String(index + 1).padStart(2, "0")}</p><h1 className="font-display text-[clamp(3rem,6vw,5.5rem)] font-bold leading-[0.92] tracking-[-0.065em]">{project.title}</h1></div>
-          <p className="max-w-xl text-base leading-relaxed text-[var(--muted)]">{project.desc}</p>
+
+        {/* Return to Work Bottom Bar */}
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-24 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--hairline)] pt-10">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-6 py-3 text-sm font-medium text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)]"
+          >
+            <ArrowLeft className="size-4" />
+            <span>Back to all projects</span>
+          </button>
+
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="text-xs text-[var(--muted)] hover:text-[var(--fg)] transition-colors hover:underline"
+            >
+              ↑ Back to top
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent("portfolio-open-admin", {
+                    detail: { tab: "projects", projectIndex: index },
+                  })
+                )
+              }
+              className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none cursor-pointer"
+              aria-label="Admin panel"
+              title="Studio Admin"
+            >
+              <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
+            </button>
+          </div>
         </div>
-        <div className="mt-12 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card)]"><img src={img(project.thumbnail ?? imageSet[0], 1600, 980)} alt={`${project.title} cover`} className="aspect-[16/9] w-full object-cover" /></div>
-      </section>
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg-2)]"><div className="mx-auto grid max-w-6xl gap-px px-5 sm:grid-cols-3 sm:px-6"><div className="py-6"><p className="label !text-[0.55rem]">Focus</p><p className="mt-2 text-sm font-medium">{project.stack ?? "Product design"}</p></div><div className="py-6"><p className="label !text-[0.55rem]">Deliverables</p><p className="mt-2 text-sm font-medium">Research · UX · UI</p></div><div className="py-6"><p className="label !text-[0.55rem]">Status</p><p className="mt-2 text-sm font-medium">Concept case study</p></div></div></section>
-      <section className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-6 md:grid-cols-[0.75fr_1.25fr] md:py-28"><div><p className="section-kicker">The project</p><h2 className="mt-4 font-display text-4xl font-semibold tracking-[-0.05em]">A clearer path from need to outcome.</h2></div><div className="space-y-7 text-[0.98rem] leading-relaxed text-[var(--muted)]"><p>This case-study template is ready for the full project story: the problem, constraints, research, key decisions, interface explorations, and the outcome.</p><p>Replace this content with project-specific evidence and decisions when the final case study is ready to publish.</p></div></section>
-      <section className="mx-auto max-w-6xl px-5 pb-20 sm:px-6 sm:pb-28"><div className="grid gap-5 md:grid-cols-2">{imageSet.slice(1).map((image, i) => <img key={`${image}-${i}`} src={img(image, 900, 700)} alt={`${project.title} visual ${i + 1}`} className="aspect-[4/3] w-full rounded-2xl border border-[var(--card-border)] object-cover" />)}</div></section>
+      </div>
+
+      {/* Lightbox / Fullscreen Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 sm:p-8 backdrop-blur-md"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxImage(null)}
+            className="absolute right-6 top-6 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-colors cursor-pointer"
+            title="Close"
+          >
+            <X className="size-6" />
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Fullscreen view"
+            className="max-h-[95vh] max-w-[95vw] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </main>
   );
 }

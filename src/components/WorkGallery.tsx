@@ -2,8 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { img, initialCaseStudies, type Project } from "../data";
 import { SectionHead, Magnetic } from "./common";
 import { External, Arrow } from "../icons";
+import { useSite } from "../siteContext";
 
 export default function WorkGallery({ projects = initialCaseStudies, onMore, onProject }: { projects?: Project[]; onMore: () => void; onProject: (index: number) => void }) {
+  const { config } = useSite();
+  const workConfig = config.work || {
+    kicker: "Selected Work",
+    title: "Work Gallery",
+    subtitle: "A selection of internship, academic, and personal projects exploring different users, industries, and product challenges.",
+  };
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [cardW, setCardW] = useState(460);
@@ -58,9 +65,9 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
   return (
     <section id="work" className="relative mx-auto max-w-6xl px-5 py-24 sm:px-6 sm:py-32">
       <SectionHead
-        label="Selected Work"
-        title="Work Gallery"
-        sub="A selection of internship, academic, and personal projects exploring different users, industries, and product challenges."
+        label={workConfig.kicker || "Selected Work"}
+        title={workConfig.title || "Work Gallery"}
+        sub={workConfig.subtitle || "A selection of internship, academic, and personal projects exploring different users, industries, and product challenges."}
         action={
           <Magnetic strength={0.3}>
             <button

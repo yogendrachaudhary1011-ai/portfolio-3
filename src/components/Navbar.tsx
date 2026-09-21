@@ -4,6 +4,7 @@ import { Sun, Moon } from "../icons";
 import { Home, Menu, X, ArrowUpRight, ArrowLeft, Mail, Sparkles } from "lucide-react";
 import { NAV } from "../data";
 import { Magnetic } from "./common";
+import { useSite } from "../siteContext";
 
 /* Intro curtain fully gone at ~2.35s. We start navbar elements at 1.9s so
    they're already mid-animation when the curtain finishes rising. */
@@ -40,6 +41,7 @@ export default function Navbar({
   onContact?: () => void;
 }) {
   const { theme, toggle } = useTheme();
+  const { settings } = useSite();
   const [scrolled, setScrolled] = useState(false);
   const [current, setCurrent] = useState(active ?? "");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -51,6 +53,10 @@ export default function Navbar({
     let id = n.toLowerCase().replace(/[^a-z]+/g, "-");
     if (n === "Experience") id = "trainings";
     return { label: n, id, num: String(i + 1).padStart(2, "0") };
+  }).filter((link) => {
+    if (!settings?.sections) return true;
+    const sectionKey = link.id === "what-i-can-do" ? "capabilities" : link.id;
+    return settings.sections[sectionKey as keyof typeof settings.sections] !== false;
   });
 
   useEffect(() => {

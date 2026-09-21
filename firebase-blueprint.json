@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Portfolio case study project item with full-width images and case study content",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "desc": { "type": "string" },
+        "stack": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "image": { "type": "string" },
+        "media": { "type": "array" },
+        "tech": { "type": "array" },
+        "order": { "type": "number" },
+        "pdfKey": { "type": "string" },
+        "pdfUrls": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title"]
+    },
+    "SiteConfig": {
+      "title": "SiteConfig",
+      "description": "Full site configuration for portfolio sections including hero, about, capabilities, process, skills, trainings, contact, and archive",
+      "type": "object",
+      "properties": {
+        "hero": { "type": "object" },
+        "work": { "type": "object" },
+        "about": { "type": "object" },
+        "capabilities": { "type": "object" },
+        "process": { "type": "object" },
+        "skills": { "type": "object" },
+        "trainings": { "type": "object" },
+        "contact": { "type": "object" },
+        "projectsArchive": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["hero", "about"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Theme settings and section visibility switches",
+      "type": "object",
+      "properties": {
+        "sections": { "type": "object" },
+        "accent": { "type": "string" },
+        "accent2": { "type": "string" },
+        "bg": { "type": "string" },
+        "radius": { "type": "string" },
+        "sectionSpace": { "type": "string" },
+        "headingScale": { "type": "string" },
+        "subheadingScale": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["sections"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": { "$ref": "Project" },
+      "description": "Case study project documents with infinite media stream"
+    },
+    "/site_configs/{configId}": {
+      "schema": { "$ref": "SiteConfig" },
+      "description": "Global portfolio configuration documents"
+    },
+    "/site_settings/{settingsId}": {
+      "schema": { "$ref": "SiteSettings" },
+      "description": "Global portfolio styling and section visibility settings"
+    }
+  }
+}

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Mail, Linkedin, External, Arrow, Github, Dribbble } from "../icons";
 import { Reveal, Tilt } from "./common";
-import AdminPanel from "./AdminPanel";
 import { useSite } from "../siteContext";
 
 const iconFor = (label: string) => {
@@ -148,7 +147,15 @@ export default function Contact() {
         <span>{contactConfig.footerCopyright || "© 2026 Yogendra Chaudhary. All rights reserved."}</span>
         <span className="inline-flex items-center font-mono">
           <span>{(contactConfig.footerCredit || "Designed & crafted by Yogendra").replace(/\.+$/, "")}</span>
-          <AdminPanel />
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("portfolio-open-admin"))}
+            className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none cursor-pointer"
+            aria-label="Admin panel"
+            title="Studio Admin"
+          >
+            <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
+          </button>
         </span>
       </footer>
     </section>

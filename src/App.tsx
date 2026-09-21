@@ -11,6 +11,7 @@ import Skills from "./components/Skills";
 import Contact from "./components/Contact";
 import ProjectsArchive from "./components/ProjectsArchive";
 import CaseStudy from "./components/CaseStudy";
+import AdminPanel from "./components/AdminPanel";
 import { Atmosphere, ScrollProgress } from "./components/Atmosphere";
 import { SiteProvider, useSite } from "./siteContext";
 import { type Project } from "./data";
@@ -131,7 +132,7 @@ function PortfolioApp() {
   const [transitioning, setTransitioning] = useState(false);
   const [introVisible, setIntroVisible] = useState(true);
 
-  const { projects } = useSite();
+  const { projects, settings } = useSite();
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0] ?? null);
 
   const doneIntro = useCallback(() => setIntroVisible(false), []);
@@ -157,6 +158,7 @@ function PortfolioApp() {
       {introVisible && <IntroScreen onDone={doneIntro} />}
       <Atmosphere />
       <ScrollProgress />
+      <AdminPanel showTrigger={false} />
 
       {/* page transition curtain */}
       <div
@@ -173,22 +175,24 @@ function PortfolioApp() {
           <>
             <Navbar variant="home" onNav={scrollTo} onHome={() => scrollTo("home")} />
             <main>
-              <Hero />
-              <WorkGallery
-                projects={projects}
-                onMore={() => navigate("projects")}
-                onProject={(index) => {
-                  setProjectIndex(index);
-                  setSelectedProject(projects[index]);
-                  navigate("case-study");
-                }}
-              />
-              <Capabilities />
-              <MyProcess />
-              <About />
-              <Trainings />
-              <Skills />
-              <Contact />
+              {settings?.sections?.hero !== false && <Hero />}
+              {settings?.sections?.work !== false && (
+                <WorkGallery
+                  projects={projects}
+                  onMore={() => navigate("projects")}
+                  onProject={(index) => {
+                    setProjectIndex(index);
+                    setSelectedProject(projects[index]);
+                    navigate("case-study");
+                  }}
+                />
+              )}
+              {settings?.sections?.capabilities !== false && <Capabilities />}
+              {settings?.sections?.process !== false && <MyProcess />}
+              {settings?.sections?.about !== false && <About />}
+              {settings?.sections?.trainings !== false && <Trainings />}
+              {settings?.sections?.skills !== false && <Skills />}
+              {settings?.sections?.contact !== false && <Contact />}
             </main>
           </>
         ) : view === "projects" ? (
