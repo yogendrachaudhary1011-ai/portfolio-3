@@ -17,10 +17,16 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
   const stageRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number } | null>(null);
   const moved = useRef(false);
-  const galleryItems = projects.length ? projects : initialCaseStudies;
+  const galleryItems = (projects && projects.length > 0) ? projects : initialCaseStudies;
   const n = galleryItems.length;
 
-  useEffect(() => setActive((current) => Math.min(current, n - 1)), [n]);
+  // Derive safe index synchronously so render never indexes out of bounds
+  const safeActive = n > 0 ? Math.max(0, Math.min(active, n - 1)) : 0;
+  const project = galleryItems[safeActive] ?? galleryItems[0];
+
+  useEffect(() => {
+    setActive((current) => (n > 0 ? Math.max(0, Math.min(current, n - 1)) : 0));
+  }, [n]);
 
   // responsive card width
   useEffect(() => {
@@ -34,12 +40,15 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
   }, []);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || n <= 1) return;
     const t = setInterval(() => setActive((a) => (a + 1) % n), 4600);
     return () => clearInterval(t);
   }, [n, paused]);
 
-  const go = (d: number) => setActive((a) => (a + d + n) % n);
+  const go = (d: number) => {
+    if (n <= 0) return;
+    setActive((a) => (a + d + n) % n);
+  };
 
   const onDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -59,7 +68,6 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
     setPaused(false);
   };
 
-  const project = galleryItems[active];
   const gap = cardW * 0.56;
 
   return (
@@ -95,7 +103,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         {galleryItems.map((p, i) => {
           // shortest signed distance around the ring → cards always take the
           // nearest path and only ever "wrap" while fully transparent.
-          let offset = ((i - active) % n + n) % n;
+          let offset = ((i - safeActive) % n + n) % n;
           if (offset > n / 2) offset -= n;
           const abs = Math.abs(offset);
           const isActive = offset === 0;
@@ -104,7 +112,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           const interactive = abs <= 1;
           return (
             <div
-              key={`${p.title}-${i}`}
+              key={`${p?.title || "project"}-${i}`}
               onClick={() => !moved.current && interactive && setActive(i)}
               className="group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)]"
               style={{
@@ -122,8 +130,8 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
               }}
             >
               <img
-                src={img(p.thumbnail ?? p.image ?? "1551288049-bebda4e38f71", 720, 460)}
-                alt={p.title}
+                src={img(p?.thumbnail ?? p?.image ?? "1551288049-bebda4e38f71", 720, 460)}
+                alt={p?.title || "Project Preview"}
                 draggable={false}
                 className="pointer-events-none size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
               />
@@ -152,7 +160,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
               onClick={() => setActive(i)}
               aria-label={`Go to project ${i + 1}`}
               className={`h-1.5 rounded-full transition-all duration-500 ${
-                i === active ? "w-8 bg-[var(--accent)]" : "w-1.5 bg-[var(--muted)]/40 hover:bg-[var(--muted)]"
+                i === safeActive ? "w-8 bg-[var(--accent)]" : "w-1.5 bg-[var(--muted)]/40 hover:bg-[var(--muted)]"
               }`}
             />
           ))}
@@ -168,16 +176,16 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
 
       {/* details */}
       <div className="mx-auto mt-10 max-w-3xl text-center">
-        <div key={active} style={{ animation: "fadeUp 0.55s cubic-bezier(0.22,1,0.36,1)" }}>
+        <div key={safeActive} style={{ animation: "fadeUp 0.55s cubic-bezier(0.22,1,0.36,1)" }}>
           <span className="label mb-3 block !text-[0.55rem] text-[var(--accent)]">
-            {String(active + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
+            {String(safeActive + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
           </span>
-          <h3 className="font-display text-2xl font-bold leading-snug md:text-[1.75rem]">{project.title}</h3>
-          <p className="mx-auto mt-4 max-w-2xl text-[0.95rem] leading-relaxed text-[var(--muted)]">{project.desc}</p>
+          <h3 className="font-display text-2xl font-bold leading-snug md:text-[1.75rem]">{project?.title || "Untitled Project"}</h3>
+          <p className="mx-auto mt-4 max-w-2xl text-[0.95rem] leading-relaxed text-[var(--muted)]">{project?.desc || ""}</p>
           <button
             type="button"
-            onClick={() => onProject(active)}
-            className="group mt-6 inline-flex items-center gap-2 border-b border-current pb-1 text-[0.8rem] font-medium"
+            onClick={() => onProject(safeActive)}
+            className="group mt-6 inline-flex items-center gap-2 border-b border-current pb-1 text-[0.8rem] font-medium cursor-pointer"
           >
             View Project <Arrow className="size-4 transition-transform group-hover:translate-x-1" />
           </button>

@@ -52,11 +52,11 @@ export default function ProjectsArchive({
 
         <div className="mt-14 border-t border-[var(--hairline)]">
           {projects.map((p, i) => (
-            <Reveal key={`${p.title}-${i}`} delay={i * 0.05} dir="up">
+            <Reveal key={`${p?.title || "proj"}-${i}`} delay={i * 0.05} dir="up">
               <button
                 type="button"
                 onClick={() => onProject(p, i)}
-                className="group relative grid w-full grid-cols-[auto_1fr_auto] items-start gap-3 border-b border-[var(--hairline)] py-6 text-left sm:gap-6 sm:py-7"
+                className="group relative grid w-full grid-cols-[auto_1fr_auto] items-start gap-3 border-b border-[var(--hairline)] py-6 text-left sm:gap-6 sm:py-7 cursor-pointer"
               >
                 <span
                   className="pointer-events-none absolute inset-0 origin-left scale-x-0 bg-[var(--chip)] transition-transform duration-500 group-hover:scale-x-100"
@@ -67,12 +67,12 @@ export default function ProjectsArchive({
                 </span>
                 <div className="relative">
                   <h3 className="font-display font-semibold transition-transform duration-300 group-hover:translate-x-2">
-                    {p.title}
+                    {p?.title || "Untitled Project"}
                   </h3>
-                  <p className="mt-1.5 max-w-3xl text-[0.85rem] text-[var(--muted)]">{p.desc}</p>
-                  <p className="label mt-3 !text-[0.55rem]">{p.stack}</p>
+                  <p className="mt-1.5 max-w-3xl text-[0.85rem] text-[var(--muted)]">{p?.desc || ""}</p>
+                  <p className="label mt-3 !text-[0.55rem]">{p?.stack || ""}</p>
                   <div className="mt-2 flex gap-3">
-                    {(p.tech ?? []).map((t) => (
+                    {(p?.tech ?? []).map((t) => (
                       <img
                         key={t}
                         src={devicon(t)}
@@ -111,13 +111,13 @@ export default function ProjectsArchive({
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {digitalProjects.map((d, i) => (
-            <Reveal key={`${d.title}-${i}`} delay={i * 0.08} dir="up">
+            <Reveal key={`${d?.title || "digital"}-${i}`} delay={i * 0.08} dir="up">
               <Tilt max={7} className="group h-full">
                 <div className="card-surface hover-lift flex h-full flex-col overflow-hidden">
                   <div className="relative overflow-hidden">
                     <img
                       src={img(digitalImages[i % digitalImages.length], 520, 340)}
-                      alt={d.title}
+                      alt={d?.title || "Digital Exploration"}
                       className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <span
@@ -129,8 +129,8 @@ export default function ProjectsArchive({
                     <span className="text-gradient font-display text-3xl font-semibold opacity-50">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <h3 className="mt-2 font-display font-semibold">{d.title}</h3>
-                    <p className="mt-2 text-[0.85rem] text-[var(--muted)]">{d.desc}</p>
+                    <h3 className="mt-2 font-display font-semibold">{d?.title || "Exploration"}</h3>
+                    <p className="mt-2 text-[0.85rem] text-[var(--muted)]">{d?.desc || ""}</p>
                   </div>
                 </div>
               </Tilt>

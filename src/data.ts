@@ -1,9 +1,26 @@
-export const img = (id: string, w: number, h: number) =>
-  id.startsWith("http") || id.startsWith("data:") ? id : `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format`;
+import { getImageMemoryCache } from "./storage";
+
+export const img = (id: string, w: number, h: number) => {
+  if (!id) return "";
+  if (id.startsWith("http") || id.startsWith("data:") || id.startsWith("blob:") || id.startsWith("/")) return id;
+  if (id.startsWith("cloud-img://")) {
+    const cleanId = id.replace("cloud-img://", "");
+    const cached = getImageMemoryCache().get(cleanId) || getImageMemoryCache().get(id);
+    if (cached) return cached;
+    return "";
+  }
+  return `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format`;
+};
 
 export const getFullWidthImageUrl = (id: string) => {
   if (!id) return "";
-  if (id.startsWith("http") || id.startsWith("data:")) return id;
+  if (id.startsWith("http") || id.startsWith("data:") || id.startsWith("blob:") || id.startsWith("/")) return id;
+  if (id.startsWith("cloud-img://")) {
+    const cleanId = id.replace("cloud-img://", "");
+    const cached = getImageMemoryCache().get(cleanId) || getImageMemoryCache().get(id);
+    if (cached) return cached;
+    return "";
+  }
   return `https://images.unsplash.com/photo-${id}?w=2400&auto=format&q=90`;
 };
 

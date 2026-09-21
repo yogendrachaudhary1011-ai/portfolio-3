@@ -53,6 +53,32 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["sections"]
+    },
+    "UploadedImage": {
+      "title": "UploadedImage",
+      "description": "Permanently stored image payload for case studies and portfolio assets",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "dataUrl": { "type": "string" },
+        "size": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "dataUrl"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Visitor contact message submitted through the portfolio contact form",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "message": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "message"]
     }
   },
   "firestore": {
@@ -67,6 +93,14 @@
     "/site_settings/{settingsId}": {
       "schema": { "$ref": "SiteSettings" },
       "description": "Global portfolio styling and section visibility settings"
+    },
+    "/uploaded_images/{imageId}": {
+      "schema": { "$ref": "UploadedImage" },
+      "description": "Persistent image payloads for portfolio projects and case studies"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "Message" },
+      "description": "Visitor contact form messages saved to database"
     }
   }
 }

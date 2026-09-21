@@ -133,7 +133,9 @@ function PortfolioApp() {
   const [introVisible, setIntroVisible] = useState(true);
 
   const { projects, settings } = useSite();
-  const [selectedProject, setSelectedProject] = useState<Project>(projects[0] ?? null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(projects[0] ?? null);
+
+  const currentCaseStudyProject = (projects && projects[projectIndex]) ?? selectedProject ?? projects?.[0] ?? null;
 
   const doneIntro = useCallback(() => setIntroVisible(false), []);
 
@@ -223,7 +225,7 @@ function PortfolioApp() {
               onContact={() => navigate("home", "contact")}
             />
             <CaseStudy
-              project={projects[projectIndex] ?? selectedProject}
+              project={currentCaseStudyProject}
               index={projectIndex}
               onBack={() => navigate("projects")}
             />

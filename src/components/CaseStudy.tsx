@@ -4,7 +4,7 @@ import { getFullWidthImageUrl, type Project } from "../data";
 import { useSite } from "../siteContext";
 
 interface CaseStudyProps {
-  project: Project;
+  project?: Project | null;
   index: number;
   onBack: () => void;
 }
@@ -12,8 +12,37 @@ interface CaseStudyProps {
 export default function CaseStudy({ project, index, onBack }: CaseStudyProps) {
   const { projects } = useSite();
 
-  // Retrieve current live state of this project from siteContext
-  const currentProject = projects[index] ?? projects.find((p) => p.title === project.title) ?? project;
+  // Retrieve current live state of this project from siteContext safely
+  const currentProject = (projects && projects[index]) ?? projects?.find((p) => p?.title === project?.title) ?? project ?? projects?.[0];
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [project?.title]);
+
+  if (!currentProject) {
+    return (
+      <main
+        id="case-study-page"
+        className="min-h-screen bg-[var(--bg)] text-[var(--fg)] pb-28 pt-24 text-center transition-colors duration-300"
+      >
+        <div className="mx-auto max-w-md px-4 py-16">
+          <h2 className="font-display text-2xl font-bold">Project Not Found</h2>
+          <p className="mt-3 text-sm text-[var(--muted)]">
+            This project may have been removed or is no longer available.
+          </p>
+          <button
+            id="back-to-work-btn"
+            type="button"
+            onClick={onBack}
+            className="mt-6 inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-5 py-2.5 text-sm font-medium text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)] cursor-pointer"
+          >
+            <ArrowLeft className="size-4" />
+            <span>Return to Portfolio</span>
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   // Resolve media array uploaded via Admin Panel (fallback to thumbnail/image if available)
   const images = currentProject.media && currentProject.media.length > 0
@@ -21,10 +50,6 @@ export default function CaseStudy({ project, index, onBack }: CaseStudyProps) {
     : [currentProject.thumbnail ?? currentProject.image ?? ""].filter(Boolean);
 
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [project.title]);
 
   return (
     <main

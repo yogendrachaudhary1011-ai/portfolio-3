@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Mail, Linkedin, External, Arrow, Github, Dribbble } from "../icons";
 import { Reveal, Tilt } from "./common";
 import { useSite } from "../siteContext";
+import { sendMessageToCloud } from "../cloudStore";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 const iconFor = (label: string) => {
   const l = label.toLowerCase();
@@ -17,25 +19,37 @@ export default function Contact() {
   const contactConfig = config.contact;
   const contacts = contactConfig.contacts;
 
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
-    if (status !== "idle") setStatus("idle");
+    if (status !== "idle") {
+      setStatus("idle");
+      setErrorMessage("");
+    }
   };
 
-  const submitMessage = () => {
+  const submitMessage = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
+
+    setStatus("submitting");
+    setErrorMessage("");
+
     try {
-      const parsed = JSON.parse(localStorage.getItem("yogendra-portfolio-messages") ?? "[]");
-      const stored = Array.isArray(parsed) ? parsed : [];
-      const message = { ...form, id: Date.now(), sentAt: new Date().toISOString() };
-      localStorage.setItem("yogendra-portfolio-messages", JSON.stringify([...stored, message]));
-      window.dispatchEvent(new Event("portfolio-messages-updated"));
+      await sendMessageToCloud({
+        name: form.name,
+        email: form.email,
+        message: form.message,
+      });
+
       setForm({ name: "", email: "", message: "" });
       setStatus("success");
-    } catch {
+    } catch (err) {
+      console.error("Error saving message to database:", err);
       setStatus("error");
+      setErrorMessage(err instanceof Error ? err.message : "Failed to connect to the database");
     }
   };
 
@@ -131,13 +145,47 @@ export default function Contact() {
               </label>
               <button
                 type="submit"
-                className="btn-shine inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] px-6 py-3 text-[0.78rem] font-medium transition-colors hover:bg-[var(--fg)] hover:text-[var(--bg)]"
+                disabled={status === "submitting"}
+                className={`btn-shine inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] px-6 py-3 text-[0.78rem] font-medium transition-colors cursor-pointer ${
+                  status === "submitting"
+                    ? "opacity-60 cursor-not-allowed bg-[var(--chip)] text-[var(--muted)]"
+                    : status === "success"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                    : "hover:bg-[var(--fg)] hover:text-[var(--bg)]"
+                }`}
               >
-                {status === "success" ? "Message Sent ✓" : "Send Message"} {status !== "success" && <Arrow className="size-4" />}
+                {status === "submitting" ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
+                    <span>Saving to Database...</span>
+                  </>
+                ) : status === "success" ? (
+                  <>
+                    <CheckCircle2 className="size-4 text-emerald-400" />
+                    <span>Message Sent ✓</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send Message</span>
+                    <Arrow className="size-4" />
+                  </>
+                )}
               </button>
-              <p aria-live="polite" className="mt-3 min-h-5 text-xs text-[var(--muted)]">
-                {status === "success" ? "Your message has been sent." : status === "error" ? "Unable to save this message in the current browser." : "I usually reply within a few days."}
-              </p>
+              <div aria-live="polite" className="mt-3 min-h-5 text-xs">
+                {status === "success" ? (
+                  <p className="text-emerald-400 font-medium">
+                    Your message has been safely saved to the database. I will get back to you soon!
+                  </p>
+                ) : status === "error" ? (
+                  <p className="text-red-400">
+                    {errorMessage || "Unable to save this message to the database. Please try again."}
+                  </p>
+                ) : (
+                  <p className="text-[var(--muted)]">
+                    Messages are delivered directly to the database inbox.
+                  </p>
+                )}
+              </div>
             </form>
           </Reveal>
         </div>

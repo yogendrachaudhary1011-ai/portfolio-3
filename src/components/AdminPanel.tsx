@@ -14,6 +14,15 @@ import { type Project, getFullWidthImageUrl } from "../data";
 import { savePdf } from "../pdfStore";
 import { compressImageFile } from "../storage";
 import {
+  uploadImageFileToDatabase,
+  saveImageToCloud,
+  type ContactMessage,
+  subscribeToCloudMessages,
+  deleteMessageFromCloud,
+  clearAllMessagesFromCloud,
+  loadMessagesFromCloud,
+} from "../cloudStore";
+import {
   Sliders,
   FolderGit2,
   Sparkles,
@@ -46,16 +55,34 @@ import {
   Database,
   Cloud,
   AlertCircle,
+  AlertTriangle,
   RefreshCw,
 } from "lucide-react";
 
+interface ConfirmDialogState {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  isDestructive?: boolean;
+  onConfirm: () => void;
+}
+
 const MESSAGES_KEY = "yogendra-portfolio-messages";
-type Message = { id: number; name: string; email: string; message: string; sentAt: string };
+type Message = ContactMessage;
 
 const readMessages = (): Message[] => {
   try {
     const stored = JSON.parse(localStorage.getItem(MESSAGES_KEY) ?? "[]");
-    return Array.isArray(stored) ? stored : [];
+    return Array.isArray(stored)
+      ? stored.map((m) => ({
+          id: String(m.id ?? ""),
+          name: String(m.name ?? ""),
+          email: String(m.email ?? ""),
+          message: String(m.message ?? ""),
+          sentAt: String(m.sentAt ?? new Date().toISOString()),
+        }))
+      : [];
   } catch {
     return [];
   }
@@ -166,11 +193,13 @@ function ImageUploadField({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const displaySrc = value?.startsWith("data:") || value?.startsWith("http")
-    ? value
-    : value
-    ? `https://images.unsplash.com/photo-${value}?auto=format&fit=crop&w=400&q=80`
-    : "";
+  const displaySrc = getFullWidthImageUrl(value) || (
+    value?.startsWith("data:") || value?.startsWith("http")
+      ? value
+      : value
+      ? `https://images.unsplash.com/photo-${value}?auto=format&fit=crop&w=400&q=80`
+      : ""
+  );
 
   return (
     <FormField label={label}>
@@ -585,12 +614,46 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
   const [uploadingProjectIdx, setUploadingProjectIdx] = useState<number | null>(null);
   const [uploadProgressText, setUploadProgressText] = useState<string>("");
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+
+  const handleDeleteProject = (indexToDelete: number) => {
+    const p = projects[indexToDelete];
+    setConfirmDialog({
+      title: `Delete "${p?.title || "Project"}"?`,
+      message: `Are you sure you want to delete "${p?.title || "this project"}"? It will be removed from your live portfolio and database.`,
+      confirmLabel: "Delete Project",
+      isDestructive: true,
+      onConfirm: () => {
+        const remaining = projects.filter((_, i) => i !== indexToDelete);
+        saveProjects(remaining);
+        if (expandedProjectIndex === indexToDelete) {
+          setExpandedProjectIndex(null);
+        } else if (expandedProjectIndex !== null && expandedProjectIndex > indexToDelete) {
+          setExpandedProjectIndex(expandedProjectIndex - 1);
+        }
+        showSaved();
+        triggerCloudToast(`Deleted "${p?.title || "Project"}"`);
+      },
+    });
+  };
 
   useEffect(() => {
+    // Initial read from local cache
+    setMessages(readMessages());
+
+    // Subscribe to live Firestore collection
+    const unsub = subscribeToCloudMessages((cloudMessages) => {
+      setMessages(cloudMessages);
+    });
+
+    // Also listen to local events
     const updateMessages = () => setMessages(readMessages());
-    updateMessages();
     window.addEventListener("portfolio-messages-updated", updateMessages);
-    return () => window.removeEventListener("portfolio-messages-updated", updateMessages);
+
+    return () => {
+      unsub();
+      window.removeEventListener("portfolio-messages-updated", updateMessages);
+    };
   }, []);
 
   useEffect(() => {
@@ -602,7 +665,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
       if (typeof customEvent?.detail?.projectIndex === "number") {
         setExpandedProjectIndex(customEvent.detail.projectIndex);
       }
-      setMessages(readMessages());
+      loadMessagesFromCloud().then((msgs) => setMessages(msgs)).catch(() => {});
       setOpen(true);
     };
 
@@ -629,23 +692,28 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  // Image upload helper with automatic optimization
+  // Image upload helper with automatic optimization and direct cloud database persistence
   const handleFileUpload = async (
     file: File | undefined,
     onSuccess: (dataUrl: string) => void
   ) => {
     if (!file) return;
     try {
-      const optimizedUrl = await compressImageFile(file);
-      onSuccess(optimizedUrl);
+      setUploadProgressText("Saving to database…");
+      const { dataUrl } = await uploadImageFileToDatabase(file);
+      onSuccess(dataUrl);
       showSaved();
     } catch {
       const reader = new FileReader();
-      reader.onload = () => {
-        onSuccess(String(reader.result));
+      reader.onload = async () => {
+        const raw = String(reader.result);
+        await saveImageToCloud(raw);
+        onSuccess(raw);
         showSaved();
       };
       reader.readAsDataURL(file);
+    } finally {
+      setUploadProgressText("");
     }
   };
 
@@ -662,16 +730,17 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
     const urls: string[] = [];
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i];
-      setUploadProgressText(`Optimizing ${i + 1}/${fileArray.length}…`);
+      setUploadProgressText(`Uploading ${i + 1}/${fileArray.length} to database…`);
       try {
-        const optimizedUrl = await compressImageFile(file, 2200, 0.88);
-        urls.push(optimizedUrl);
+        const { dataUrl } = await uploadImageFileToDatabase(file, 2200, 0.88);
+        urls.push(dataUrl);
       } catch {
         const reader = new FileReader();
         const dataUrl = await new Promise<string>((resolve) => {
           reader.onload = () => resolve(String(reader.result));
           reader.readAsDataURL(file);
         });
+        await saveImageToCloud(dataUrl);
         urls.push(dataUrl);
       }
     }
@@ -905,14 +974,21 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm("Reset ALL site content and settings back to original defaults?")) {
-                        resetConfig();
-                        resetSettings();
-                        resetProjects();
-                        showSaved();
-                      }
+                      setConfirmDialog({
+                        title: "Reset All Site Defaults?",
+                        message: "This will reset all site text, styling, and case studies back to original defaults. Any customizations will be replaced.",
+                        confirmLabel: "Reset Everything",
+                        isDestructive: true,
+                        onConfirm: () => {
+                          resetConfig();
+                          resetSettings();
+                          resetProjects();
+                          showSaved();
+                          triggerCloudToast("Reset all site defaults successfully!");
+                        },
+                      });
                     }}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-[0.7rem] font-medium text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-[0.7rem] font-medium text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="size-3" />
                     Reset All Defaults
@@ -958,22 +1034,29 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                         <button
                           type="button"
                           onClick={() => {
-                            if (confirm("Reset section visibility to defaults (all enabled)?")) {
-                              updateSettings((s) => ({
-                                ...s,
-                                sections: {
-                                  hero: true,
-                                  work: true,
-                                  capabilities: true,
-                                  process: true,
-                                  about: true,
-                                  trainings: true,
-                                  skills: true,
-                                  contact: true,
-                                },
-                              }));
-                              showSaved();
-                            }
+                            setConfirmDialog({
+                              title: "Reset Section Visibility?",
+                              message: "This will re-enable all portfolio sections (Hero, Work, Capabilities, Process, About, Trainings, Skills, Contact).",
+                              confirmLabel: "Enable All",
+                              isDestructive: false,
+                              onConfirm: () => {
+                                updateSettings((s) => ({
+                                  ...s,
+                                  sections: {
+                                    hero: true,
+                                    work: true,
+                                    capabilities: true,
+                                    process: true,
+                                    about: true,
+                                    trainings: true,
+                                    skills: true,
+                                    contact: true,
+                                  },
+                                }));
+                                showSaved();
+                                triggerCloudToast("All sections re-enabled!");
+                              },
+                            });
                           }}
                           className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--fg)] transition-colors cursor-pointer"
                         >
@@ -1167,12 +1250,20 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                         <button
                           type="button"
                           onClick={() => {
-                            if (confirm("Reset projects to initial default case studies?")) {
-                              resetProjects();
-                              showSaved();
-                            }
+                            setConfirmDialog({
+                              title: "Reset Projects to Defaults?",
+                              message: "This will restore the original default case studies. Any newly added or customized projects will be replaced.",
+                              confirmLabel: "Reset Projects",
+                              isDestructive: true,
+                              onConfirm: () => {
+                                resetProjects();
+                                setExpandedProjectIndex(null);
+                                showSaved();
+                                triggerCloudToast("Projects restored to default case studies!");
+                              },
+                            });
                           }}
-                          className="inline-flex items-center gap-1 rounded-xl border border-[var(--hairline)] px-3 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--chip)] transition-colors"
+                          className="inline-flex items-center gap-1 rounded-xl border border-[var(--hairline)] px-3 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
                         >
                           <RotateCcw className="size-3" /> Reset
                         </button>
@@ -1181,10 +1272,11 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
                     <div className="space-y-3">
                       {projects.map((project, index) => {
+                        if (!project) return null;
                         const isExpanded = expandedProjectIndex === index;
                         return (
                           <div
-                            key={`${project.title}-${index}`}
+                            key={`${project.title || "project"}-${index}`}
                             className="overflow-hidden rounded-xl border border-[var(--hairline)] bg-[var(--bg)] transition-all"
                           >
                             {/* Project Accordion Bar */}
@@ -1228,13 +1320,8 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (confirm(`Delete project "${project.title}"?`)) {
-                                      saveProjects(projects.filter((_, i) => i !== index));
-                                      showSaved();
-                                    }
-                                  }}
-                                  className="grid size-7 place-items-center rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                                  onClick={() => handleDeleteProject(index)}
+                                  className="grid size-7 place-items-center rounded-lg text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                                   title="Delete Project"
                                 >
                                   <Trash2 className="size-3.5" />
@@ -1255,7 +1342,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                 <div className="grid gap-4 sm:grid-cols-2">
                                   <FormField label="Project Title">
                                     <TextInput
-                                      value={project.title}
+                                      value={project.title ?? ""}
                                       onChange={(val) => {
                                         saveProjects(projects.map((p, i) => (i === index ? { ...p, title: val } : p)));
                                       }}
@@ -1277,7 +1364,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                 <FormField label="Short Description">
                                   <TextAreaInput
                                     rows={2}
-                                    value={project.desc}
+                                    value={project.desc ?? ""}
                                     onChange={(val) => {
                                       saveProjects(projects.map((p, i) => (i === index ? { ...p, desc: val } : p)));
                                     }}
@@ -1530,6 +1617,21 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                       ))}
                                     </div>
                                   )}
+                                </div>
+
+                                {/* Bottom Danger Zone: Delete project button */}
+                                <div className="flex items-center justify-between pt-4 border-t border-[var(--hairline)]">
+                                  <span className="text-[0.7rem] text-[var(--muted)]">
+                                    Project #{index + 1} of {projects.length}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteProject(index)}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/5 px-3.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/15 hover:border-red-500/50 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                    Delete This Project
+                                  </button>
                                 </div>
                               </div>
                             )}
@@ -2588,57 +2690,94 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                 {/* ────────────────── VISITOR INBOX TAB ────────────────── */}
                 {activeTab === "messages" && (
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--hairline)] pb-4">
                       <div>
-                        <h3 className="font-display text-base font-bold text-[var(--fg)]">Visitor Inquiries</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-display text-base font-bold text-[var(--fg)]">Visitor Inquiries</h3>
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[0.65rem] font-medium text-emerald-400">
+                            <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Database Connected
+                          </span>
+                        </div>
                         <p className="text-xs text-[var(--muted)] mt-0.5">
-                          Direct submissions from the contact form stored in browser storage
+                          Submissions from the contact form saved directly to Google Cloud Firestore database.
                         </p>
                       </div>
-                      {messages.length > 0 && (
+
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            if (confirm("Clear all received messages?")) {
-                              localStorage.removeItem(MESSAGES_KEY);
-                              setMessages([]);
+                          onClick={async () => {
+                            try {
+                              const list = await loadMessagesFromCloud();
+                              setMessages(list);
+                              triggerCloudToast(`Loaded ${list.length} messages from Cloud Database`);
+                            } catch {
+                              triggerCloudToast("Could not fetch messages from Cloud Database");
                             }
                           }}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-3 py-1.5 text-xs text-[var(--fg)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                          title="Refresh from Firestore"
                         >
-                          <Trash2 className="size-3.5" /> Clear Inbox
+                          <RefreshCw className="size-3.5" />
+                          <span>Refresh</span>
                         </button>
-                      )}
+
+                        {messages.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmDialog({
+                                title: "Clear All Messages from Database?",
+                                message: "Are you sure you want to permanently delete all received visitor messages from Google Cloud Firestore? This cannot be undone.",
+                                confirmLabel: "Clear Inbox",
+                                isDestructive: true,
+                                onConfirm: async () => {
+                                  try {
+                                    await clearAllMessagesFromCloud();
+                                    setMessages([]);
+                                    showSaved();
+                                    triggerCloudToast("All messages deleted from Cloud Database.");
+                                  } catch {
+                                    triggerCloudToast("Failed to clear messages from Cloud Database.");
+                                  }
+                                },
+                              });
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="size-3.5" /> Clear Inbox
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {messages.length === 0 ? (
                       <div className="grid place-items-center rounded-2xl border border-dashed border-[var(--hairline)] p-12 text-center">
                         <Mail className="size-8 text-[var(--muted)]/40 mb-2" />
                         <p className="text-xs font-medium text-[var(--fg)]">No messages yet</p>
-                        <p className="text-[0.7rem] text-[var(--muted)] mt-0.5">
-                          Submissions from the "Send Message" form on your site will appear here.
+                        <p className="text-[0.7rem] text-[var(--muted)] mt-0.5 max-w-sm">
+                          Submissions from the "Send Message" form on your site will be safely stored in Firestore and stream here in real time.
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {messages
-                          .slice()
-                          .reverse()
-                          .map((msg) => (
-                            <div
-                              key={msg.id}
-                              className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-2.5"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <p className="font-semibold text-xs text-[var(--fg)]">{msg.name}</p>
-                                  <a
-                                    href={`mailto:${msg.email}`}
-                                    className="text-[0.7rem] text-[var(--accent)] hover:underline"
-                                  >
-                                    {msg.email}
-                                  </a>
-                                </div>
+                        {messages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 space-y-2.5 transition-all hover:border-[var(--hairline)]/80"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="font-semibold text-xs text-[var(--fg)]">{msg.name}</p>
+                                <a
+                                  href={`mailto:${msg.email}`}
+                                  className="text-[0.7rem] text-[var(--accent)] hover:underline inline-flex items-center gap-1"
+                                >
+                                  {msg.email}
+                                </a>
+                              </div>
+                              <div className="flex items-center gap-2">
                                 <time className="font-mono text-[0.62rem] text-[var(--muted)]">
                                   {new Date(msg.sentAt).toLocaleDateString(undefined, {
                                     month: "short",
@@ -2648,18 +2787,113 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                     minute: "2-digit",
                                   })}
                                 </time>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmDialog({
+                                      title: `Delete Message from ${msg.name}?`,
+                                      message: "Are you sure you want to permanently delete this message from the cloud database?",
+                                      confirmLabel: "Delete",
+                                      isDestructive: true,
+                                      onConfirm: async () => {
+                                        try {
+                                          await deleteMessageFromCloud(msg.id);
+                                          setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+                                          triggerCloudToast("Message deleted from database.");
+                                        } catch {
+                                          triggerCloudToast("Could not delete message from database.");
+                                        }
+                                      },
+                                    });
+                                  }}
+                                  title="Delete message"
+                                  className="p-1 rounded-lg text-[var(--muted)]/60 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
                               </div>
-                              <p className="rounded-lg bg-[var(--card)] p-3 text-xs leading-relaxed text-[var(--fg)]/85 whitespace-pre-wrap border border-[var(--hairline)]/50">
-                                {msg.message}
-                              </p>
                             </div>
-                          ))}
+                            <p className="rounded-lg bg-[var(--card)] p-3 text-xs leading-relaxed text-[var(--fg)]/85 whitespace-pre-wrap border border-[var(--hairline)]/50">
+                              {msg.message}
+                            </p>
+                            <div className="flex items-center justify-end">
+                              <a
+                                href={`mailto:${msg.email}?subject=${encodeURIComponent(
+                                  `Re: Inquiry from ${msg.name}`
+                                )}`}
+                                className="inline-flex items-center gap-1.5 text-[0.68rem] font-medium text-[var(--accent)] hover:underline"
+                              >
+                                <Mail className="size-3" />
+                                <span>Reply via Email</span>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Reusable In-App Confirmation Modal (works reliably in all iframes without window.confirm) */}
+            {confirmDialog && (
+              <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  className="w-full max-w-md rounded-2xl border border-[var(--hairline)] bg-[var(--card)] p-5 sm:p-6 shadow-2xl space-y-4"
+                >
+                  <div className="flex items-start gap-3.5">
+                    <div
+                      className={`grid size-10 shrink-0 place-items-center rounded-xl ${
+                        confirmDialog.isDestructive
+                          ? "bg-red-500/15 text-red-400"
+                          : "bg-[var(--chip)] text-[var(--fg)]"
+                      }`}
+                    >
+                      {confirmDialog.isDestructive ? (
+                        <AlertTriangle className="size-5" />
+                      ) : (
+                        <RotateCcw className="size-5" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-bold text-[var(--fg)]">
+                        {confirmDialog.title}
+                      </h3>
+                      <p className="mt-1 text-xs text-[var(--muted)] leading-relaxed">
+                        {confirmDialog.message}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--hairline)]">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDialog(null)}
+                      className="rounded-xl px-4 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
+                    >
+                      {confirmDialog.cancelLabel || "Cancel"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cb = confirmDialog.onConfirm;
+                        setConfirmDialog(null);
+                        cb();
+                      }}
+                      className={`rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                        confirmDialog.isDestructive
+                          ? "bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-500/20"
+                          : "bg-[var(--fg)] text-[var(--bg)] hover:opacity-90"
+                      }`}
+                    >
+                      {confirmDialog.confirmLabel || "Confirm"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       )}

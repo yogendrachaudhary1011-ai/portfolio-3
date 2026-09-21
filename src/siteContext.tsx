@@ -628,9 +628,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
     // Step 3: Realtime database subscriptions
     const unsubProjects = subscribeToCloudProjects((updatedProjects) => {
-      if (mounted && Array.isArray(updatedProjects) && updatedProjects.length > 0) {
-        setProjectsState(updatedProjects);
-        safeSetLocalStorage(PROJECTS_KEY, updatedProjects);
+      if (mounted && Array.isArray(updatedProjects)) {
+        const cleanProjects = updatedProjects.filter(Boolean);
+        setProjectsState(cleanProjects);
+        safeSetLocalStorage(PROJECTS_KEY, cleanProjects);
         setCloudStatus({ status: "saved", lastSyncedAt: new Date() });
       }
     });
@@ -790,14 +791,15 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   };
 
   const saveProjects = (next: Project[]) => {
-    setProjectsState(next);
-    safeSetLocalStorage(PROJECTS_KEY, next);
-    saveToIndexedDB(PROJECTS_KEY, next);
-    window.dispatchEvent(new CustomEvent<Project[]>("portfolio-projects-updated", { detail: next }));
+    const clean = (next || []).filter(Boolean);
+    setProjectsState(clean);
+    safeSetLocalStorage(PROJECTS_KEY, clean);
+    saveToIndexedDB(PROJECTS_KEY, clean);
+    window.dispatchEvent(new CustomEvent<Project[]>("portfolio-projects-updated", { detail: clean }));
 
     // Instant Cloud Firestore save for projects & case study media
     setCloudStatus({ status: "syncing" });
-    saveProjectsToCloud(next)
+    saveProjectsToCloud(clean)
       .then(() => setCloudStatus({ status: "saved", lastSyncedAt: new Date() }))
       .catch((err) => {
         console.error("Cloud projects save error:", err);

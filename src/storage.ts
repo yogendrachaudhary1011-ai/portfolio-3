@@ -8,18 +8,29 @@
  */
 
 const DB_NAME = "yogendra-portfolio-files";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const PDF_STORE = "pdfs";
 const APP_STORE = "app_data";
+const IMAGES_STORE = "images";
+
+// In-memory instant cache for images across the entire app
+const imageMemoryCache = new Map<string, string>();
+
+export function getImageMemoryCache(): Map<string, string> {
+  return imageMemoryCache;
+}
 
 declare global {
   interface Window {
     __portfolioSessionFiles?: Map<string, Blob>;
+    __portfolioImageCache?: Map<string, string>;
   }
 }
 
-if (typeof window !== "undefined" && !window.__portfolioSessionFiles) {
-  window.__portfolioSessionFiles = new Map();
+if (typeof window !== "undefined") {
+  if (!window.__portfolioImageCache) {
+    window.__portfolioImageCache = imageMemoryCache;
+  }
 }
 
 const getSessionFiles = () => {
@@ -45,11 +56,67 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(APP_STORE)) {
         db.createObjectStore(APP_STORE);
       }
+      if (!db.objectStoreNames.contains(IMAGES_STORE)) {
+        db.createObjectStore(IMAGES_STORE);
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+/**
+ * Save an image dataUrl directly into IndexedDB's images store
+ */
+export async function saveImageToIndexedDB(id: string, dataUrl: string): Promise<void> {
+  if (!id || !dataUrl) return;
+  const cleanId = id.replace(/^cloud-img:\/\//, "");
+  imageMemoryCache.set(cleanId, dataUrl);
+  imageMemoryCache.set(`cloud-img://${cleanId}`, dataUrl);
+  if (typeof indexedDB === "undefined") return;
+
+  try {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IMAGES_STORE, "readwrite");
+      tx.objectStore(IMAGES_STORE).put(dataUrl, cleanId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch (err) {
+    console.warn(`[storage] IndexedDB save image "${cleanId}" failed`, err);
+  }
+}
+
+/**
+ * Retrieve an image dataUrl from IndexedDB's images store
+ */
+export async function getImageFromIndexedDB(id: string): Promise<string | undefined> {
+  if (!id) return undefined;
+  const cleanId = id.replace(/^cloud-img:\/\//, "");
+  const memCached = imageMemoryCache.get(cleanId);
+  if (memCached) return memCached;
+  if (typeof indexedDB === "undefined") return undefined;
+
+  try {
+    const db = await openDatabase();
+    const result = await new Promise<string | undefined>((resolve, reject) => {
+      const tx = db.transaction(IMAGES_STORE, "readonly");
+      const request = tx.objectStore(IMAGES_STORE).get(cleanId);
+      request.onsuccess = () => resolve(request.result as string | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    if (result) {
+      imageMemoryCache.set(cleanId, result);
+      imageMemoryCache.set(`cloud-img://${cleanId}`, result);
+    }
+    return result;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -223,24 +290,42 @@ export function compressImageFile(
   });
 }
 
+function simpleHash(str: string): string {
+  let hash = 0;
+  const len = Math.min(str.length, 1200);
+  for (let i = 0; i < len; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return `${Math.abs(hash).toString(36)}_${str.length}`;
+}
+
 /**
- * Recursively strips oversized base64 data URLs (> 100KB) from an object
- * to ensure it fits comfortably within browser localStorage quotas.
+ * Safely sanitizes an object for localStorage by storing heavy base64 strings
+ * into IndexedDB and replacing them with a lightweight 'cloud-img://' pointer.
+ * This guarantees the image is NEVER destroyed or blanked out.
  */
 function sanitizeForLocalStorage<T>(obj: T): T {
   if (!obj || typeof obj !== "object") return obj;
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => sanitizeForLocalStorage(item)) as unknown as T;
+    return obj.map((item) => {
+      if (typeof item === "string" && item.startsWith("data:image/") && item.length > 50_000) {
+        const id = `local_${simpleHash(item)}`;
+        saveImageToIndexedDB(id, item);
+        return `cloud-img://${id}`;
+      }
+      return sanitizeForLocalStorage(item);
+    }) as unknown as T;
   }
 
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === "string") {
-      // If a data URL is larger than 120KB, replace with lightweight indicator
-      if (value.startsWith("data:image/") && value.length > 120_000) {
-        // Keep a shortened reference so consumers know an image was placed
-        result[key] = "";
+      if (value.startsWith("data:image/") && value.length > 50_000) {
+        const id = `local_${simpleHash(value)}`;
+        saveImageToIndexedDB(id, value);
+        result[key] = `cloud-img://${id}`;
       } else {
         result[key] = value;
       }
