@@ -136,13 +136,14 @@ export default function Navbar({
   }, [current, variant]);
 
   const handleContact = (event: React.MouseEvent) => {
+    event.preventDefault();
     setMenuOpen(false);
     if (onContact) {
-      event.preventDefault();
       onContact();
     } else if (onNav) {
-      event.preventDefault();
       onNav("contact");
+    } else {
+      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 

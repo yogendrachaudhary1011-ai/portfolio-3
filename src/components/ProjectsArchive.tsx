@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { img, type Project } from "./../data";
+import { useState, useEffect } from "react";
+import {
+  ArrowUpRight,
+  ArrowRight,
+} from "lucide-react";
+import { img, getFullWidthImageUrl, type Project } from "../data";
 import { Typewriter, Reveal, Magnetic, Tilt } from "./common";
-import { External, Arrow } from "../icons";
 import { useSite } from "../siteContext";
-
-const devicon = (i: string) => `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${i}.svg`;
 
 const digitalImages = [
   "1686061592689-312bbfb5c055",
@@ -25,136 +26,182 @@ export default function ProjectsArchive({
 }) {
   const { config } = useSite();
   const archiveConfig = config.projectsArchive;
-  const digitalProjects = archiveConfig.digitalProjects;
+  const digitalProjects = archiveConfig?.digitalProjects || [];
+
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] transition-colors duration-300">
-      <section id="technical" className="mx-auto max-w-6xl px-5 pb-20 pt-32 sm:px-6 sm:pb-24 sm:pt-36">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] selection:bg-[var(--accent)] selection:text-white transition-colors duration-300">
+      {/* ─── Archive Header ────────────────────────────────────────────── */}
+      <section id="technical" className="mx-auto max-w-6xl px-5 pb-16 pt-32 sm:px-6 sm:pb-20 sm:pt-36">
         <Reveal>
           <p className="section-kicker mb-4 flex items-center gap-3">
             <span className="inline-block h-px w-8 bg-[var(--accent)]" />
             Archive
           </p>
         </Reveal>
+
         <Typewriter
-          text={archiveConfig.archiveTitle || "Case Studies"}
+          text={archiveConfig?.archiveTitle || "Case Studies"}
           className="section-title"
         />
-        <Reveal delay={0.15}>
-          <p className="mt-6 max-w-xl text-[0.95rem] text-[var(--muted)]">
-            {archiveConfig.archiveSubtitle}
+        <Reveal delay={0.12}>
+          <p className="mt-5 max-w-xl text-[0.96rem] leading-relaxed text-[var(--muted)]">
+            {archiveConfig?.archiveSubtitle ||
+              "A curated archive of selected client projects, product designs, interface systems, and detailed case studies."}
           </p>
         </Reveal>
 
-        <div className="mt-14 border-t border-[var(--hairline)]">
-          {projects.map((p, i) => (
-            <Reveal key={`${p?.title || "proj"}-${i}`} delay={i * 0.05} dir="up">
-              <button
-                type="button"
-                onClick={() => onProject(p, i)}
-                className="group relative grid w-full grid-cols-[auto_1fr_auto] items-start gap-3 border-b border-[var(--hairline)] py-6 text-left sm:gap-6 sm:py-7 cursor-pointer"
-              >
-                <span
-                  className="pointer-events-none absolute inset-0 origin-left scale-x-0 bg-[var(--chip)] transition-transform duration-500 group-hover:scale-x-100"
-                  style={{ borderRadius: 8 }}
-                />
-                <span className="relative font-mono text-xs text-[var(--muted)] transition-colors group-hover:text-[var(--accent)]">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="relative">
-                  <h3 className="font-display font-semibold transition-transform duration-300 group-hover:translate-x-2">
-                    {p?.title || "Untitled Project"}
-                  </h3>
-                  <p className="mt-1.5 max-w-3xl text-[0.85rem] text-[var(--muted)]">{p?.desc || ""}</p>
-                  <p className="label mt-3 !text-[0.55rem]">{p?.stack || ""}</p>
-                  <div className="mt-2 flex gap-3">
-                    {(p?.tech ?? []).map((t) => (
-                      <img
-                        key={t}
-                        src={devicon(t)}
-                        alt=""
-                        className={`size-4 grayscale transition-all duration-300 group-hover:grayscale-0 ${
-                          t.includes("django") ? "dark:invert" : ""
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <External className="relative size-4 text-[var(--muted)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
-              </button>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+        {/* ─── Premium Redesigned Interactive List ────────────────────────── */}
+        <div className="mt-14 divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+          {projects.map((p, originalIndex) => {
+            const coverSrc = p.thumbnail || p.image || (p.media && p.media[0]) || "";
+            const resolvedCover = coverSrc ? getFullWidthImageUrl(coverSrc) : "";
 
-      {/* Digital Explorations */}
-      <section id="digital" className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-6 sm:pb-24">
-        <Reveal>
-          <p className="section-kicker mb-4 flex items-center gap-3">
-            <span className="inline-block h-px w-8 bg-[var(--accent)]" />
-            Craft &amp; Explorations
-          </p>
-        </Reveal>
-        <Typewriter
-          text={archiveConfig.explorationsTitle || "Beyond the Brief"}
-          className="section-title"
-        />
-        <Reveal delay={0.15}>
-          <p className="mt-6 max-w-xl text-[0.95rem] text-[var(--muted)]">
-            {archiveConfig.explorationsSubtitle}
-          </p>
-        </Reveal>
+            return (
+              <Reveal key={`${p?.title || "proj"}-${originalIndex}`} delay={originalIndex * 0.04} dir="up">
+                <div
+                  onMouseEnter={() => setHoveredIdx(originalIndex)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  onClick={() => onProject(p, originalIndex)}
+                  className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-8 text-left transition-all duration-300 rounded-2xl px-4 sm:px-6 cursor-pointer overflow-hidden border border-transparent hover:border-[var(--card-border)]"
+                >
+                  {/* Origin-left expanding background wipe with subtle accent tint */}
+                  <span
+                    className="pointer-events-none absolute inset-0 origin-left scale-x-0 bg-gradient-to-r from-[var(--chip)] via-[var(--card)] to-[var(--chip)] transition-transform duration-500 ease-out group-hover:scale-x-100"
+                    style={{ borderRadius: "1rem" }}
+                  />
+                  {/* Subtle accent glow border on hover */}
+                  <span
+                    className="pointer-events-none absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full bg-[var(--accent)] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  />
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-          {digitalProjects.map((d, i) => (
-            <Reveal key={`${d?.title || "digital"}-${i}`} delay={i * 0.08} dir="up">
-              <Tilt max={7} className="group h-full">
-                <div className="card-surface hover-lift flex h-full flex-col overflow-hidden">
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={img(digitalImages[i % digitalImages.length], 520, 340)}
-                      alt={d?.title || "Digital Exploration"}
-                      className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <span
-                      className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                      style={{ background: "linear-gradient(to top, var(--accent-soft), transparent 55%)" }}
-                    />
-                  </div>
-                  <div className="flex flex-1 flex-col p-5">
-                    <span className="text-gradient font-display text-3xl font-semibold opacity-50">
-                      {String(i + 1).padStart(2, "0")}
+                  {/* Left: Index number + Title + Description */}
+                  <div className="relative z-10 flex items-start gap-4 sm:gap-6 min-w-0 max-w-3xl">
+                    <span className="font-mono text-xs sm:text-sm font-semibold text-[var(--muted)] pt-1 transition-colors duration-300 group-hover:text-[var(--accent)] flex-shrink-0">
+                      {String(originalIndex + 1).padStart(2, "0")}
                     </span>
-                    <h3 className="mt-2 font-display font-semibold">{d?.title || "Exploration"}</h3>
-                    <p className="mt-2 text-[0.85rem] text-[var(--muted)]">{d?.desc || ""}</p>
+
+                    {/* Small Thumbnail Preview (smooth expand and elevation on hover) */}
+                    {resolvedCover && (
+                      <div className="relative size-14 sm:size-16 rounded-xl overflow-hidden bg-[var(--bg)] border border-[var(--hairline)] flex-shrink-0 transition-all duration-500 ease-out group-hover:scale-105 group-hover:border-[var(--accent)]/60 group-hover:shadow-[var(--shadow-soft)]">
+                        <img
+                          src={resolvedCover}
+                          alt=""
+                          className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-[var(--fg)] transition-transform duration-300 group-hover:translate-x-2 group-hover:text-[var(--accent)]">
+                        {p?.title || "Untitled Project"}
+                      </h3>
+
+                      <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[var(--muted)] line-clamp-2 transition-colors duration-300 group-hover:text-[var(--fg)]/80">
+                        {p?.desc || ""}
+                      </p>
+
+                      {/* Stack and tech row */}
+                      {p?.stack && (
+                        <div className="mt-3">
+                          <span className="font-mono text-[0.64rem] uppercase tracking-wider text-[var(--accent)] font-semibold transition-transform duration-300 group-hover:translate-x-0.5">
+                            {p.stack}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: CTA Arrow Button */}
+                  <div className="relative z-10 flex items-center self-end md:self-center flex-shrink-0 pt-2 md:pt-0">
+                    <div className="grid size-9 sm:size-10 place-items-center rounded-full border border-[var(--hairline)] bg-[var(--card)] text-[var(--muted)] transition-all duration-300 group-hover:border-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white group-hover:scale-110 group-hover:rotate-45 shadow-xs">
+                      <ArrowUpRight className="size-4 transition-transform duration-300" />
+                    </div>
                   </div>
                 </div>
-              </Tilt>
-            </Reveal>
-          ))}
+              </Reveal>
+            );
+          })}
         </div>
       </section>
 
-      {/* CTA */}
+      {/* ─── Digital Explorations ──────────────────────────────────────── */}
+      {digitalProjects.length > 0 && (
+        <section id="digital" className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-6 sm:pb-24 border-t border-[var(--hairline)]">
+          <Reveal>
+            <p className="section-kicker mb-4 flex items-center gap-3">
+              <span className="inline-block h-px w-8 bg-[var(--accent)]" />
+              Craft &amp; Explorations
+            </p>
+          </Reveal>
+          <Typewriter
+            text={archiveConfig?.explorationsTitle || "Beyond the Brief"}
+            className="section-title"
+          />
+          <Reveal delay={0.15}>
+            <p className="mt-5 max-w-xl text-[0.95rem] text-[var(--muted)] leading-relaxed">
+              {archiveConfig?.explorationsSubtitle ||
+                "Self-directed design studies, interaction prototypes, visual systems, and research experiments."}
+            </p>
+          </Reveal>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
+            {digitalProjects.map((d, i) => (
+              <Reveal key={`${d?.title || "digital"}-${i}`} delay={i * 0.08} dir="up">
+                <Tilt max={7} className="group h-full">
+                  <div className="card-surface hover-lift flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)]">
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={img(digitalImages[i % digitalImages.length], 520, 340)}
+                        alt={d?.title || "Digital Exploration"}
+                        className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                      <span
+                        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                        style={{ background: "linear-gradient(to top, var(--accent-soft), transparent 55%)" }}
+                      />
+                    </div>
+                    <div className="flex flex-1 flex-col p-5">
+                      <span className="text-gradient font-display text-2xl font-semibold opacity-60">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="mt-1 font-display font-semibold text-base text-[var(--fg)] group-hover:text-[var(--accent)] transition-colors">
+                        {d?.title || "Exploration"}
+                      </h3>
+                      <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{d?.desc || ""}</p>
+                    </div>
+                  </div>
+                </Tilt>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ─── Footer CTA ─────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-5 pb-24 pt-10 sm:px-6 sm:pb-32">
         <Reveal>
           <p className="label mb-6">Have a project in mind?</p>
         </Reveal>
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           <h2 className="section-title">
-            {archiveConfig.ctaTitle || "Let's design"}<br />
-            <span className="text-gradient">{archiveConfig.ctaSubtitle || "something great."}</span>
+            {archiveConfig?.ctaTitle || "Let's design"}<br />
+            <span className="text-gradient">{archiveConfig?.ctaSubtitle || "something great."}</span>
           </h2>
           <Magnetic strength={0.3}>
             <button
               onClick={onContact}
-              className="btn-shine inline-flex items-center gap-2 self-start rounded-full border border-[var(--card-border)] px-7 py-4 text-[0.82rem] font-medium transition-colors hover:bg-[var(--fg)] hover:text-[var(--bg)]"
+              className="btn-shine inline-flex items-center gap-2 self-start rounded-full border border-[var(--card-border)] bg-[var(--card)] px-7 py-4 text-[0.82rem] font-medium text-[var(--fg)] transition-colors hover:bg-[var(--fg)] hover:text-[var(--bg)] cursor-pointer"
             >
-              {archiveConfig.ctaButton || "Start a conversation"} <Arrow className="size-4" />
+              <span>{archiveConfig?.ctaButton || "Start a conversation"}</span>
+              <ArrowRight className="size-4" />
             </button>
           </Magnetic>
         </div>

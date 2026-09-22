@@ -130,6 +130,7 @@ export interface SiteConfig {
   projectsArchive: {
     archiveTitle: string;
     archiveSubtitle: string;
+    showExplorations?: boolean;
     explorationsTitle: string;
     explorationsSubtitle: string;
     ctaTitle: string;
@@ -335,6 +336,7 @@ export const defaultSiteConfig: SiteConfig = {
     archiveTitle: "Case Studies",
     archiveSubtitle:
       "A growing collection of product-design work — from early concepts and user flows to refined, high-fidelity interfaces.",
+    showExplorations: true,
     explorationsTitle: "Beyond the Brief",
     explorationsSubtitle:
       "Ongoing explorations in product thinking, responsive interfaces, prototypes, and design-to-development workflows.",
@@ -354,6 +356,7 @@ export interface EnabledSections {
   trainings: boolean;
   skills: boolean;
   contact: boolean;
+  beyondTheBrief?: boolean;
 }
 
 export const defaultEnabledSections: EnabledSections = {
@@ -365,6 +368,7 @@ export const defaultEnabledSections: EnabledSections = {
   trainings: true,
   skills: true,
   contact: true,
+  beyondTheBrief: true,
 };
 
 export interface TextVisibility {

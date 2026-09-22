@@ -685,6 +685,16 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
     };
   }, []);
 
+  const mobileNavRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const activeBtn = document.getElementById(`mobile-tab-${activeTab}`);
+    if (activeBtn && mobileNavRef.current) {
+      activeBtn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeTab, open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
@@ -925,15 +935,78 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
             {/* Main Area: Sidebar + Content */}
             <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-              {/* Sidebar Navigation */}
-              <nav className="flex shrink-0 overflow-x-auto border-b border-[var(--hairline)] bg-[var(--bg)]/60 p-2 md:w-60 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r md:p-3">
-                <div className="flex md:flex-col gap-4 w-full">
+              {/* ─── Mobile Navigation Header (< md) ─────────────────────────── */}
+              <div className="flex shrink-0 flex-col border-b border-[var(--hairline)] bg-[var(--bg)]/80 p-2.5 md:hidden gap-2">
+                {/* 1. Quick Dropdown Selector for 1-Tap Tab Switching */}
+                <div className="relative w-full">
+                  <select
+                    id="mobile-admin-tab-select"
+                    value={activeTab}
+                    onChange={(e) => setActiveTab(e.target.value as TabKey)}
+                    className="w-full appearance-none rounded-xl border border-[var(--hairline)] bg-[var(--chip)] py-2 pl-3.5 pr-9 text-xs font-semibold text-[var(--fg)] shadow-xs focus:border-[var(--accent)] focus:outline-none cursor-pointer"
+                    aria-label="Select studio section"
+                  >
+                    {navigationSections.map((sec) => (
+                      <optgroup key={sec.group} label={sec.group} className="bg-[var(--card)] text-[var(--fg)] font-semibold">
+                        {sec.tabs.map((t) => (
+                          <option key={t.key} value={t.key} className="bg-[var(--card)] text-[var(--fg)]">
+                            {t.label} {t.count !== undefined ? `(${t.count})` : ""}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-[var(--muted)]" />
+                </div>
+
+                {/* 2. Horizontally Scrollable Pills (No overlapping, shrink-0, smooth scroll) */}
+                <div
+                  ref={mobileNavRef}
+                  className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 px-0.5"
+                >
+                  {navigationSections.flatMap((sec) => sec.tabs).map((tab) => {
+                    const Icon = tab.icon;
+                    const active = activeTab === tab.key;
+                    return (
+                      <button
+                        id={`mobile-tab-${tab.key}`}
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all border cursor-pointer ${
+                          active
+                            ? "bg-[var(--chip)] text-[var(--fg)] border-[var(--accent)]/60 shadow-xs font-semibold"
+                            : "bg-[var(--chip)]/30 text-[var(--muted)] border-[var(--hairline)]/60 hover:bg-[var(--chip)] hover:text-[var(--fg)]"
+                        }`}
+                      >
+                        <Icon className={`size-3.5 shrink-0 transition-colors ${active ? "text-[var(--accent)]" : "text-[var(--muted)]"}`} />
+                        <span>{tab.label}</span>
+                        {tab.count !== undefined && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.2 font-mono text-[0.6rem] ${
+                              active
+                                ? "bg-[var(--accent)]/20 text-[var(--accent)] font-semibold"
+                                : "bg-[var(--chip)] text-[var(--muted)]"
+                            }`}
+                          >
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ─── Desktop Sidebar Navigation (>= md) ───────────────────────── */}
+              <nav className="hidden md:flex md:w-60 md:shrink-0 md:flex-col md:overflow-y-auto md:border-r md:border-[var(--hairline)] md:bg-[var(--bg)]/60 md:p-3">
+                <div className="flex flex-col gap-4 w-full">
                   {navigationSections.map((sec) => (
                     <div key={sec.group} className="space-y-1 w-full">
-                      <p className="hidden md:block px-2.5 pt-1.5 pb-1 font-mono text-[0.62rem] font-semibold tracking-wider text-[var(--muted)]/50 uppercase">
+                      <p className="px-2.5 pt-1.5 pb-1 font-mono text-[0.62rem] font-semibold tracking-wider text-[var(--muted)]/50 uppercase">
                         {sec.group}
                       </p>
-                      <div className="flex md:flex-col gap-1">
+                      <div className="flex flex-col gap-1">
                         {sec.tabs.map((tab) => {
                           const Icon = tab.icon;
                           const active = activeTab === tab.key;
@@ -970,7 +1043,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                 </div>
 
                 {/* Reset entire site shortcut */}
-                <div className="mt-auto hidden md:block pt-4 border-t border-[var(--hairline)]">
+                <div className="mt-auto pt-4 border-t border-[var(--hairline)]">
                   <button
                     type="button"
                     onClick={() => {
@@ -997,7 +1070,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
               </nav>
 
               {/* Tab Panel Content */}
-              <div className="flex-1 overflow-y-auto p-5 sm:p-7">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-7">
                 {/* ────────────────── SECTIONS & VISIBILITY TAB ────────────────── */}
                 {activeTab === "sections" && (
                   <div className="space-y-6">

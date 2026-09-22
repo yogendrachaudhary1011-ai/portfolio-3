@@ -54,7 +54,7 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="relative mx-auto max-w-6xl px-5 py-24 sm:px-6 sm:py-32">
+    <section id="contact" data-section="contact" className="relative mx-auto max-w-6xl scroll-mt-24 px-5 py-24 sm:px-6 sm:py-32">
       <Reveal>
         <p className="section-kicker mb-5 flex items-center gap-3">
           <span className="inline-block h-px w-8 bg-[var(--accent)]" />

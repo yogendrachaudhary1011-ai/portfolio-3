@@ -139,7 +139,12 @@ function PortfolioApp() {
 
   const doneIntro = useCallback(() => setIntroVisible(false), []);
 
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const navigate = (next: "home" | "projects" | "case-study", destination?: string) => {
     if (next === view) {
@@ -149,7 +154,7 @@ function PortfolioApp() {
     setTransitioning(true);
     setTimeout(() => {
       setView(next);
-      if (destination) window.setTimeout(() => scrollTo(destination), 0);
+      if (destination) window.setTimeout(() => scrollTo(destination), 50);
       else window.scrollTo(0, 0);
       setTransitioning(false);
     }, 480);
@@ -175,7 +180,12 @@ function PortfolioApp() {
       <div style={{ opacity: transitioning ? 0 : 1, transition: "opacity 0.4s ease" }}>
         {view === "home" ? (
           <>
-            <Navbar variant="home" onNav={scrollTo} onHome={() => scrollTo("home")} />
+            <Navbar
+              variant="home"
+              onNav={scrollTo}
+              onHome={() => scrollTo("home")}
+              onContact={() => scrollTo("contact")}
+            />
             <main>
               {settings?.sections?.hero !== false && <Hero />}
               {settings?.sections?.work !== false && (
@@ -228,6 +238,10 @@ function PortfolioApp() {
               project={currentCaseStudyProject}
               index={projectIndex}
               onBack={() => navigate("projects")}
+              onSelectProject={(nextIdx) => {
+                setProjectIndex(nextIdx);
+                setSelectedProject(projects[nextIdx]);
+              }}
             />
           </>
         )}
