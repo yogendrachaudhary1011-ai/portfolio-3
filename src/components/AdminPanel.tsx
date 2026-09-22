@@ -59,6 +59,10 @@ import {
   RefreshCw,
   FileText,
   Layers,
+  Lock,
+  Key,
+  ShieldCheck,
+  LogOut,
 } from "lucide-react";
 
 interface ConfirmDialogState {
@@ -567,6 +571,22 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
   const [saveBanner, setSaveBanner] = useState(false);
   const [expandedProjectIndex, setExpandedProjectIndex] = useState<number | null>(0);
 
+  // Security Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem("portfolio_admin_auth") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [pendingTab, setPendingTab] = useState<TabKey | null>(null);
+  const [pendingProjectIdx, setPendingProjectIdx] = useState<number | null>(null);
+
   const {
     config,
     updateConfig,
@@ -589,6 +609,70 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
   const triggerCloudToast = (msg: string) => {
     setCloudToast(msg);
     setTimeout(() => setCloudToast(null), 3500);
+  };
+
+  const requestOpenAdmin = (tab?: TabKey, projectIndex?: number) => {
+    if (tab) setActiveTab(tab);
+    if (typeof projectIndex === "number") setExpandedProjectIndex(projectIndex);
+    loadMessagesFromCloud().then((msgs) => setMessages(msgs)).catch(() => {});
+
+    let authed = false;
+    try {
+      authed = sessionStorage.getItem("portfolio_admin_auth") === "true";
+    } catch {
+      authed = false;
+    }
+
+    if (authed) {
+      setIsAuthenticated(true);
+      setOpen(true);
+    } else {
+      if (tab) setPendingTab(tab);
+      if (typeof projectIndex === "number") setPendingProjectIdx(projectIndex);
+      setAuthError(null);
+      setLoginPassword("");
+      setAuthDialogOpen(true);
+    }
+  };
+
+  const handleLoginSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError(null);
+
+    // Security requirement: Username "zanewick" and Password "Zane@123"
+    if (loginUsername === "zanewick" && loginPassword === "Zane@123") {
+      try {
+        sessionStorage.setItem("portfolio_admin_auth", "true");
+      } catch {}
+      setIsAuthenticated(true);
+      setAuthDialogOpen(false);
+      setAuthError(null);
+      setLoginPassword("");
+
+      if (pendingTab) {
+        setActiveTab(pendingTab);
+        setPendingTab(null);
+      }
+      if (typeof pendingProjectIdx === "number") {
+        setExpandedProjectIndex(pendingProjectIdx);
+        setPendingProjectIdx(null);
+      }
+      setOpen(true);
+    } else {
+      setAuthError("Invalid username or password. Access denied.");
+    }
+  };
+
+  const handleLogout = () => {
+    try {
+      sessionStorage.removeItem("portfolio_admin_auth");
+    } catch {}
+    setIsAuthenticated(false);
+    setOpen(false);
+    setAuthDialogOpen(false);
+    setLoginPassword("");
+    setAuthError(null);
+    triggerCloudToast("Admin session locked.");
   };
 
   const handleManualPushToCloud = async () => {
@@ -667,31 +751,37 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
   useEffect(() => {
     const handleOpen = (e?: Event) => {
       const customEvent = e as CustomEvent<{ tab?: TabKey; projectIndex?: number }>;
-      if (customEvent?.detail?.tab) {
-        setActiveTab(customEvent.detail.tab);
-      }
-      if (typeof customEvent?.detail?.projectIndex === "number") {
-        setExpandedProjectIndex(customEvent.detail.projectIndex);
-      }
-      loadMessagesFromCloud().then((msgs) => setMessages(msgs)).catch(() => {});
-      setOpen(true);
+      requestOpenAdmin(customEvent?.detail?.tab, customEvent?.detail?.projectIndex);
     };
 
     window.addEventListener("portfolio-open-admin", handleOpen);
 
     const onGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        if (open) {
+          setOpen(false);
+        } else {
+          requestOpenAdmin();
+        }
       }
     };
     window.addEventListener("keydown", onGlobalKeyDown);
+
+    // Also expose a convenient console helper for the administrator
+    (window as unknown as { openAdmin?: () => void }).openAdmin = () => {
+      requestOpenAdmin();
+    };
 
     return () => {
       window.removeEventListener("portfolio-open-admin", handleOpen);
       window.removeEventListener("keydown", onGlobalKeyDown);
     };
-  }, []);
+  }, [open, isAuthenticated]);
 
   const mobileNavRef = useRef<HTMLDivElement>(null);
 
@@ -704,11 +794,21 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
   }, [activeTab, open]);
 
   useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+    if (!open && !authDialogOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (authDialogOpen) {
+          setAuthDialogOpen(false);
+          setAuthError(null);
+          setLoginPassword("");
+        } else if (open) {
+          setOpen(false);
+        }
+      }
+    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [open, authDialogOpen]);
 
   // Image upload helper with automatic optimization and direct cloud database persistence
   const handleFileUpload = async (
@@ -827,8 +927,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
         <button
           type="button"
           onClick={() => {
-            setMessages(readMessages());
-            setOpen(true);
+            requestOpenAdmin();
           }}
           className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none"
           aria-label="."
@@ -837,8 +936,151 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
         </button>
       )}
 
+      {/* ─── SECURITY AUTHENTICATION MODAL ──────────────────────────────────── */}
+      {authDialogOpen && (
+        <div
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl animate-in fade-in duration-200"
+          role="presentation"
+          onMouseDown={() => {
+            setAuthDialogOpen(false);
+            setAuthError(null);
+            setLoginPassword("");
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Studio Security Authentication"
+            onMouseDown={(e) => e.stopPropagation()}
+            className="w-full max-w-sm overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--card)] shadow-[0_24px_80px_rgba(0,0,0,0.7)] text-[var(--fg)] animate-in zoom-in-95 duration-150"
+          >
+            {/* Top Accent Gradient */}
+            <div className="h-1 w-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-80" />
+
+            {/* Header */}
+            <div className="flex items-start justify-between p-5 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] border border-[var(--hairline)] shadow-inner">
+                  <Lock className="size-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-sm font-bold tracking-tight text-[var(--fg)] sm:text-base">
+                      Studio Security
+                    </h3>
+                    <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.2 font-mono text-[0.62rem] text-amber-500 font-semibold">
+                      Protected
+                    </span>
+                  </div>
+                  <p className="text-[0.72rem] text-[var(--muted)] mt-0.5">
+                    Enter credentials to open Portfolio Studio
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthDialogOpen(false);
+                  setAuthError(null);
+                  setLoginPassword("");
+                }}
+                className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Credentials Form */}
+            <form onSubmit={handleLoginSubmit} className="p-5 pt-2 space-y-4">
+              {/* Username Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[var(--fg)]">
+                  Username
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    autoFocus
+                    required
+                    value={loginUsername}
+                    onChange={(e) => {
+                      setLoginUsername(e.target.value);
+                      if (authError) setAuthError(null);
+                    }}
+                    placeholder="Enter username"
+                    className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3.5 py-2.5 text-sm text-[var(--fg)] placeholder:text-[var(--muted)]/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all font-mono"
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-[var(--fg)]">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={loginPassword}
+                    onChange={(e) => {
+                      setLoginPassword(e.target.value);
+                      if (authError) setAuthError(null);
+                    }}
+                    placeholder="Enter password"
+                    className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3.5 py-2.5 pr-10 text-sm text-[var(--fg)] placeholder:text-[var(--muted)]/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all font-mono"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors p-1 cursor-pointer"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Alert */}
+              {authError && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500 animate-in fade-in duration-150">
+                  <AlertCircle className="size-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              {/* Footer Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--hairline)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthDialogOpen(false);
+                    setAuthError(null);
+                    setLoginPassword("");
+                  }}
+                  className="rounded-xl border border-[var(--hairline)] px-3.5 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 shadow-sm transition-all cursor-pointer"
+                >
+                  <Key className="size-3.5" />
+                  <span>Unlock Studio</span>
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
       {/* ─── STUDIO MODAL OVERLAY ──────────────────────────────────────────── */}
-      {open && (
+      {open && isAuthenticated && (
         <div
           className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 p-2 sm:p-5 backdrop-blur-xl animate-in fade-in duration-200"
           role="presentation"
@@ -923,10 +1165,22 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                     <Check className="size-3.5" /> Saved
                   </span>
                 )}
+
+                {/* Lock / Log Out Session Button */}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
+                  title="Lock admin session and log out"
+                >
+                  <LogOut className="size-3.5" />
+                  <span className="hidden sm:inline">Lock</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="grid size-8 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors"
+                  className="grid size-8 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
                   aria-label="Close"
                 >
                   <X className="size-4" />
@@ -1106,7 +1360,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
                   const archiveSectionsActive = [
                     settings?.sections?.archiveListing !== false,
-                    settings?.sections?.archiveExplorations !== false,
+                    settings?.sections?.archiveExplorations !== false && settings?.sections?.beyondTheBrief !== false,
                     settings?.sections?.archiveCta !== false,
                   ].filter(Boolean).length;
 
@@ -1832,7 +2086,17 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                     ...s.sections,
                                     archiveListing: true,
                                     archiveExplorations: true,
+                                    beyondTheBrief: true,
                                     archiveCta: true,
+                                  },
+                                }));
+                                updateConfig((c) => ({
+                                  ...c,
+                                  projectsArchive: {
+                                    ...(c.projectsArchive || {}),
+                                    showArchiveListing: true,
+                                    showExplorations: true,
+                                    showCta: true,
                                   },
                                 }));
                                 showSaved();
@@ -1845,9 +2109,12 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
                           {/* Archive 1: Main Listing Grid */}
                           <SectionHeaderBar
-                            sectionName="1. Selected Projects Directory Grid"
+                            sectionName="1. Archive / Case Studies Directory"
                             enabled={settings?.sections?.archiveListing !== false}
-                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveListing: next } }))}
+                            onToggleEnabled={(next) => {
+                              updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveListing: next } }));
+                              updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), showArchiveListing: next } }));
+                            }}
                             title={config.projectsArchive?.archiveTitle || "ARCHIVE / 01"}
                             onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveTitle: val } }))}
                             titleLabel="Archive Main Heading"
@@ -1879,9 +2146,25 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
                           {/* Archive 2: Digital Explorations Grid */}
                           <SectionHeaderBar
-                            sectionName="2. Digital Explorations & Labs Grid"
-                            enabled={settings?.sections?.archiveExplorations !== false}
-                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveExplorations: next } }))}
+                            sectionName="2. Beyond the Brief / Digital Explorations"
+                            enabled={settings?.sections?.beyondTheBrief !== false && settings?.sections?.archiveExplorations !== false}
+                            onToggleEnabled={(next) => {
+                              updateSettings((s) => ({
+                                ...s,
+                                sections: {
+                                  ...s.sections,
+                                  archiveExplorations: next,
+                                  beyondTheBrief: next,
+                                },
+                              }));
+                              updateConfig((c) => ({
+                                ...c,
+                                projectsArchive: {
+                                  ...(c.projectsArchive || {}),
+                                  showExplorations: next,
+                                },
+                              }));
+                            }}
                             title={config.projectsArchive?.explorationsTitle || "Digital Explorations & Visual Studies"}
                             onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsTitle: val } }))}
                             titleLabel="Explorations Heading"
@@ -1896,9 +2179,12 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
                           {/* Archive 3: Bottom Collaboration CTA */}
                           <SectionHeaderBar
-                            sectionName="3. Bottom Collaboration Call to Action"
+                            sectionName="3. Collaboration Call to Action"
                             enabled={settings?.sections?.archiveCta !== false}
-                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveCta: next } }))}
+                            onToggleEnabled={(next) => {
+                              updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveCta: next } }));
+                              updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), showCta: next } }));
+                            }}
                             title={config.projectsArchive?.ctaHeading || "Interested in collaborating?"}
                             onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaHeading: val } }))}
                             titleLabel="CTA Display Heading"
@@ -3537,7 +3823,17 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                 ...s.sections,
                                 archiveListing: true,
                                 archiveExplorations: true,
+                                beyondTheBrief: true,
                                 archiveCta: true,
+                              },
+                            }));
+                            updateConfig((c) => ({
+                              ...c,
+                              projectsArchive: {
+                                ...(c.projectsArchive || {}),
+                                showArchiveListing: true,
+                                showExplorations: true,
+                                showCta: true,
                               },
                             }));
                             showSaved();
@@ -3553,9 +3849,12 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                     {/* Section 1: Selected Projects Directory Grid */}
                     <div className="space-y-4">
                       <SectionHeaderBar
-                        sectionName="1. Selected Projects Directory Grid"
+                        sectionName="1. Archive / Case Studies Directory"
                         enabled={settings?.sections?.archiveListing !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveListing: next } }))}
+                        onToggleEnabled={(next) => {
+                          updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveListing: next } }));
+                          updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), showArchiveListing: next } }));
+                        }}
                         title={config.projectsArchive?.archiveTitle || "ARCHIVE / 01"}
                         onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveTitle: val } }))}
                         titleLabel="Main Archive Heading"
@@ -3589,9 +3888,25 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                     {/* Section 2: Digital Explorations & Labs Grid */}
                     <div className="space-y-4 pt-4 border-t border-[var(--hairline)]">
                       <SectionHeaderBar
-                        sectionName="2. Digital Explorations & Labs Grid"
-                        enabled={settings?.sections?.archiveExplorations !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveExplorations: next } }))}
+                        sectionName="2. Beyond the Brief / Digital Explorations"
+                        enabled={settings?.sections?.beyondTheBrief !== false && settings?.sections?.archiveExplorations !== false}
+                        onToggleEnabled={(next) => {
+                          updateSettings((s) => ({
+                            ...s,
+                            sections: {
+                              ...s.sections,
+                              archiveExplorations: next,
+                              beyondTheBrief: next,
+                            },
+                          }));
+                          updateConfig((c) => ({
+                            ...c,
+                            projectsArchive: {
+                              ...(c.projectsArchive || {}),
+                              showExplorations: next,
+                            },
+                          }));
+                        }}
                         title={config.projectsArchive?.explorationsTitle || "Digital Explorations & Visual Studies"}
                         onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsTitle: val } }))}
                         titleLabel="Explorations Section Heading"

@@ -25,7 +25,10 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
   const project = galleryItems[safeActive] ?? galleryItems[0];
 
   useEffect(() => {
-    setActive((current) => (n > 0 ? Math.max(0, Math.min(current, n - 1)) : 0));
+    setActive((current) => {
+      const next = n > 0 ? Math.max(0, Math.min(current, n - 1)) : 0;
+      return next !== current ? next : current;
+    });
   }, [n]);
 
   // responsive card width

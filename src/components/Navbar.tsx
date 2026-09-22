@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useTheme } from "../theme";
 import { Sun, Moon } from "../icons";
 import { Home, Menu, X, ArrowUpRight, ArrowLeft, Mail, Sparkles } from "lucide-react";
@@ -43,35 +43,168 @@ export default function Navbar({
   const { theme, toggle } = useTheme();
   const { settings } = useSite();
   const [scrolled, setScrolled] = useState(false);
-  const [current, setCurrent] = useState(active ?? "");
+  const [current, setCurrent] = useState(active ?? (variant === "home" ? "home" : ""));
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activePill, setActivePill] = useState({ left: 0, width: 0, visible: false });
+  const [activePill, setActivePill] = useState({
+    left: 0,
+    width: 32,
+    visible: variant === "home",
+  });
   const desktopNavRef = useRef<HTMLDivElement>(null);
+  const homeRef = useRef<HTMLButtonElement | null>(null);
   const linkRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const links = NAV.map((n, i) => {
-    let id = n.toLowerCase().replace(/[^a-z]+/g, "-");
-    if (n === "Experience") id = "trainings";
-    return { label: n, id, num: String(i + 1).padStart(2, "0") };
-  }).filter((link) => {
-    if (!settings?.sections) return true;
-    const sectionKey = link.id === "what-i-can-do" ? "capabilities" : link.id;
-    return settings.sections[sectionKey as keyof typeof settings.sections] !== false;
-  });
+  const isNavigatingRef = useRef(false);
+  const navUnlockTimerRef = useRef<number | null>(null);
+
+  const lockNavForScroll = (targetId: string) => {
+    setCurrent(targetId);
+    isNavigatingRef.current = true;
+    if (navUnlockTimerRef.current) {
+      clearTimeout(navUnlockTimerRef.current);
+    }
+
+    const unlock = () => {
+      isNavigatingRef.current = false;
+      if (navUnlockTimerRef.current) {
+        clearTimeout(navUnlockTimerRef.current);
+        navUnlockTimerRef.current = null;
+      }
+      window.removeEventListener("scrollend", unlock);
+    };
+
+    window.addEventListener("scrollend", unlock, { once: true });
+    navUnlockTimerRef.current = window.setTimeout(unlock, 850);
+  };
+
+  // Cancel navigation lock immediately if user manually wheels or touches
+  useEffect(() => {
+    const cancelLock = () => {
+      if (isNavigatingRef.current) {
+        isNavigatingRef.current = false;
+        if (navUnlockTimerRef.current) {
+          clearTimeout(navUnlockTimerRef.current);
+          navUnlockTimerRef.current = null;
+        }
+      }
+    };
+    window.addEventListener("wheel", cancelLock, { passive: true });
+    window.addEventListener("touchstart", cancelLock, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", cancelLock);
+      window.removeEventListener("touchstart", cancelLock);
+      if (navUnlockTimerRef.current) clearTimeout(navUnlockTimerRef.current);
+    };
+  }, []);
+
+  const isHomeVisible = showHomeButton || variant === "home";
+  const isHomeActive = current === "home";
+
+  const links = useMemo(() => {
+    return NAV.map((n, i) => {
+      let id = n.toLowerCase().replace(/[^a-z]+/g, "-");
+      if (n === "Experience") id = "trainings";
+      return { label: n, id, num: String(i + 1).padStart(2, "0") };
+    }).filter((link) => {
+      if (!settings?.sections) return true;
+      const sectionKey = link.id === "what-i-can-do" ? "capabilities" : link.id;
+      return settings.sections[sectionKey as keyof typeof settings.sections] !== false;
+    });
+  }, [
+    settings?.sections?.hero,
+    settings?.sections?.work,
+    settings?.sections?.capabilities,
+    settings?.sections?.process,
+    settings?.sections?.about,
+    settings?.sections?.trainings,
+    settings?.sections?.skills,
+    settings?.sections?.contact,
+  ]);
 
   useEffect(() => {
-    if (active !== undefined) setCurrent(active);
+    if (active !== undefined) {
+      setCurrent((prev) => (prev !== active ? active : prev));
+    }
   }, [active]);
 
+  // Unified deterministic scroll tracking for active section detection
   useEffect(() => {
-    const onScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      setScrolled(scrollY > 20);
+    if (variant !== "home") return;
+
+    let ticking = false;
+
+    const updateActiveSection = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      setScrolled((prev) => {
+        const isNowScrolled = scrollY > 20;
+        return prev !== isNowScrolled ? isNowScrolled : prev;
+      });
+
+      // If user clicked a navigation item and page is animating to it, do not override
+      if (isNavigatingRef.current) {
+        ticking = false;
+        return;
+      }
+
+      // 1. If user is at or near the very bottom of the page, select the last section
+      const scrollBottom = window.innerHeight + scrollY;
+      const docHeight = document.documentElement.scrollHeight;
+      if (scrollBottom >= docHeight - 60 && links.length > 0) {
+        const lastId = links[links.length - 1].id;
+        setCurrent((prev) => (prev !== lastId ? lastId : prev));
+        ticking = false;
+        return;
+      }
+
+      // 2. Hero Section: check home element and scroll distance
+      const homeEl = document.getElementById("home");
+      if (homeEl) {
+        const homeRect = homeEl.getBoundingClientRect();
+        // If the bottom of hero section is still well within view, home is definitively active
+        if (homeRect.bottom > window.innerHeight * 0.45 || scrollY < 180) {
+          setCurrent((prev) => (prev !== "home" ? "home" : prev));
+          ticking = false;
+          return;
+        }
+      } else if (scrollY < 180) {
+        setCurrent((prev) => (prev !== "home" ? "home" : prev));
+        ticking = false;
+        return;
+      }
+
+      // 3. Otherwise, determine which content section is currently active
+      const activationPoint = window.innerHeight * 0.38;
+      let activeId = "home";
+
+      for (const link of links) {
+        const el = document.getElementById(link.id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= activationPoint) {
+          activeId = link.id;
+        }
+      }
+
+      setCurrent((prev) => (prev !== activeId ? activeId : prev));
+      ticking = false;
     };
-    onScroll();
+
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(updateActiveSection);
+        ticking = true;
+      }
+    };
+
+    updateActiveSection();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    window.addEventListener("resize", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [variant, links]);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -86,24 +219,6 @@ export default function Navbar({
   }, [menuOpen]);
 
   useEffect(() => {
-    const ids = links.map((l) => l.id);
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) setCurrent(e.target.id);
-        });
-      },
-      { rootMargin: "-45% 0px -50% 0px" },
-    );
-    ids.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) io.observe(el);
-    });
-    return () => io.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variant]);
-
-  useEffect(() => {
     if (!menuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -112,38 +227,88 @@ export default function Navbar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
+  const measurePill = useCallback(() => {
+    const nav = desktopNavRef.current;
+    if (!nav) return;
+
+    const target =
+      current === "home"
+        ? homeRef.current
+        : linkRefs.current[links.findIndex((l) => l.id === current)];
+
+    if (!target) {
+      if (!current) {
+        setActivePill((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+      }
+      return;
+    }
+
+    setActivePill((prev) => {
+      if (prev.left === target.offsetLeft && prev.width === target.offsetWidth && prev.visible === true) {
+        return prev;
+      }
+      return {
+        left: target.offsetLeft,
+        width: target.offsetWidth,
+        visible: true,
+      };
+    });
+  }, [current, links]);
+
+  // Synchronously re-align pill when current changes
   useEffect(() => {
-    const measure = () => {
-      const nav = desktopNavRef.current;
-      const index = links.findIndex((link) => link.id === current);
-      const button = linkRefs.current[index];
-      if (!nav || !button || index < 0) return;
-      const navRect = nav.getBoundingClientRect();
-      const buttonRect = button.getBoundingClientRect();
-      setActivePill({ left: buttonRect.left - navRect.left, width: buttonRect.width, visible: true });
-    };
-    const frame = requestAnimationFrame(measure);
-    const observer = new ResizeObserver(measure);
-    if (desktopNavRef.current) observer.observe(desktopNavRef.current);
-    window.addEventListener("resize", measure);
-    window.addEventListener("orientationchange", measure);
+    measurePill();
+  }, [measurePill]);
+
+  // Persistent ResizeObserver and window resize listener
+  useEffect(() => {
+    const nav = desktopNavRef.current;
+    if (!nav) return;
+
+    const observer = new ResizeObserver(() => {
+      measurePill();
+    });
+    observer.observe(nav);
+
+    const onResize = () => measurePill();
+    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener("orientationchange", onResize, { passive: true });
+
     return () => {
-      cancelAnimationFrame(frame);
       observer.disconnect();
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("orientationchange", measure);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
     };
-  }, [current, variant]);
+  }, [measurePill]);
+
+  const handleHomeClick = () => {
+    lockNavForScroll("home");
+    setMenuOpen(false);
+    if (variant === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (onHome) {
+      onHome();
+    } else if (onNav) {
+      onNav("home");
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const handleContact = (event: React.MouseEvent) => {
     event.preventDefault();
+    lockNavForScroll("contact");
     setMenuOpen(false);
     if (onContact) {
       onContact();
     } else if (onNav) {
       onNav("contact");
     } else {
-      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const el = document.getElementById("contact");
+      if (el) {
+        const top = el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0) - 76;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      }
     }
   };
 
@@ -158,7 +323,7 @@ export default function Navbar({
         }}
       >
         {/* Left: Brand Identity / Back Button */}
-        {showHomeButton ? (
+        {showHomeButton && variant !== "home" ? (
           <button
             type="button"
             onClick={() => {
@@ -174,10 +339,7 @@ export default function Navbar({
         ) : (
           <button
             type="button"
-            onClick={() => {
-              setMenuOpen(false);
-              onNav?.("home");
-            }}
+            onClick={handleHomeClick}
             className="flex flex-col text-left transition-transform active:scale-95"
           >
             <span className="font-display text-[0.88rem] font-semibold leading-tight tracking-tight text-[var(--fg)]">
@@ -255,24 +417,37 @@ export default function Navbar({
           </div>
 
           <div className="flex flex-col">
-            {showHomeButton && (
+            {isHomeVisible && (
               <button
                 type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onHome?.();
-                }}
-                className="group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 text-left transition-colors"
+                onClick={handleHomeClick}
+                aria-current={isHomeActive ? "page" : undefined}
+                className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 text-left transition-colors ${
+                  isHomeActive ? "text-[var(--accent)]" : "text-[var(--fg)]"
+                }`}
               >
                 <div className="flex items-center gap-3.5">
-                  <span className="font-mono text-xs text-[var(--muted)] group-hover:text-[var(--accent)]">
+                  <span
+                    className={`font-mono text-xs transition-colors ${
+                      isHomeActive
+                        ? "font-bold text-[var(--accent)]"
+                        : "text-[var(--muted)] group-hover:text-[var(--accent)]"
+                    }`}
+                  >
                     00
                   </span>
-                  <span className="font-display text-lg font-semibold tracking-tight text-[var(--fg)] group-hover:translate-x-1 transition-transform">
-                    Return to Home
+                  <span className="font-display text-lg font-semibold tracking-tight group-hover:translate-x-1 transition-transform flex items-center gap-2">
+                    <Home size={16} className={isHomeActive ? "text-[var(--accent)]" : "text-[var(--muted)]"} />
+                    <span>Home</span>
                   </span>
                 </div>
-                <div className="grid size-7 place-items-center rounded-full border border-[var(--hairline)] text-[var(--muted)] transition-all group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]">
+                <div
+                  className={`grid size-7 place-items-center rounded-full transition-all ${
+                    isHomeActive
+                      ? "bg-[var(--accent)] text-[var(--bg)] shadow-xs"
+                      : "border border-[var(--hairline)] text-[var(--muted)] group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]"
+                  }`}
+                >
                   <ArrowUpRight size={14} />
                 </div>
               </button>
@@ -285,7 +460,7 @@ export default function Navbar({
                   key={link.id}
                   type="button"
                   onClick={() => {
-                    setCurrent(link.id);
+                    lockNavForScroll(link.id);
                     onNav?.(link.id);
                     setMenuOpen(false);
                   }}
@@ -371,17 +546,6 @@ export default function Navbar({
           }}
         >
           <div ref={desktopNavRef} className="relative flex items-center gap-1">
-            {showHomeButton && (
-              <button
-                type="button"
-                onClick={onHome}
-                aria-label="Go home"
-                className="relative z-10 grid size-8 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)] cursor-pointer"
-              >
-                <Home size={14} />
-              </button>
-            )}
-
             <span
               aria-hidden
               className="pointer-events-none absolute inset-y-0 rounded-full bg-[var(--fg)] shadow-[0_8px_18px_-14px_var(--fg)]"
@@ -391,8 +555,33 @@ export default function Navbar({
                 opacity: activePill.visible ? 1 : 0,
                 transition:
                   "left 420ms cubic-bezier(0.22, 1, 0.36, 1), width 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease",
+                animation:
+                  variant === "home"
+                    ? `load-down 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${BASE + 0.04}s both`
+                    : undefined,
               }}
             />
+
+            {isHomeVisible && (
+              <button
+                ref={homeRef}
+                type="button"
+                onClick={handleHomeClick}
+                aria-label="Home"
+                aria-current={isHomeActive ? "page" : undefined}
+                className={`relative z-10 grid size-8 place-items-center rounded-full transition-colors duration-300 hover:text-[var(--fg)] cursor-pointer ${
+                  isHomeActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
+                }`}
+                style={{
+                  animation:
+                    variant === "home"
+                      ? `load-down 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${BASE + 0.04}s both`
+                      : undefined,
+                }}
+              >
+                <Home size={14} className="transition-transform duration-200" />
+              </button>
+            )}
 
             {links.map((l, i) => {
               const isActive = current === l.id;
@@ -403,7 +592,7 @@ export default function Navbar({
                     linkRefs.current[i] = element;
                   }}
                   onClick={() => {
-                    setCurrent(l.id);
+                    lockNavForScroll(l.id);
                     onNav?.(l.id);
                   }}
                   aria-current={isActive ? "page" : undefined}
@@ -411,7 +600,10 @@ export default function Navbar({
                     isActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
                   }`}
                   style={{
-                    animation: `load-down 0.5s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.1 + i * 0.07}s both`,
+                    animation:
+                      variant === "home"
+                        ? `load-down 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${BASE + 0.1 + i * 0.07}s both`
+                        : undefined,
                   }}
                 >
                   <span>{l.label}</span>

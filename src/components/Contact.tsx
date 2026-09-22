@@ -198,7 +198,7 @@ export default function Contact() {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent("portfolio-open-admin"))}
-            className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none cursor-pointer"
+            className="group inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none cursor-pointer ml-0.5"
             aria-label="Admin panel"
             title="Studio Admin"
           >

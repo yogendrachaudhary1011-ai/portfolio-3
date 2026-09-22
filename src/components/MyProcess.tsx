@@ -129,20 +129,28 @@ export default function MyProcess() {
     let raf = 0;
     const measure = () => {
       raf = 0;
+      const sec = headingRef.current?.closest("section");
+      if (sec) {
+        const secRect = sec.getBoundingClientRect();
+        if (secRect.bottom < -120 || secRect.top > window.innerHeight + 120) {
+          return;
+        }
+      }
       const h = headingRef.current?.offsetHeight ?? 0;
-      setHeadH(h);
+      setHeadH((prev) => (prev !== h ? h : prev));
       let idx = 0;
       cardRefs.current.forEach((el, i) => {
         if (el && el.getBoundingClientRect().top <= stickyTop(i, h) + 4) idx = i;
       });
-      setActive(idx);
+      setActive((prev) => (prev !== idx ? idx : prev));
       const lastCard = cardRefs.current[STEPS.length - 1];
       if (lastCard) {
         const finalCardTop = lastCard.getBoundingClientRect().top;
         const finalCardStickyTop = stickyTop(STEPS.length - 1, h);
         const exitRange = Math.max(h + 48, 1);
         const progress = Math.max(0, Math.min(1, (finalCardStickyTop + exitRange - finalCardTop) / exitRange));
-        setHeadingExit(Math.round(progress * 100) / 100);
+        const rounded = Math.round(progress * 100) / 100;
+        setHeadingExit((prev) => (prev !== rounded ? rounded : prev));
       }
     };
     const onScroll = () => {

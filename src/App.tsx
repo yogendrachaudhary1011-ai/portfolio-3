@@ -140,9 +140,18 @@ function PortfolioApp() {
   const doneIntro = useCallback(() => setIntroVisible(false), []);
 
   const scrollTo = (id: string) => {
+    if (id === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const navOffset = 76;
+      const elementTop = el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+      window.scrollTo({
+        top: Math.max(0, elementTop - navOffset),
+        behavior: "smooth",
+      });
     }
   };
 
@@ -182,6 +191,7 @@ function PortfolioApp() {
           <>
             <Navbar
               variant="home"
+              showHomeButton
               onNav={scrollTo}
               onHome={() => scrollTo("home")}
               onContact={() => scrollTo("contact")}
@@ -210,6 +220,7 @@ function PortfolioApp() {
         ) : view === "projects" ? (
           <>
             <Navbar
+              variant="projects"
               showHomeButton
               onNav={(id) => navigate("home", id)}
               onHome={() => navigate("home", "home")}

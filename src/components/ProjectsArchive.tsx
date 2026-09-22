@@ -3,6 +3,8 @@ import {
   ArrowUpRight,
   ArrowRight,
   ArrowLeft,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 import { img, getFullWidthImageUrl, type Project } from "../data";
 import { Typewriter, Reveal, Magnetic, Tilt } from "./common";
@@ -34,18 +36,21 @@ export default function ProjectsArchive({
   const showCta = (archiveConfig?.showCta !== false) && (settings?.sections?.archiveCta !== false);
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [activeSectionFilter, setActiveSectionFilter] = useState<"all" | "archive" | "beyond">("all");
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const activeSectionsCount = [showListing, showExplorations].filter(Boolean).length;
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] selection:bg-[var(--accent)] selection:text-white transition-colors duration-300">
-      {/* ─── Archive Header & Project Listing ───────────────────────────── */}
-      {showListing && (
-        <section id="technical" className="mx-auto max-w-6xl px-5 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32">
-          {/* Top Bar Navigation */}
-          <div className="flex items-center justify-between gap-4 mb-8">
+      {/* ─── Persistent Top Bar & Section Controls ───────────────────────── */}
+      <div className="mx-auto max-w-6xl px-5 pt-28 sm:px-6 sm:pt-32">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[var(--hairline)]">
+          {/* Top Left Navigation Link */}
+          <div className="flex items-center gap-3">
             <button
               onClick={() => {
                 if (window.history.length > 1) {
@@ -54,16 +59,82 @@ export default function ProjectsArchive({
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
-              className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-colors cursor-pointer py-1"
             >
               <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
               <span>{archiveConfig?.archiveBackButton || "Back to Overview"}</span>
             </button>
+            <span className="text-[var(--hairline)]">/</span>
             <span className="text-[0.68rem] font-mono uppercase tracking-widest text-[var(--muted)]">
-              {projects.length} {archiveConfig?.archiveCountSuffix || "Selected Artifacts"}
+              {showListing ? `${projects.length} ${archiveConfig?.archiveCountSuffix || "Selected Artifacts"}` : "Project Archive"}
             </span>
           </div>
 
+          {/* Section View Tabs */}
+          {activeSectionsCount > 1 && (
+            <div className="inline-flex items-center rounded-full border border-[var(--hairline)] bg-[var(--chip)]/60 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveSectionFilter("all")}
+                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all cursor-pointer ${
+                  activeSectionFilter === "all"
+                    ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
+                    : "text-[var(--muted)] hover:text-[var(--fg)]"
+                }`}
+              >
+                All Sections
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSectionFilter("archive")}
+                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeSectionFilter === "archive"
+                    ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
+                    : "text-[var(--muted)] hover:text-[var(--fg)]"
+                }`}
+              >
+                <span>Archive / Case Studies</span>
+                <span className="rounded-full bg-[var(--chip)] px-1.5 py-0.2 text-[0.62rem] text-[var(--muted)] font-mono">
+                  {projects.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSectionFilter("beyond")}
+                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeSectionFilter === "beyond"
+                    ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
+                    : "text-[var(--muted)] hover:text-[var(--fg)]"
+                }`}
+              >
+                <span>Beyond the Brief</span>
+                <span className="rounded-full bg-[var(--chip)] px-1.5 py-0.2 text-[0.62rem] text-[var(--muted)] font-mono">
+                  {digitalProjects.length}
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Informational Notice When Both Main Sections Are Disabled in Admin Panel ─── */}
+      {!showListing && !showExplorations && (
+        <section className="mx-auto max-w-2xl px-5 py-24 sm:py-32 text-center">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl border border-[var(--hairline)] bg-[var(--card)] text-[var(--muted)] mb-5 shadow-xs">
+            <Layers className="size-7" />
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-[var(--fg)]">
+            Project Archive
+          </h2>
+          <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed max-w-lg mx-auto">
+            Sections on this page are currently hidden via site configuration in the Studio Admin panel.
+          </p>
+        </section>
+      )}
+
+      {/* ─── Archive Header & Project Listing ───────────────────────────── */}
+      {showListing && (activeSectionFilter === "all" || activeSectionFilter === "archive") && (
+        <section id="technical" className="mx-auto max-w-6xl px-5 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
           <Reveal>
             <p className="section-kicker mb-4 flex items-center gap-3">
               <span className="inline-block h-px w-8 bg-[var(--accent)]" />
@@ -158,9 +229,11 @@ export default function ProjectsArchive({
       </section>
       )}
 
-      {/* ─── Digital Explorations ──────────────────────────────────────── */}
-      {showExplorations && (
-        <section id="digital" className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-6 sm:pb-24 border-t border-[var(--hairline)]">
+      {/* ─── Digital Explorations (Beyond the Brief) ────────────────────── */}
+      {showExplorations && (activeSectionFilter === "all" || activeSectionFilter === "beyond") && (
+        <section id="digital" className={`mx-auto max-w-6xl px-5 pb-20 sm:px-6 sm:pb-24 ${
+          showListing && activeSectionFilter === "all" ? "pt-12 border-t border-[var(--hairline)]" : "pt-10"
+        }`}>
           <Reveal>
             <p className="section-kicker mb-4 flex items-center gap-3">
               <span className="inline-block h-px w-8 bg-[var(--accent)]" />
