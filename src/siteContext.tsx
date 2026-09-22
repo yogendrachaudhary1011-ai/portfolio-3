@@ -67,6 +67,53 @@ export interface DigitalExploration {
   image?: string;
 }
 
+export interface ProjectsArchiveConfig {
+  showArchiveListing?: boolean;
+  archiveKicker?: string;
+  archiveTitle: string;
+  archiveSubtitle: string;
+  archiveBackButton?: string;
+  archiveCountSuffix?: string;
+  showExplorations?: boolean;
+  explorationsKicker?: string;
+  explorationsTitle: string;
+  explorationsSubtitle: string;
+  showCta?: boolean;
+  ctaKicker?: string;
+  ctaTitle?: string;
+  ctaSubtitle?: string;
+  ctaButton?: string;
+  ctaHeading?: string;
+  ctaDescription?: string;
+  ctaButtonLabel?: string;
+  ctaButtonLink?: string;
+  digitalProjects: DigitalExploration[];
+}
+
+export interface CaseStudyConfig {
+  showTopBar?: boolean;
+  showBadge?: boolean;
+  showDescription?: boolean;
+  showMetaChips?: boolean;
+  showPdfButton?: boolean;
+  showPlates?: boolean;
+  showNextProject?: boolean;
+  showBottomNav?: boolean;
+  backButtonLabel?: string;
+  plateLabelPrefix?: string;
+  plateExpandHint?: string;
+  expandButtonLabel?: string;
+  nextProjectKicker?: string;
+  shareLabel?: string;
+  copiedLabel?: string;
+  pdfButtonLabel?: string;
+  bottomReturnLabel?: string;
+  backToTopLabel?: string;
+  emptyTitle?: string;
+  emptyDesc?: string;
+  emptyButtonLabel?: string;
+}
+
 export interface SiteConfig {
   hero: {
     marqueeName: string;
@@ -80,6 +127,7 @@ export interface SiteConfig {
     kicker: string;
     title: string;
     subtitle: string;
+    buttonLabel?: string;
   };
   about: {
     kicker: string;
@@ -127,17 +175,8 @@ export interface SiteConfig {
     footerCredit: string;
     contacts: ContactItem[];
   };
-  projectsArchive: {
-    archiveTitle: string;
-    archiveSubtitle: string;
-    showExplorations?: boolean;
-    explorationsTitle: string;
-    explorationsSubtitle: string;
-    ctaTitle: string;
-    ctaSubtitle: string;
-    ctaButton: string;
-    digitalProjects: DigitalExploration[];
-  };
+  projectsArchive: ProjectsArchiveConfig;
+  caseStudy: CaseStudyConfig;
 }
 
 const defaultPracticeItems: PracticeCapability[] = [
@@ -278,6 +317,7 @@ export const defaultSiteConfig: SiteConfig = {
     kicker: "Selected Work",
     title: "Work Gallery",
     subtitle: "A selection of internship, academic, and personal projects exploring different users, industries, and product challenges.",
+    buttonLabel: "View More Projects",
   },
   about: {
     kicker: "About Me",
@@ -333,21 +373,56 @@ export const defaultSiteConfig: SiteConfig = {
     contacts: initialContacts,
   },
   projectsArchive: {
+    showArchiveListing: true,
+    archiveKicker: "Archive",
     archiveTitle: "Case Studies",
     archiveSubtitle:
       "A growing collection of product-design work — from early concepts and user flows to refined, high-fidelity interfaces.",
+    archiveBackButton: "Back to Overview",
+    archiveCountSuffix: "Selected Artifacts",
     showExplorations: true,
+    explorationsKicker: "Craft & Explorations",
     explorationsTitle: "Beyond the Brief",
     explorationsSubtitle:
       "Ongoing explorations in product thinking, responsive interfaces, prototypes, and design-to-development workflows.",
+    showCta: true,
+    ctaKicker: "Have a project in mind?",
     ctaTitle: "Let's design",
     ctaSubtitle: "something great.",
     ctaButton: "Start a conversation",
+    ctaHeading: "Interested in collaborating?",
+    ctaDescription: "Let's talk about product design, systems, or new opportunities.",
+    ctaButtonLabel: "Start a Conversation",
+    ctaButtonLink: "mailto:yogendrachaudhary1011@gmail.com",
     digitalProjects: initialDigitalProjects,
+  },
+  caseStudy: {
+    showTopBar: true,
+    showBadge: true,
+    showDescription: true,
+    showMetaChips: true,
+    showPdfButton: true,
+    showPlates: true,
+    showNextProject: true,
+    showBottomNav: true,
+    backButtonLabel: "Back to Projects",
+    plateLabelPrefix: "PLATE #",
+    plateExpandHint: "Click to expand in fullscreen",
+    expandButtonLabel: "Expand",
+    nextProjectKicker: "Next Case Study →",
+    shareLabel: "Share",
+    copiedLabel: "Copied",
+    pdfButtonLabel: "View PDF Presentation",
+    bottomReturnLabel: "Back to all projects",
+    backToTopLabel: "Back to top",
+    emptyTitle: "No case study visuals uploaded yet.",
+    emptyDesc: "Images for this project can be uploaded directly from the Studio Admin Panel.",
+    emptyButtonLabel: "Open Admin Panel to Upload Visuals",
   },
 };
 
 export interface EnabledSections {
+  // Homepage main sections
   hero: boolean;
   work: boolean;
   capabilities: boolean;
@@ -356,7 +431,20 @@ export interface EnabledSections {
   trainings: boolean;
   skills: boolean;
   contact: boolean;
+  // Project Listing / Archive Page sub-sections
+  archiveListing?: boolean;
+  archiveExplorations?: boolean;
   beyondTheBrief?: boolean;
+  archiveCta?: boolean;
+  // Case Study Page sections
+  caseStudyTopBar?: boolean;
+  caseStudyBadge?: boolean;
+  caseStudyDescription?: boolean;
+  caseStudyMetaChips?: boolean;
+  caseStudyPdfButton?: boolean;
+  caseStudyPlates?: boolean;
+  caseStudyNextProject?: boolean;
+  caseStudyBottomNav?: boolean;
 }
 
 export const defaultEnabledSections: EnabledSections = {
@@ -368,7 +456,18 @@ export const defaultEnabledSections: EnabledSections = {
   trainings: true,
   skills: true,
   contact: true,
+  archiveListing: true,
+  archiveExplorations: true,
   beyondTheBrief: true,
+  archiveCta: true,
+  caseStudyTopBar: true,
+  caseStudyBadge: true,
+  caseStudyDescription: true,
+  caseStudyMetaChips: true,
+  caseStudyPdfButton: true,
+  caseStudyPlates: true,
+  caseStudyNextProject: true,
+  caseStudyBottomNav: true,
 };
 
 export interface TextVisibility {
@@ -467,6 +566,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           trainings: { ...defaultSiteConfig.trainings, ...parsed.trainings },
           contact: { ...defaultSiteConfig.contact, ...parsed.contact },
           projectsArchive: { ...defaultSiteConfig.projectsArchive, ...parsed.projectsArchive },
+          caseStudy: { ...defaultSiteConfig.caseStudy, ...(parsed.caseStudy || {}) },
         };
       }
     } catch {
@@ -548,6 +648,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             ...prev,
             ...idbConfig,
             hero: { ...prev.hero, ...idbConfig.hero },
+            work: { ...prev.work, ...(idbConfig.work || {}) },
             about: { ...prev.about, ...idbConfig.about },
             capabilities: { ...prev.capabilities, ...idbConfig.capabilities },
             process: { ...prev.process, ...idbConfig.process },
@@ -555,6 +656,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             trainings: { ...prev.trainings, ...idbConfig.trainings },
             contact: { ...prev.contact, ...idbConfig.contact },
             projectsArchive: { ...prev.projectsArchive, ...idbConfig.projectsArchive },
+            caseStudy: { ...prev.caseStudy, ...(idbConfig.caseStudy || {}) },
           }));
         }
 
@@ -592,6 +694,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             ...prev,
             ...cloudConfig,
             hero: { ...prev.hero, ...(cloudConfig.hero || {}) },
+            work: { ...prev.work, ...(cloudConfig.work || {}) },
             about: { ...prev.about, ...(cloudConfig.about || {}) },
             capabilities: { ...prev.capabilities, ...(cloudConfig.capabilities || {}) },
             process: { ...prev.process, ...(cloudConfig.process || {}) },
@@ -599,6 +702,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             trainings: { ...prev.trainings, ...(cloudConfig.trainings || {}) },
             contact: { ...prev.contact, ...(cloudConfig.contact || {}) },
             projectsArchive: { ...prev.projectsArchive, ...(cloudConfig.projectsArchive || {}) },
+            caseStudy: { ...prev.caseStudy, ...(cloudConfig.caseStudy || {}) },
           }));
           safeSetLocalStorage(SITE_CONFIG_KEY, cloudConfig);
           saveToIndexedDB(SITE_CONFIG_KEY, cloudConfig);

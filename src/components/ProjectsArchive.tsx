@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   ArrowUpRight,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { img, getFullWidthImageUrl, type Project } from "../data";
 import { Typewriter, Reveal, Magnetic, Tilt } from "./common";
@@ -24,9 +25,13 @@ export default function ProjectsArchive({
   onContact: () => void;
   onProject: (project: Project, index: number) => void;
 }) {
-  const { config } = useSite();
+  const { config, settings } = useSite();
   const archiveConfig = config.projectsArchive;
   const digitalProjects = archiveConfig?.digitalProjects || [];
+
+  const showListing = (archiveConfig?.showArchiveListing !== false) && (settings?.sections?.archiveListing !== false);
+  const showExplorations = (archiveConfig?.showExplorations !== false) && (settings?.sections?.archiveExplorations !== false) && (settings?.sections?.beyondTheBrief !== false) && digitalProjects.length > 0;
+  const showCta = (archiveConfig?.showCta !== false) && (settings?.sections?.archiveCta !== false);
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -36,25 +41,46 @@ export default function ProjectsArchive({
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] selection:bg-[var(--accent)] selection:text-white transition-colors duration-300">
-      {/* ─── Archive Header ────────────────────────────────────────────── */}
-      <section id="technical" className="mx-auto max-w-6xl px-5 pb-16 pt-32 sm:px-6 sm:pb-20 sm:pt-36">
-        <Reveal>
-          <p className="section-kicker mb-4 flex items-center gap-3">
-            <span className="inline-block h-px w-8 bg-[var(--accent)]" />
-            Archive
-          </p>
-        </Reveal>
+      {/* ─── Archive Header & Project Listing ───────────────────────────── */}
+      {showListing && (
+        <section id="technical" className="mx-auto max-w-6xl px-5 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32">
+          {/* Top Bar Navigation */}
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
+              <span>{archiveConfig?.archiveBackButton || "Back to Overview"}</span>
+            </button>
+            <span className="text-[0.68rem] font-mono uppercase tracking-widest text-[var(--muted)]">
+              {projects.length} {archiveConfig?.archiveCountSuffix || "Selected Artifacts"}
+            </span>
+          </div>
 
-        <Typewriter
-          text={archiveConfig?.archiveTitle || "Case Studies"}
-          className="section-title"
-        />
-        <Reveal delay={0.12}>
-          <p className="mt-5 max-w-xl text-[0.96rem] leading-relaxed text-[var(--muted)]">
-            {archiveConfig?.archiveSubtitle ||
-              "A curated archive of selected client projects, product designs, interface systems, and detailed case studies."}
-          </p>
-        </Reveal>
+          <Reveal>
+            <p className="section-kicker mb-4 flex items-center gap-3">
+              <span className="inline-block h-px w-8 bg-[var(--accent)]" />
+              {archiveConfig?.archiveKicker || "Archive"}
+            </p>
+          </Reveal>
+
+          <Typewriter
+            text={archiveConfig?.archiveTitle || "Case Studies"}
+            className="section-title"
+          />
+          <Reveal delay={0.12}>
+            <p className="mt-5 max-w-xl text-[0.96rem] leading-relaxed text-[var(--muted)]">
+              {archiveConfig?.archiveSubtitle ||
+                "A curated archive of selected client projects, product designs, interface systems, and detailed case studies."}
+            </p>
+          </Reveal>
 
         {/* ─── Premium Redesigned Interactive List ────────────────────────── */}
         <div className="mt-14 divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
@@ -130,14 +156,15 @@ export default function ProjectsArchive({
           })}
         </div>
       </section>
+      )}
 
       {/* ─── Digital Explorations ──────────────────────────────────────── */}
-      {digitalProjects.length > 0 && (
+      {showExplorations && (
         <section id="digital" className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:px-6 sm:pb-24 border-t border-[var(--hairline)]">
           <Reveal>
             <p className="section-kicker mb-4 flex items-center gap-3">
               <span className="inline-block h-px w-8 bg-[var(--accent)]" />
-              Craft &amp; Explorations
+              {archiveConfig?.explorationsKicker || "Craft & Explorations"}
             </p>
           </Reveal>
           <Typewriter
@@ -186,26 +213,42 @@ export default function ProjectsArchive({
       )}
 
       {/* ─── Footer CTA ─────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-5 pb-24 pt-10 sm:px-6 sm:pb-32">
-        <Reveal>
-          <p className="label mb-6">Have a project in mind?</p>
-        </Reveal>
-        <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-          <h2 className="section-title">
-            {archiveConfig?.ctaTitle || "Let's design"}<br />
-            <span className="text-gradient">{archiveConfig?.ctaSubtitle || "something great."}</span>
-          </h2>
-          <Magnetic strength={0.3}>
-            <button
-              onClick={onContact}
-              className="btn-shine inline-flex items-center gap-2 self-start rounded-full border border-[var(--card-border)] bg-[var(--card)] px-7 py-4 text-[0.82rem] font-medium text-[var(--fg)] transition-colors hover:bg-[var(--fg)] hover:text-[var(--bg)] cursor-pointer"
-            >
-              <span>{archiveConfig?.ctaButton || "Start a conversation"}</span>
-              <ArrowRight className="size-4" />
-            </button>
-          </Magnetic>
-        </div>
-      </section>
+      {showCta && (
+        <section className="mx-auto max-w-6xl px-5 pb-24 pt-10 sm:px-6 sm:pb-32">
+          <Reveal>
+            <p className="label mb-6">{archiveConfig?.ctaKicker || "Have a project in mind?"}</p>
+          </Reveal>
+          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="section-title">
+                {archiveConfig?.ctaHeading || archiveConfig?.ctaTitle || "Interested in collaborating?"}
+              </h2>
+              {archiveConfig?.ctaDescription ? (
+                <p className="mt-3 text-base text-[var(--muted)] max-w-xl">
+                  {archiveConfig.ctaDescription}
+                </p>
+              ) : archiveConfig?.ctaSubtitle ? (
+                <span className="text-gradient block mt-1">{archiveConfig.ctaSubtitle}</span>
+              ) : null}
+            </div>
+            <Magnetic strength={0.3}>
+              <button
+                onClick={() => {
+                  if (archiveConfig?.ctaButtonLink?.startsWith("mailto:") || archiveConfig?.ctaButtonLink?.startsWith("http")) {
+                    window.location.href = archiveConfig.ctaButtonLink;
+                  } else {
+                    onContact();
+                  }
+                }}
+                className="btn-shine inline-flex items-center gap-2 self-start rounded-full border border-[var(--card-border)] bg-[var(--card)] px-7 py-4 text-[0.82rem] font-medium text-[var(--fg)] transition-colors hover:bg-[var(--fg)] hover:text-[var(--bg)] cursor-pointer"
+              >
+                <span>{archiveConfig?.ctaButtonLabel || archiveConfig?.ctaButton || "Start a conversation"}</span>
+                <ArrowRight className="size-4" />
+              </button>
+            </Magnetic>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

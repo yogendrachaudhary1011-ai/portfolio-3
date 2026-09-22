@@ -33,7 +33,7 @@ export default function Navbar({
   onHome,
   onContact,
 }: {
-  variant?: "home" | "projects";
+  variant?: "home" | "projects" | "case-study";
   showHomeButton?: boolean;
   active?: string;
   onNav?: (id: string) => void;
@@ -354,7 +354,13 @@ export default function Navbar({
       </div>
 
       {/* ─── DESKTOP FLOATING CAPSULE NAVIGATION (md:flex) ─────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 hidden justify-center px-4 pt-3.5 transition-all duration-300 md:flex">
+      <header
+        className={`fixed inset-x-0 top-0 z-50 hidden justify-center px-4 transition-all duration-300 md:flex ${
+          variant === "case-study"
+            ? "h-16 items-center bg-[var(--bg)]/90 backdrop-blur-xl border-b border-[var(--hairline)] pt-0"
+            : "pt-3.5"
+        }`}
+      >
         <nav
           aria-label="Primary navigation"
           className="glass liquid-nav relative flex items-center justify-center rounded-[1.75rem] px-3 backdrop-blur-xl transition-all duration-500"
@@ -370,7 +376,7 @@ export default function Navbar({
                 type="button"
                 onClick={onHome}
                 aria-label="Go home"
-                className="relative z-10 grid size-8 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+                className="relative z-10 grid size-8 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)] cursor-pointer"
               >
                 <Home size={14} />
               </button>
@@ -401,7 +407,7 @@ export default function Navbar({
                     onNav?.(l.id);
                   }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative z-10 rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 font-mono text-[0.58rem] sm:text-[0.62rem] uppercase tracking-[0.12em] sm:tracking-[0.14em] whitespace-nowrap transition-colors duration-300 hover:text-[var(--fg)] ${
+                  className={`relative z-10 rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 font-mono text-[0.58rem] sm:text-[0.62rem] uppercase tracking-[0.12em] sm:tracking-[0.14em] whitespace-nowrap transition-colors duration-300 hover:text-[var(--fg)] cursor-pointer ${
                     isActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
                   }`}
                   style={{

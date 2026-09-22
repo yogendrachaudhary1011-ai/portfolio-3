@@ -228,6 +228,7 @@ function PortfolioApp() {
         ) : (
           <>
             <Navbar
+              variant="case-study"
               showHomeButton
               active="work"
               onNav={(id) => navigate("home", id)}

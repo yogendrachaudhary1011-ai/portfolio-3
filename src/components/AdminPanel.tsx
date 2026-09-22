@@ -57,6 +57,8 @@ import {
   AlertCircle,
   AlertTriangle,
   RefreshCw,
+  FileText,
+  Layers,
 } from "lucide-react";
 
 interface ConfirmDialogState {
@@ -91,6 +93,8 @@ const readMessages = (): Message[] => {
 type TabKey =
   | "sections"
   | "projects"
+  | "caseStudy"
+  | "archive"
   | "hero"
   | "about"
   | "skills"
@@ -98,7 +102,6 @@ type TabKey =
   | "process"
   | "trainings"
   | "contact"
-  | "archive"
   | "appearance"
   | "database"
   | "messages";
@@ -275,6 +278,7 @@ function SectionHeaderBar({
   kicker,
   onKickerChange,
   kickerLabel = "Section Kicker",
+  statusHint,
 }: {
   sectionName: string;
   enabled: boolean;
@@ -288,6 +292,7 @@ function SectionHeaderBar({
   kicker?: string;
   onKickerChange?: (val: string) => void;
   kickerLabel?: string;
+  statusHint?: { enabled: string; disabled: string };
 }) {
   return (
     <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4 mb-6 shadow-xs">
@@ -305,7 +310,9 @@ function SectionHeaderBar({
               {sectionName} · Status &amp; Header
             </h4>
             <p className="text-[0.68rem] text-[var(--muted)]">
-              {enabled ? "Visible to all visitors on homepage" : "Disabled & hidden from homepage"}
+              {enabled
+                ? statusHint?.enabled || "Visible to all visitors"
+                : statusHint?.disabled || "Disabled & hidden"}
             </p>
           </div>
         </div>
@@ -577,6 +584,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
 
   const [isManualSyncing, setIsManualSyncing] = useState(false);
   const [cloudToast, setCloudToast] = useState<string | null>(null);
+  const [sectionsViewFilter, setSectionsViewFilter] = useState<"all" | "home" | "casestudy" | "archive">("all");
 
   const triggerCloudToast = (msg: string) => {
     setCloudToast(msg);
@@ -785,14 +793,15 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
       group: "CONTENT & STRUCTURE",
       tabs: [
         { key: "sections" as TabKey, label: "Sections & Visibility", icon: LayoutTemplate },
-        { key: "projects" as TabKey, label: "Case Studies & Work", icon: FolderGit2, count: projects.length },
+        { key: "projects" as TabKey, label: "Projects & Work", icon: FolderGit2, count: projects.length },
+        { key: "caseStudy" as TabKey, label: "Case Study Detail", icon: FileText },
+        { key: "archive" as TabKey, label: "Archive & Listing", icon: Eye },
         { key: "hero" as TabKey, label: "Hero Banner", icon: Sparkles },
         { key: "about" as TabKey, label: "About Me", icon: User },
         { key: "skills" as TabKey, label: "Toolkit & Skills", icon: Cpu },
         { key: "capabilities" as TabKey, label: "Capabilities", icon: Zap },
         { key: "process" as TabKey, label: "Design Process", icon: Compass },
         { key: "trainings" as TabKey, label: "Trainings & Certs", icon: GraduationCap },
-        { key: "archive" as TabKey, label: "Archive & Labs", icon: Eye },
       ],
     },
     {
@@ -1072,50 +1081,209 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
               {/* Tab Panel Content */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-7">
                 {/* ────────────────── SECTIONS & VISIBILITY TAB ────────────────── */}
-                {activeTab === "sections" && (
-                  <div className="space-y-6">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--hairline)] pb-4">
-                      <div>
-                        <h3 className="font-display text-base font-bold text-[var(--fg)]">Sections &amp; Homepage Visibility</h3>
-                        <p className="text-xs text-[var(--muted)] mt-0.5">
-                          Enable or disable any section on your portfolio and customize their display titles and subheadings.
-                        </p>
+                {activeTab === "sections" && (() => {
+                  const homeSectionsActive = [
+                    settings?.sections?.hero !== false,
+                    settings?.sections?.work !== false,
+                    settings?.sections?.capabilities !== false,
+                    settings?.sections?.process !== false,
+                    settings?.sections?.about !== false,
+                    settings?.sections?.trainings !== false,
+                    settings?.sections?.skills !== false,
+                    settings?.sections?.contact !== false,
+                  ].filter(Boolean).length;
+
+                  const caseStudySectionsActive = [
+                    settings?.sections?.caseStudyTopBar !== false,
+                    settings?.sections?.caseStudyBadge !== false,
+                    settings?.sections?.caseStudyDescription !== false,
+                    settings?.sections?.caseStudyMetaChips !== false,
+                    settings?.sections?.caseStudyPdfButton !== false,
+                    settings?.sections?.caseStudyPlates !== false,
+                    settings?.sections?.caseStudyNextProject !== false,
+                    settings?.sections?.caseStudyBottomNav !== false,
+                  ].filter(Boolean).length;
+
+                  const archiveSectionsActive = [
+                    settings?.sections?.archiveListing !== false,
+                    settings?.sections?.archiveExplorations !== false,
+                    settings?.sections?.archiveCta !== false,
+                  ].filter(Boolean).length;
+
+                  const totalActive = homeSectionsActive + caseStudySectionsActive + archiveSectionsActive;
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--hairline)] pb-4">
+                        <div>
+                          <h3 className="font-display text-base font-bold text-[var(--fg)]">Sections &amp; Page Visibility</h3>
+                          <p className="text-xs text-[var(--muted)] mt-0.5">
+                            Enable or disable sections across your entire portfolio, case studies, and listing archive, and customize all headings and subheadings.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateSettings((s) => ({
+                                ...s,
+                                sections: {
+                                  hero: true,
+                                  work: true,
+                                  capabilities: true,
+                                  process: true,
+                                  about: true,
+                                  trainings: true,
+                                  skills: true,
+                                  contact: true,
+                                  archiveListing: true,
+                                  archiveExplorations: true,
+                                  archiveCta: true,
+                                  caseStudyTopBar: true,
+                                  caseStudyBadge: true,
+                                  caseStudyDescription: true,
+                                  caseStudyMetaChips: true,
+                                  caseStudyPdfButton: true,
+                                  caseStudyPlates: true,
+                                  caseStudyNextProject: true,
+                                  caseStudyBottomNav: true,
+                                },
+                              }));
+                              showSaved();
+                              triggerCloudToast("All sections across the site enabled!");
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--fg)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                          >
+                            <CheckCircle2 className="size-3.5 text-emerald-500" /> Enable All Everywhere
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmDialog({
+                                title: "Reset All Section Visibility?",
+                                message: "This will re-enable all sections across the Homepage, Case Studies, and Archive to their default visible states.",
+                                confirmLabel: "Enable All",
+                                isDestructive: false,
+                                onConfirm: () => {
+                                  updateSettings((s) => ({
+                                    ...s,
+                                    sections: {
+                                      hero: true,
+                                      work: true,
+                                      capabilities: true,
+                                      process: true,
+                                      about: true,
+                                      trainings: true,
+                                      skills: true,
+                                      contact: true,
+                                      archiveListing: true,
+                                      archiveExplorations: true,
+                                      archiveCta: true,
+                                      caseStudyTopBar: true,
+                                      caseStudyBadge: true,
+                                      caseStudyDescription: true,
+                                      caseStudyMetaChips: true,
+                                      caseStudyPdfButton: true,
+                                      caseStudyPlates: true,
+                                      caseStudyNextProject: true,
+                                      caseStudyBottomNav: true,
+                                    },
+                                  }));
+                                  showSaved();
+                                  triggerCloudToast("All sections restored!");
+                                },
+                              });
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--fg)] transition-colors cursor-pointer"
+                          >
+                            <RotateCcw className="size-3.5" /> Reset
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateSettings((s) => ({
-                              ...s,
-                              sections: {
-                                hero: true,
-                                work: true,
-                                capabilities: true,
-                                process: true,
-                                about: true,
-                                trainings: true,
-                                skills: true,
-                                contact: true,
-                              },
-                            }));
-                            showSaved();
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--fg)] hover:border-[var(--accent)] transition-colors cursor-pointer"
-                        >
-                          <CheckCircle2 className="size-3.5 text-emerald-500" /> Enable All
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConfirmDialog({
-                              title: "Reset Section Visibility?",
-                              message: "This will re-enable all portfolio sections (Hero, Work, Capabilities, Process, About, Trainings, Skills, Contact).",
-                              confirmLabel: "Enable All",
-                              isDestructive: false,
-                              onConfirm: () => {
+
+                      {/* Summary & View Filter Pills */}
+                      <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/30 p-4 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold text-sm">
+                              {totalActive} / 19
+                            </div>
+                            <div>
+                              <span className="text-xs font-semibold text-[var(--fg)]">
+                                {totalActive} Total Sections Currently Active
+                              </span>
+                              <p className="text-[0.68rem] text-[var(--muted)]">
+                                Homepage ({homeSectionsActive}/8) · Case Study ({caseStudySectionsActive}/8) · Archive ({archiveSectionsActive}/3)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--hairline)]">
+                          <button
+                            type="button"
+                            onClick={() => setSectionsViewFilter("all")}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                              sectionsViewFilter === "all"
+                                ? "bg-[var(--fg)] text-[var(--bg)] shadow-xs"
+                                : "bg-[var(--bg)] text-[var(--muted)] hover:text-[var(--fg)] border border-[var(--hairline)]"
+                            }`}
+                          >
+                            All Sections ({totalActive}/19)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSectionsViewFilter("home")}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                              sectionsViewFilter === "home"
+                                ? "bg-[var(--fg)] text-[var(--bg)] shadow-xs"
+                                : "bg-[var(--bg)] text-[var(--muted)] hover:text-[var(--fg)] border border-[var(--hairline)]"
+                            }`}
+                          >
+                            Homepage ({homeSectionsActive}/8)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSectionsViewFilter("casestudy")}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                              sectionsViewFilter === "casestudy"
+                                ? "bg-[var(--fg)] text-[var(--bg)] shadow-xs"
+                                : "bg-[var(--bg)] text-[var(--muted)] hover:text-[var(--fg)] border border-[var(--hairline)]"
+                            }`}
+                          >
+                            Case Study Detail ({caseStudySectionsActive}/8)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSectionsViewFilter("archive")}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                              sectionsViewFilter === "archive"
+                                ? "bg-[var(--fg)] text-[var(--bg)] shadow-xs"
+                                : "bg-[var(--bg)] text-[var(--muted)] hover:text-[var(--fg)] border border-[var(--hairline)]"
+                            }`}
+                          >
+                            Project Listing &amp; Archive ({archiveSectionsActive}/3)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ────────────────── 1. HOMEPAGE SECTIONS ────────────────── */}
+                      {(sectionsViewFilter === "all" || sectionsViewFilter === "home") && (
+                        <div className="space-y-4 pt-2">
+                          <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline)]">
+                            <div className="flex items-center gap-2">
+                              <span className="size-2 rounded-full bg-[var(--accent)]" />
+                              <h4 className="font-display text-sm font-bold text-[var(--fg)] uppercase tracking-wider">
+                                Homepage Sections ({homeSectionsActive}/8 Active)
+                              </h4>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
                                 updateSettings((s) => ({
                                   ...s,
                                   sections: {
+                                    ...s.sections,
                                     hero: true,
                                     work: true,
                                     capabilities: true,
@@ -1127,152 +1295,643 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                                   },
                                 }));
                                 showSaved();
-                                triggerCloudToast("All sections re-enabled!");
-                              },
-                            });
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--fg)] transition-colors cursor-pointer"
-                        >
-                          <RotateCcw className="size-3.5" /> Reset
-                        </button>
-                      </div>
-                    </div>
+                              }}
+                              className="text-xs text-[var(--accent)] hover:underline cursor-pointer"
+                            >
+                              Enable All Home
+                            </button>
+                          </div>
 
-                    {/* Summary Bar */}
-                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/30 p-4 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold text-sm">
-                          {Object.values(settings?.sections || {}).filter(Boolean).length} / 8
+                          <SectionHeaderBar
+                            sectionName="1. Hero Banner"
+                            enabled={settings?.sections?.hero !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, hero: next } }))}
+                            title={config.hero.marqueeName}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, marqueeName: val } }))}
+                            titleLabel="Marquee Headline / Name"
+                            subtitle={config.hero.tagline}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, tagline: val } }))}
+                            subtitleLabel="Tagline / Subheading"
+                            kicker={config.hero.availableBadge}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, availableBadge: val } }))}
+                            kickerLabel="Availability Badge / Kicker"
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="2. Selected Work Gallery"
+                            enabled={settings?.sections?.work !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, work: next } }))}
+                            title={config.work?.title || "Work Gallery"}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), title: val } }))}
+                            titleLabel="Section Title"
+                            subtitle={config.work?.subtitle || ""}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), subtitle: val } }))}
+                            subtitleLabel="Section Subheading"
+                            kicker={config.work?.kicker || "Selected Work"}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), kicker: val } }))}
+                            kickerLabel="Category Tag / Kicker"
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="3. Capabilities & Disciplines"
+                            enabled={settings?.sections?.capabilities !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, capabilities: next } }))}
+                            title={config.capabilities.title}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, title: val } }))}
+                            subtitle={config.capabilities.subtitle}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, subtitle: val } }))}
+                            kicker={config.capabilities.kicker}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, kicker: val } }))}
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="4. Design Process"
+                            enabled={settings?.sections?.process !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, process: next } }))}
+                            title={config.process.title}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, title: val } }))}
+                            subtitle={config.process.subtitle}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, subtitle: val } }))}
+                            kicker={config.process.kicker}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, kicker: val } }))}
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="5. About Me"
+                            enabled={settings?.sections?.about !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, about: next } }))}
+                            title={config.about.title}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, title: val } }))}
+                            titleLabel="Headline / Title"
+                            subtitle={config.about.subtitle || ""}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, subtitle: val } }))}
+                            subtitleLabel="Subheading"
+                            kicker={config.about.kicker}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, kicker: val } }))}
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="6. Trainings & Experience"
+                            enabled={settings?.sections?.trainings !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, trainings: next } }))}
+                            title={config.trainings.title}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, title: val } }))}
+                            subtitle={config.trainings.subtitle}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, subtitle: val } }))}
+                            kicker={config.trainings.kicker}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, kicker: val } }))}
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="7. Toolkit & Skills"
+                            enabled={settings?.sections?.skills !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, skills: next } }))}
+                            title={config.skills.title}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, title: val } }))}
+                            subtitle={config.skills.subtitle}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, subtitle: val } }))}
+                            kicker={config.skills.kicker}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, kicker: val } }))}
+                          />
+
+                          <SectionHeaderBar
+                            sectionName="8. Contact & Footer"
+                            enabled={settings?.sections?.contact !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, contact: next } }))}
+                            title={config.contact.titleLines.join(" ")}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, titleLines: val.split(/\s+/) } }))}
+                            titleLabel="Call to Action Title"
+                            subtitle={config.contact.subtitleHeadline}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, subtitleHeadline: val } }))}
+                            subtitleLabel="Subheading Headline"
+                            kicker={config.contact.kicker}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, kicker: val } }))}
+                          />
                         </div>
-                        <div>
-                          <span className="text-xs font-semibold text-[var(--fg)]">
-                            {Object.values(settings?.sections || {}).filter(Boolean).length} Sections Currently Active
-                          </span>
-                          <p className="text-[0.68rem] text-[var(--muted)]">
-                            Disabled sections are hidden from the homepage and filtered out of navbar navigation.
-                          </p>
+                      )}
+
+                      {/* ────────────────── 2. CASE STUDY DETAIL SECTIONS ────────────────── */}
+                      {(sectionsViewFilter === "all" || sectionsViewFilter === "casestudy") && (
+                        <div className="space-y-4 pt-4 border-t border-[var(--hairline)]">
+                          <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline)]">
+                            <div className="flex items-center gap-2">
+                              <span className="size-2 rounded-full bg-blue-500" />
+                              <div>
+                                <h4 className="font-display text-sm font-bold text-[var(--fg)] uppercase tracking-wider">
+                                  Case Study Detail Page Sections ({caseStudySectionsActive}/8 Active)
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Controls visibility and customize microcopy across individual project presentations
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateSettings((s) => ({
+                                  ...s,
+                                  sections: {
+                                    ...s.sections,
+                                    caseStudyTopBar: true,
+                                    caseStudyBadge: true,
+                                    caseStudyDescription: true,
+                                    caseStudyMetaChips: true,
+                                    caseStudyPdfButton: true,
+                                    caseStudyPlates: true,
+                                    caseStudyNextProject: true,
+                                    caseStudyBottomNav: true,
+                                  },
+                                }));
+                                showSaved();
+                              }}
+                              className="text-xs text-[var(--accent)] hover:underline cursor-pointer"
+                            >
+                              Enable All Case Study
+                            </button>
+                          </div>
+
+                          {/* CS 1. Top Bar */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                              <div>
+                                <h4 className="text-xs font-bold text-[var(--fg)]">
+                                  1. Sticky Top Reading &amp; Controls Bar
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Sticky navigation bar showing back link, reading progress, and quick share action
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSettings((s) => ({
+                                    ...s,
+                                    sections: {
+                                      ...s.sections,
+                                      caseStudyTopBar: s.sections?.caseStudyTopBar === false,
+                                    },
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                  settings?.sections?.caseStudyTopBar !== false
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                    : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                                }`}
+                              >
+                                <span>{settings?.sections?.caseStudyTopBar !== false ? "Visible on Case Studies" : "Disabled & Hidden"}</span>
+                              </button>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <FormField label="Back Button Label" hint="Top left return link">
+                                <TextInput
+                                  value={config.caseStudy?.backButtonLabel || "Back to Projects"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), backButtonLabel: val } }))}
+                                  placeholder="Back to Projects"
+                                />
+                              </FormField>
+                              <FormField label="Share Button Label" hint="Top right button">
+                                <TextInput
+                                  value={config.caseStudy?.shareLabel || "Share"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), shareLabel: val } }))}
+                                  placeholder="Share"
+                                />
+                              </FormField>
+                              <FormField label="Copied Notification Label" hint="Shown on link copy">
+                                <TextInput
+                                  value={config.caseStudy?.copiedLabel || "Copied"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), copiedLabel: val } }))}
+                                  placeholder="Copied"
+                                />
+                              </FormField>
+                            </div>
+                          </div>
+
+                          {/* CS 2. Discipline Badge */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="text-xs font-bold text-[var(--fg)]">
+                                2. Discipline &amp; Category Badge
+                              </h4>
+                              <p className="text-[0.68rem] text-[var(--muted)]">
+                                Displays the discipline pill above project title (e.g. &quot;Product Design · UI/UX&quot;)
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSettings((s) => ({
+                                  ...s,
+                                  sections: {
+                                    ...s.sections,
+                                    caseStudyBadge: s.sections?.caseStudyBadge === false,
+                                  },
+                                }))
+                              }
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                settings?.sections?.caseStudyBadge !== false
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                  : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                              }`}
+                            >
+                              <span>{settings?.sections?.caseStudyBadge !== false ? "Visible" : "Hidden"}</span>
+                            </button>
+                          </div>
+
+                          {/* CS 3. Project Description */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="text-xs font-bold text-[var(--fg)]">
+                                3. Project Executive Summary / Overview
+                              </h4>
+                              <p className="text-[0.68rem] text-[var(--muted)]">
+                                Primary descriptive paragraph outlining problem, solution, and outcomes below title
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSettings((s) => ({
+                                  ...s,
+                                  sections: {
+                                    ...s.sections,
+                                    caseStudyDescription: s.sections?.caseStudyDescription === false,
+                                  },
+                                }))
+                              }
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                settings?.sections?.caseStudyDescription !== false
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                  : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                              }`}
+                            >
+                              <span>{settings?.sections?.caseStudyDescription !== false ? "Visible" : "Hidden"}</span>
+                            </button>
+                          </div>
+
+                          {/* CS 4. Metadata Chips */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="text-xs font-bold text-[var(--fg)]">
+                                4. Metadata Chips &amp; Tools Stack
+                              </h4>
+                              <p className="text-[0.68rem] text-[var(--muted)]">
+                                Visual asset count indicator and technology tool icons (Figma, React, Tailwind, etc.)
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSettings((s) => ({
+                                  ...s,
+                                  sections: {
+                                    ...s.sections,
+                                    caseStudyMetaChips: s.sections?.caseStudyMetaChips === false,
+                                  },
+                                }))
+                              }
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                settings?.sections?.caseStudyMetaChips !== false
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                  : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                              }`}
+                            >
+                              <span>{settings?.sections?.caseStudyMetaChips !== false ? "Visible" : "Hidden"}</span>
+                            </button>
+                          </div>
+
+                          {/* CS 5. PDF Presentation Button */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                              <div>
+                                <h4 className="text-xs font-bold text-[var(--fg)]">
+                                  5. PDF Presentation Button
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Direct link button to view external deck or pitch document when PDF URL is provided
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSettings((s) => ({
+                                    ...s,
+                                    sections: {
+                                      ...s.sections,
+                                      caseStudyPdfButton: s.sections?.caseStudyPdfButton === false,
+                                    },
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                  settings?.sections?.caseStudyPdfButton !== false
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                    : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                                }`}
+                              >
+                                <span>{settings?.sections?.caseStudyPdfButton !== false ? "Visible when PDF exists" : "Disabled"}</span>
+                              </button>
+                            </div>
+
+                            <FormField label="PDF Action Button Label" hint="Text on presentation button">
+                              <TextInput
+                                value={config.caseStudy?.pdfButtonLabel || "View PDF Presentation"}
+                                onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), pdfButtonLabel: val } }))}
+                                placeholder="View PDF Presentation"
+                              />
+                            </FormField>
+                          </div>
+
+                          {/* CS 6. High-Res Visual Plates */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                              <div>
+                                <h4 className="text-xs font-bold text-[var(--fg)]">
+                                  6. High-Res Visual Plates Stream
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Full-bleed sequential visual gallery displaying mockups, screens, and design artifacts
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSettings((s) => ({
+                                    ...s,
+                                    sections: {
+                                      ...s.sections,
+                                      caseStudyPlates: s.sections?.caseStudyPlates === false,
+                                    },
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                  settings?.sections?.caseStudyPlates !== false
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                    : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                                }`}
+                              >
+                                <span>{settings?.sections?.caseStudyPlates !== false ? "Visible" : "Hidden"}</span>
+                              </button>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <FormField label="Plate Label Prefix" hint="e.g. PLATE #">
+                                <TextInput
+                                  value={config.caseStudy?.plateLabelPrefix || "PLATE #"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), plateLabelPrefix: val } }))}
+                                  placeholder="PLATE #"
+                                />
+                              </FormField>
+                              <FormField label="Fullscreen Hint Text" hint="Under plate number">
+                                <TextInput
+                                  value={config.caseStudy?.plateExpandHint || "Click to expand in fullscreen"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), plateExpandHint: val } }))}
+                                  placeholder="Click to expand in fullscreen"
+                                />
+                              </FormField>
+                              <FormField label="Expand Button Label" hint="Interactive pill button">
+                                <TextInput
+                                  value={config.caseStudy?.expandButtonLabel || "Expand"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), expandButtonLabel: val } }))}
+                                  placeholder="Expand"
+                                />
+                              </FormField>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-[var(--hairline)]">
+                              <FormField label="Empty State Heading" hint="Shown when no images uploaded">
+                                <TextInput
+                                  value={config.caseStudy?.emptyTitle || "No case study visuals uploaded yet."}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), emptyTitle: val } }))}
+                                  placeholder="No case study visuals uploaded yet."
+                                />
+                              </FormField>
+                              <FormField label="Empty State Action Button">
+                                <TextInput
+                                  value={config.caseStudy?.emptyButtonLabel || "Open Admin Panel to Upload Visuals"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), emptyButtonLabel: val } }))}
+                                  placeholder="Open Admin Panel to Upload Visuals"
+                                />
+                              </FormField>
+                            </div>
+                          </div>
+
+                          {/* CS 7. Next Project Banner */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                              <div>
+                                <h4 className="text-xs font-bold text-[var(--fg)]">
+                                  7. Next Project &quot;Up Next&quot; Banner
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Footer card inviting viewers to effortlessly continue reading the next case study
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSettings((s) => ({
+                                    ...s,
+                                    sections: {
+                                      ...s.sections,
+                                      caseStudyNextProject: s.sections?.caseStudyNextProject === false,
+                                    },
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                  settings?.sections?.caseStudyNextProject !== false
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                    : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                                }`}
+                              >
+                                <span>{settings?.sections?.caseStudyNextProject !== false ? "Visible" : "Hidden"}</span>
+                              </button>
+                            </div>
+
+                            <FormField label="Next Project Kicker / Eyebrow">
+                              <TextInput
+                                value={config.caseStudy?.nextProjectKicker || "Next Case Study →"}
+                                onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), nextProjectKicker: val } }))}
+                                placeholder="Next Case Study →"
+                              />
+                            </FormField>
+                          </div>
+
+                          {/* CS 8. Bottom Navigation */}
+                          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/35 p-4 sm:p-5 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                              <div>
+                                <h4 className="text-xs font-bold text-[var(--fg)]">
+                                  8. Bottom Navigation Actions
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Return to archive directory and smooth scroll back to top buttons
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSettings((s) => ({
+                                    ...s,
+                                    sections: {
+                                      ...s.sections,
+                                      caseStudyBottomNav: s.sections?.caseStudyBottomNav === false,
+                                    },
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                                  settings?.sections?.caseStudyBottomNav !== false
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                    : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--hairline)]"
+                                }`}
+                              >
+                                <span>{settings?.sections?.caseStudyBottomNav !== false ? "Visible" : "Hidden"}</span>
+                              </button>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <FormField label="Back to Projects Label">
+                                <TextInput
+                                  value={config.caseStudy?.bottomReturnLabel || "Back to all projects"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), bottomReturnLabel: val } }))}
+                                  placeholder="Back to all projects"
+                                />
+                              </FormField>
+                              <FormField label="Back to Top Label">
+                                <TextInput
+                                  value={config.caseStudy?.backToTopLabel || "Back to top"}
+                                  onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), backToTopLabel: val } }))}
+                                  placeholder="Back to top"
+                                />
+                              </FormField>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* ────────────────── 3. PROJECT LISTING & ARCHIVE SECTIONS ────────────────── */}
+                      {(sectionsViewFilter === "all" || sectionsViewFilter === "archive") && (
+                        <div className="space-y-4 pt-4 border-t border-[var(--hairline)]">
+                          <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline)]">
+                            <div className="flex items-center gap-2">
+                              <span className="size-2 rounded-full bg-purple-500" />
+                              <div>
+                                <h4 className="font-display text-sm font-bold text-[var(--fg)] uppercase tracking-wider">
+                                  Project Listing &amp; Archive Page Sections ({archiveSectionsActive}/3 Active)
+                                </h4>
+                                <p className="text-[0.68rem] text-[var(--muted)]">
+                                  Controls visibility and customize headings/subheadings on the standalone Archive page
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateSettings((s) => ({
+                                  ...s,
+                                  sections: {
+                                    ...s.sections,
+                                    archiveListing: true,
+                                    archiveExplorations: true,
+                                    archiveCta: true,
+                                  },
+                                }));
+                                showSaved();
+                              }}
+                              className="text-xs text-[var(--accent)] hover:underline cursor-pointer"
+                            >
+                              Enable All Archive
+                            </button>
+                          </div>
+
+                          {/* Archive 1: Main Listing Grid */}
+                          <SectionHeaderBar
+                            sectionName="1. Selected Projects Directory Grid"
+                            enabled={settings?.sections?.archiveListing !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveListing: next } }))}
+                            title={config.projectsArchive?.archiveTitle || "ARCHIVE / 01"}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveTitle: val } }))}
+                            titleLabel="Archive Main Heading"
+                            subtitle={config.projectsArchive?.archiveSubtitle || "A comprehensive catalogue of commercial UI/UX designs, web platforms, and design engineering artifacts."}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveSubtitle: val } }))}
+                            subtitleLabel="Archive Subheading"
+                            kicker={config.projectsArchive?.archiveKicker || "Index & Directory"}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveKicker: val } }))}
+                            kickerLabel="Kicker / Eyebrow Badge"
+                            statusHint={{ enabled: "Visible on Archive page", disabled: "Hidden from Archive page" }}
+                          />
+
+                          <div className="grid gap-3 sm:grid-cols-2 -mt-2 mb-4 px-1">
+                            <FormField label="Archive Back Button Label">
+                              <TextInput
+                                value={config.projectsArchive?.archiveBackButton || "Back to Overview"}
+                                onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveBackButton: val } }))}
+                                placeholder="Back to Overview"
+                              />
+                            </FormField>
+                            <FormField label="Count Suffix Label">
+                              <TextInput
+                                value={config.projectsArchive?.archiveCountSuffix || "Selected Artifacts"}
+                                onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveCountSuffix: val } }))}
+                                placeholder="Selected Artifacts"
+                              />
+                            </FormField>
+                          </div>
+
+                          {/* Archive 2: Digital Explorations Grid */}
+                          <SectionHeaderBar
+                            sectionName="2. Digital Explorations & Labs Grid"
+                            enabled={settings?.sections?.archiveExplorations !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveExplorations: next } }))}
+                            title={config.projectsArchive?.explorationsTitle || "Digital Explorations & Visual Studies"}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsTitle: val } }))}
+                            titleLabel="Explorations Heading"
+                            subtitle={config.projectsArchive?.explorationsSubtitle || "Unpublished prototypes, interaction loops, and spatial user interface experiments created during R&D explorations."}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsSubtitle: val } }))}
+                            subtitleLabel="Explorations Subheading"
+                            kicker={config.projectsArchive?.explorationsKicker || "Experimental · 02"}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsKicker: val } }))}
+                            kickerLabel="Explorations Kicker"
+                            statusHint={{ enabled: "Visible on Archive page", disabled: "Hidden from Archive page" }}
+                          />
+
+                          {/* Archive 3: Bottom Collaboration CTA */}
+                          <SectionHeaderBar
+                            sectionName="3. Bottom Collaboration Call to Action"
+                            enabled={settings?.sections?.archiveCta !== false}
+                            onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveCta: next } }))}
+                            title={config.projectsArchive?.ctaHeading || "Interested in collaborating?"}
+                            onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaHeading: val } }))}
+                            titleLabel="CTA Display Heading"
+                            subtitle={config.projectsArchive?.ctaDescription || "Let's talk about product design, systems, or new opportunities."}
+                            onSubtitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaDescription: val } }))}
+                            subtitleLabel="CTA Description / Subtitle"
+                            kicker={config.projectsArchive?.ctaKicker || "Get in touch"}
+                            onKickerChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaKicker: val } }))}
+                            kickerLabel="CTA Kicker / Eyebrow"
+                            statusHint={{ enabled: "Visible at bottom of Archive", disabled: "Hidden from Archive page" }}
+                          />
+
+                          <div className="grid gap-3 sm:grid-cols-2 -mt-2 mb-4 px-1">
+                            <FormField label="CTA Action Button Label">
+                              <TextInput
+                                value={config.projectsArchive?.ctaButtonLabel || "Start a Conversation"}
+                                onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaButtonLabel: val } }))}
+                                placeholder="Start a Conversation"
+                              />
+                            </FormField>
+                            <FormField label="CTA Action Button Link / URL">
+                              <TextInput
+                                value={config.projectsArchive?.ctaButtonLink || "mailto:yogendrachaudhary1011@gmail.com"}
+                                onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaButtonLink: val } }))}
+                                placeholder="mailto:... or https://..."
+                              />
+                            </FormField>
+                          </div>
+                        </div>
+                      )}
                     </div>
-
-                    {/* Section Controls List */}
-                    <div className="space-y-4">
-                      {/* 1. Hero */}
-                      <SectionHeaderBar
-                        sectionName="1. Hero Banner"
-                        enabled={settings?.sections?.hero !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, hero: next } }))}
-                        title={config.hero.marqueeName}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, marqueeName: val } }))}
-                        titleLabel="Marquee Headline / Name"
-                        subtitle={config.hero.tagline}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, tagline: val } }))}
-                        subtitleLabel="Tagline / Subheading"
-                        kicker={config.hero.availableBadge}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, hero: { ...c.hero, availableBadge: val } }))}
-                        kickerLabel="Availability Badge / Kicker"
-                      />
-
-                      {/* 2. Selected Work */}
-                      <SectionHeaderBar
-                        sectionName="2. Selected Work Gallery"
-                        enabled={settings?.sections?.work !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, work: next } }))}
-                        title={config.work?.title || "Work Gallery"}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), title: val } }))}
-                        titleLabel="Section Title"
-                        subtitle={config.work?.subtitle || ""}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), subtitle: val } }))}
-                        subtitleLabel="Section Subheading"
-                        kicker={config.work?.kicker || "Selected Work"}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, work: { ...(c.work || {}), kicker: val } }))}
-                        kickerLabel="Category Tag / Kicker"
-                      />
-
-                      {/* 3. Capabilities */}
-                      <SectionHeaderBar
-                        sectionName="3. Capabilities & Disciplines"
-                        enabled={settings?.sections?.capabilities !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, capabilities: next } }))}
-                        title={config.capabilities.title}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, title: val } }))}
-                        subtitle={config.capabilities.subtitle}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, subtitle: val } }))}
-                        kicker={config.capabilities.kicker}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, capabilities: { ...c.capabilities, kicker: val } }))}
-                      />
-
-                      {/* 4. Design Process */}
-                      <SectionHeaderBar
-                        sectionName="4. Design Process"
-                        enabled={settings?.sections?.process !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, process: next } }))}
-                        title={config.process.title}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, title: val } }))}
-                        subtitle={config.process.subtitle}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, subtitle: val } }))}
-                        kicker={config.process.kicker}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, process: { ...c.process, kicker: val } }))}
-                      />
-
-                      {/* 5. About Me */}
-                      <SectionHeaderBar
-                        sectionName="5. About Me"
-                        enabled={settings?.sections?.about !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, about: next } }))}
-                        title={config.about.title}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, title: val } }))}
-                        titleLabel="Headline / Title"
-                        subtitle={config.about.subtitle || ""}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, subtitle: val } }))}
-                        subtitleLabel="Subheading"
-                        kicker={config.about.kicker}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, about: { ...c.about, kicker: val } }))}
-                      />
-
-                      {/* 6. Trainings & Experience */}
-                      <SectionHeaderBar
-                        sectionName="6. Trainings & Experience"
-                        enabled={settings?.sections?.trainings !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, trainings: next } }))}
-                        title={config.trainings.title}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, title: val } }))}
-                        subtitle={config.trainings.subtitle}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, subtitle: val } }))}
-                        kicker={config.trainings.kicker}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, trainings: { ...c.trainings, kicker: val } }))}
-                      />
-
-                      {/* 7. Toolkit & Skills */}
-                      <SectionHeaderBar
-                        sectionName="7. Toolkit & Skills"
-                        enabled={settings?.sections?.skills !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, skills: next } }))}
-                        title={config.skills.title}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, title: val } }))}
-                        subtitle={config.skills.subtitle}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, subtitle: val } }))}
-                        kicker={config.skills.kicker}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, skills: { ...c.skills, kicker: val } }))}
-                      />
-
-                      {/* 8. Contact & Footer */}
-                      <SectionHeaderBar
-                        sectionName="8. Contact & Footer"
-                        enabled={settings?.sections?.contact !== false}
-                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, contact: next } }))}
-                        title={config.contact.titleLines.join(" ")}
-                        onTitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, titleLines: val.split(/\s+/) } }))}
-                        titleLabel="Call to Action Title"
-                        subtitle={config.contact.subtitleHeadline}
-                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, subtitleHeadline: val } }))}
-                        subtitleLabel="Subheading Headline"
-                        kicker={config.contact.kicker}
-                        onKickerChange={(val) => updateConfig((c) => ({ ...c, contact: { ...c.contact, kicker: val } }))}
-                      />
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* ────────────────── PROJECTS TAB ────────────────── */}
                 {activeTab === "projects" && (
@@ -1715,7 +2374,437 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                   </div>
                 )}
 
-                {/* ────────────────── HERO BANNER TAB ────────────────── */}
+                {/* ────────────────── CASE STUDY DETAIL TAB ────────────────── */}
+                {activeTab === "caseStudy" && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--hairline)] pb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="size-2 rounded-full bg-blue-500" />
+                          <h3 className="font-display text-base font-bold text-[var(--fg)]">
+                            Case Study Detail Template Customizer
+                          </h3>
+                        </div>
+                        <p className="text-xs text-[var(--muted)] mt-0.5">
+                          Control visibility of sections and customize all buttons, microcopy, and plate labels on individual project presentation pages.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                caseStudyTopBar: true,
+                                caseStudyBadge: true,
+                                caseStudyDescription: true,
+                                caseStudyMetaChips: true,
+                                caseStudyPdfButton: true,
+                                caseStudyPlates: true,
+                                caseStudyNextProject: true,
+                                caseStudyBottomNav: true,
+                              },
+                            }));
+                            showSaved();
+                            triggerCloudToast("All Case Study sections enabled!");
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--fg)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 className="size-3.5 text-emerald-500" /> Enable All Sections
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick overview of projects using this template */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--chip)]/30 p-4 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="size-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-sm">
+                          {projects.length}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-[var(--fg)]">
+                            Template active across {projects.length} Projects
+                          </span>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            Changes here instantly update every case study presentation view across your portfolio.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("projects")}
+                        className="text-xs text-[var(--accent)] font-medium hover:underline cursor-pointer"
+                      >
+                        Manage Project Visuals &amp; Content →
+                      </button>
+                    </div>
+
+                    {/* Section 1: Sticky Top Reading & Navigation Bar */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                        <div>
+                          <h4 className="text-xs font-bold text-[var(--fg)]">
+                            1. Sticky Top Reading Bar &amp; Header Controls
+                          </h4>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            Sticky top navigation with back button, reading progress bar, and share button
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                caseStudyTopBar: s.sections?.caseStudyTopBar === false,
+                              },
+                            }))
+                          }
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                            settings?.sections?.caseStudyTopBar !== false
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                          }`}
+                        >
+                          <span>{settings?.sections?.caseStudyTopBar !== false ? "Visible & Active" : "Disabled & Hidden"}</span>
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <FormField label="Back Button Label" hint="Top left navigation return link">
+                          <TextInput
+                            value={config.caseStudy?.backButtonLabel || "Back to Projects"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), backButtonLabel: val } }))}
+                            placeholder="Back to Projects"
+                          />
+                        </FormField>
+                        <FormField label="Share Button Label" hint="Top right action button">
+                          <TextInput
+                            value={config.caseStudy?.shareLabel || "Share"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), shareLabel: val } }))}
+                            placeholder="Share"
+                          />
+                        </FormField>
+                        <FormField label="Copied Notification Text" hint="Toast alert on copy">
+                          <TextInput
+                            value={config.caseStudy?.copiedLabel || "Copied"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), copiedLabel: val } }))}
+                            placeholder="Copied"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Discipline & Category Badge */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-[var(--fg)]">
+                          2. Discipline &amp; Focus Eyebrow Pill
+                        </h4>
+                        <p className="text-[0.68rem] text-[var(--muted)]">
+                          Pill badge above project title (e.g., &quot;Product Design · UI/UX&quot;)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSettings((s) => ({
+                            ...s,
+                            sections: {
+                              ...s.sections,
+                              caseStudyBadge: s.sections?.caseStudyBadge === false,
+                            },
+                          }))
+                        }
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                          settings?.sections?.caseStudyBadge !== false
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                            : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                        }`}
+                      >
+                        <span>{settings?.sections?.caseStudyBadge !== false ? "Visible" : "Hidden"}</span>
+                      </button>
+                    </div>
+
+                    {/* Section 3: Project Executive Summary */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-[var(--fg)]">
+                          3. Project Executive Summary / Overview
+                        </h4>
+                        <p className="text-[0.68rem] text-[var(--muted)]">
+                          Primary project description paragraph below the main title
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSettings((s) => ({
+                            ...s,
+                            sections: {
+                              ...s.sections,
+                              caseStudyDescription: s.sections?.caseStudyDescription === false,
+                            },
+                          }))
+                        }
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                          settings?.sections?.caseStudyDescription !== false
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                            : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                        }`}
+                      >
+                        <span>{settings?.sections?.caseStudyDescription !== false ? "Visible" : "Hidden"}</span>
+                      </button>
+                    </div>
+
+                    {/* Section 4: Metadata Chips & Tech Stack */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 flex items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-[var(--fg)]">
+                          4. Metadata Badges &amp; Tech Stack Chips
+                        </h4>
+                        <p className="text-[0.68rem] text-[var(--muted)]">
+                          Plate count indicator and software/tool icons (Figma, React, Tailwind, etc.)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSettings((s) => ({
+                            ...s,
+                            sections: {
+                              ...s.sections,
+                              caseStudyMetaChips: s.sections?.caseStudyMetaChips === false,
+                            },
+                          }))
+                        }
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                          settings?.sections?.caseStudyMetaChips !== false
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                            : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                        }`}
+                      >
+                        <span>{settings?.sections?.caseStudyMetaChips !== false ? "Visible" : "Hidden"}</span>
+                      </button>
+                    </div>
+
+                    {/* Section 5: PDF Presentation Button */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                        <div>
+                          <h4 className="text-xs font-bold text-[var(--fg)]">
+                            5. PDF Presentation Button
+                          </h4>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            External link button shown when a project has a PDF presentation link configured
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                caseStudyPdfButton: s.sections?.caseStudyPdfButton === false,
+                              },
+                            }))
+                          }
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                            settings?.sections?.caseStudyPdfButton !== false
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                          }`}
+                        >
+                          <span>{settings?.sections?.caseStudyPdfButton !== false ? "Visible when PDF link exists" : "Disabled"}</span>
+                        </button>
+                      </div>
+
+                      <FormField label="PDF Button Label Text">
+                        <TextInput
+                          value={config.caseStudy?.pdfButtonLabel || "View PDF Presentation"}
+                          onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), pdfButtonLabel: val } }))}
+                          placeholder="View PDF Presentation"
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* Section 6: High-Res Visual Plates Stream */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                        <div>
+                          <h4 className="text-xs font-bold text-[var(--fg)]">
+                            6. High-Res Visual Plates Stream &amp; Fullscreen Viewer
+                          </h4>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            The core sequential visual gallery displaying mockups, screens, and design artifacts
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                caseStudyPlates: s.sections?.caseStudyPlates === false,
+                              },
+                            }))
+                          }
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                            settings?.sections?.caseStudyPlates !== false
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                          }`}
+                        >
+                          <span>{settings?.sections?.caseStudyPlates !== false ? "Visible & Streaming" : "Disabled"}</span>
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <FormField label="Plate Label Prefix" hint="e.g. PLATE #">
+                          <TextInput
+                            value={config.caseStudy?.plateLabelPrefix || "PLATE #"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), plateLabelPrefix: val } }))}
+                            placeholder="PLATE #"
+                          />
+                        </FormField>
+                        <FormField label="Fullscreen Hint" hint="Helper microcopy">
+                          <TextInput
+                            value={config.caseStudy?.plateExpandHint || "Click to expand in fullscreen"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), plateExpandHint: val } }))}
+                            placeholder="Click to expand in fullscreen"
+                          />
+                        </FormField>
+                        <FormField label="Expand Button Label" hint="Interactive pill label">
+                          <TextInput
+                            value={config.caseStudy?.expandButtonLabel || "Expand"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), expandButtonLabel: val } }))}
+                            placeholder="Expand"
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-3 pt-2 border-t border-[var(--hairline)]">
+                        <FormField label="Empty State Heading" hint="When no visuals exist">
+                          <TextInput
+                            value={config.caseStudy?.emptyTitle || "No case study visuals uploaded yet."}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), emptyTitle: val } }))}
+                            placeholder="No case study visuals uploaded yet."
+                          />
+                        </FormField>
+                        <FormField label="Empty State Description">
+                          <TextInput
+                            value={config.caseStudy?.emptyDesc || "Images for this project can be uploaded directly from the Studio Admin Panel."}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), emptyDesc: val } }))}
+                            placeholder="Images for this project can be uploaded directly..."
+                          />
+                        </FormField>
+                        <FormField label="Empty State Button Label">
+                          <TextInput
+                            value={config.caseStudy?.emptyButtonLabel || "Open Admin Panel to Upload Visuals"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), emptyButtonLabel: val } }))}
+                            placeholder="Open Admin Panel to Upload Visuals"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+
+                    {/* Section 7: Next Project Banner */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                        <div>
+                          <h4 className="text-xs font-bold text-[var(--fg)]">
+                            7. Next Project &quot;Up Next&quot; Banner
+                          </h4>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            Shows a preview link card at the bottom leading to the next sequential case study
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                caseStudyNextProject: s.sections?.caseStudyNextProject === false,
+                              },
+                            }))
+                          }
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                            settings?.sections?.caseStudyNextProject !== false
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                          }`}
+                        >
+                          <span>{settings?.sections?.caseStudyNextProject !== false ? "Visible" : "Hidden"}</span>
+                        </button>
+                      </div>
+
+                      <FormField label="Next Project Kicker / Eyebrow">
+                        <TextInput
+                          value={config.caseStudy?.nextProjectKicker || "Next Case Study →"}
+                          onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), nextProjectKicker: val } }))}
+                          placeholder="Next Case Study →"
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* Section 8: Bottom Navigation Actions */}
+                    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 sm:p-5 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--hairline)] pb-3.5">
+                        <div>
+                          <h4 className="text-xs font-bold text-[var(--fg)]">
+                            8. Bottom Navigation Actions
+                          </h4>
+                          <p className="text-[0.68rem] text-[var(--muted)]">
+                            Footer buttons for returning to project directory and scrolling back to top
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                caseStudyBottomNav: s.sections?.caseStudyBottomNav === false,
+                              },
+                            }))
+                          }
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                            settings?.sections?.caseStudyBottomNav !== false
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-[var(--chip)] text-[var(--muted)] border border-[var(--hairline)]"
+                          }`}
+                        >
+                          <span>{settings?.sections?.caseStudyBottomNav !== false ? "Visible" : "Hidden"}</span>
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <FormField label="Back to Projects Button Label">
+                          <TextInput
+                            value={config.caseStudy?.bottomReturnLabel || "Back to all projects"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), bottomReturnLabel: val } }))}
+                            placeholder="Back to all projects"
+                          />
+                        </FormField>
+                        <FormField label="Back to Top Button Label">
+                          <TextInput
+                            value={config.caseStudy?.backToTopLabel || "Back to top"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, caseStudy: { ...(c.caseStudy || {}), backToTopLabel: val } }))}
+                            placeholder="Back to top"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {activeTab === "hero" && (
                   <div className="space-y-6">
                     <SectionHeaderBar
@@ -2426,63 +3515,199 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                 {/* ────────────────── ARCHIVE TAB ────────────────── */}
                 {activeTab === "archive" && (
                   <div className="space-y-6">
-                    <div className="border-b border-[var(--hairline)] pb-4">
-                      <h3 className="font-display text-base font-bold text-[var(--fg)]">Archive &amp; Explorations</h3>
-                      <p className="text-xs text-[var(--muted)] mt-0.5">Standalone archive page titles, copy, and digital experiments</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--hairline)] pb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="size-2 rounded-full bg-purple-500" />
+                          <h3 className="font-display text-base font-bold text-[var(--fg)]">
+                            Project Listing &amp; Archive Page Customizer
+                          </h3>
+                        </div>
+                        <p className="text-xs text-[var(--muted)] mt-0.5">
+                          Manage section visibility, directory headings, digital explorations, and collaboration CTA on the dedicated Archive page.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateSettings((s) => ({
+                              ...s,
+                              sections: {
+                                ...s.sections,
+                                archiveListing: true,
+                                archiveExplorations: true,
+                                archiveCta: true,
+                              },
+                            }));
+                            showSaved();
+                            triggerCloudToast("All Archive sections enabled!");
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-1.5 text-xs font-semibold text-[var(--fg)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 className="size-3.5 text-emerald-500" /> Enable All Archive Sections
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <FormField label="Archive Title">
-                        <TextInput
-                          value={config.projectsArchive.archiveTitle || ""}
-                          onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, archiveTitle: val } }))}
-                        />
-                      </FormField>
-
-                      <FormField label="Explorations Title">
-                        <TextInput
-                          value={config.projectsArchive.explorationsTitle || ""}
-                          onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, explorationsTitle: val } }))}
-                        />
-                      </FormField>
-                    </div>
-
-                    <FormField label="Explorations Subtitle">
-                      <TextAreaInput
-                        rows={2}
-                        value={config.projectsArchive.explorationsSubtitle || ""}
-                        onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, explorationsSubtitle: val } }))}
+                    {/* Section 1: Selected Projects Directory Grid */}
+                    <div className="space-y-4">
+                      <SectionHeaderBar
+                        sectionName="1. Selected Projects Directory Grid"
+                        enabled={settings?.sections?.archiveListing !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveListing: next } }))}
+                        title={config.projectsArchive?.archiveTitle || "ARCHIVE / 01"}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveTitle: val } }))}
+                        titleLabel="Main Archive Heading"
+                        subtitle={config.projectsArchive?.archiveSubtitle || "A comprehensive catalogue of commercial UI/UX designs, web platforms, and design engineering artifacts."}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveSubtitle: val } }))}
+                        subtitleLabel="Archive Subheading"
+                        kicker={config.projectsArchive?.archiveKicker || "Index & Directory"}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveKicker: val } }))}
+                        kickerLabel="Kicker Eyebrow Badge"
+                        statusHint={{ enabled: "Visible on Archive page", disabled: "Hidden from Archive page" }}
                       />
-                    </FormField>
 
-                    <div className="space-y-3">
-                      <p className="font-mono text-[0.68rem] font-medium uppercase tracking-wider text-[var(--muted)]">
-                        Exploration Cards
-                      </p>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {config.projectsArchive.digitalProjects.map((dp, i) => (
-                          <div key={i} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-3 space-y-2">
-                            <TextInput
-                              value={dp.title}
-                              onChange={(val) => {
-                                const digitalProjects = [...config.projectsArchive.digitalProjects];
-                                digitalProjects[i] = { ...digitalProjects[i], title: val };
-                                updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, digitalProjects } }));
-                              }}
-                              placeholder="Title"
-                            />
-                            <TextAreaInput
-                              rows={2}
-                              value={dp.desc}
-                              onChange={(val) => {
-                                const digitalProjects = [...config.projectsArchive.digitalProjects];
-                                digitalProjects[i] = { ...digitalProjects[i], desc: val };
-                                updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, digitalProjects } }));
-                              }}
-                              placeholder="Description"
-                            />
-                          </div>
-                        ))}
+                      <div className="grid gap-3 sm:grid-cols-2 -mt-2 mb-2 px-1">
+                        <FormField label="Back Button Label" hint="Navigates back to homepage">
+                          <TextInput
+                            value={config.projectsArchive?.archiveBackButton || "Back to Overview"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveBackButton: val } }))}
+                            placeholder="Back to Overview"
+                          />
+                        </FormField>
+                        <FormField label="Artifacts Count Suffix" hint="e.g. Selected Artifacts">
+                          <TextInput
+                            value={config.projectsArchive?.archiveCountSuffix || "Selected Artifacts"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), archiveCountSuffix: val } }))}
+                            placeholder="Selected Artifacts"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Digital Explorations & Labs Grid */}
+                    <div className="space-y-4 pt-4 border-t border-[var(--hairline)]">
+                      <SectionHeaderBar
+                        sectionName="2. Digital Explorations & Labs Grid"
+                        enabled={settings?.sections?.archiveExplorations !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveExplorations: next } }))}
+                        title={config.projectsArchive?.explorationsTitle || "Digital Explorations & Visual Studies"}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsTitle: val } }))}
+                        titleLabel="Explorations Section Heading"
+                        subtitle={config.projectsArchive?.explorationsSubtitle || "Unpublished prototypes, interaction loops, and spatial user interface experiments created during R&D explorations."}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsSubtitle: val } }))}
+                        subtitleLabel="Explorations Subheading"
+                        kicker={config.projectsArchive?.explorationsKicker || "Experimental · 02"}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), explorationsKicker: val } }))}
+                        kickerLabel="Explorations Kicker"
+                        statusHint={{ enabled: "Visible on Archive page", disabled: "Hidden from Archive page" }}
+                      />
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="font-mono text-[0.68rem] font-medium uppercase tracking-wider text-[var(--muted)]">
+                            Exploration Cards ({config.projectsArchive.digitalProjects.length})
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newCard = {
+                                title: "New Exploration",
+                                desc: "Interactive prototype exploring fluid micro-interactions and visual states.",
+                              };
+                              updateConfig((c) => ({
+                                ...c,
+                                projectsArchive: {
+                                  ...c.projectsArchive,
+                                  digitalProjects: [...c.projectsArchive.digitalProjects, newCard],
+                                },
+                              }));
+                            }}
+                            className="inline-flex items-center gap-1 text-xs text-[var(--accent)] font-semibold hover:underline cursor-pointer"
+                          >
+                            + Add Exploration Card
+                          </button>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {config.projectsArchive.digitalProjects.map((dp, i) => (
+                            <div key={i} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-3.5 space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono text-[0.65rem] text-[var(--muted)]">Card #{i + 1}</span>
+                                {config.projectsArchive.digitalProjects.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = config.projectsArchive.digitalProjects.filter((_, idx) => idx !== i);
+                                      updateConfig((c) => ({
+                                        ...c,
+                                        projectsArchive: { ...c.projectsArchive, digitalProjects: updated },
+                                      }));
+                                    }}
+                                    className="text-[0.68rem] text-red-400 hover:text-red-500 cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                              <TextInput
+                                value={dp.title}
+                                onChange={(val) => {
+                                  const digitalProjects = [...config.projectsArchive.digitalProjects];
+                                  digitalProjects[i] = { ...digitalProjects[i], title: val };
+                                  updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, digitalProjects } }));
+                                }}
+                                placeholder="Exploration Title"
+                              />
+                              <TextAreaInput
+                                rows={2}
+                                value={dp.desc}
+                                onChange={(val) => {
+                                  const digitalProjects = [...config.projectsArchive.digitalProjects];
+                                  digitalProjects[i] = { ...digitalProjects[i], desc: val };
+                                  updateConfig((c) => ({ ...c, projectsArchive: { ...c.projectsArchive, digitalProjects } }));
+                                }}
+                                placeholder="Exploration Description"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Bottom Collaboration CTA */}
+                    <div className="space-y-4 pt-4 border-t border-[var(--hairline)]">
+                      <SectionHeaderBar
+                        sectionName="3. Bottom Collaboration Call to Action"
+                        enabled={settings?.sections?.archiveCta !== false}
+                        onToggleEnabled={(next) => updateSettings((s) => ({ ...s, sections: { ...s.sections, archiveCta: next } }))}
+                        title={config.projectsArchive?.ctaHeading || "Interested in collaborating?"}
+                        onTitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaHeading: val } }))}
+                        titleLabel="CTA Display Heading"
+                        subtitle={config.projectsArchive?.ctaDescription || "Let's talk about product design, systems, or new opportunities."}
+                        onSubtitleChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaDescription: val } }))}
+                        subtitleLabel="CTA Description / Subtitle"
+                        kicker={config.projectsArchive?.ctaKicker || "Get in touch"}
+                        onKickerChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaKicker: val } }))}
+                        kickerLabel="CTA Kicker / Eyebrow"
+                        statusHint={{ enabled: "Visible at bottom of Archive", disabled: "Hidden from Archive page" }}
+                      />
+
+                      <div className="grid gap-3 sm:grid-cols-2 -mt-2 mb-2 px-1">
+                        <FormField label="CTA Action Button Label">
+                          <TextInput
+                            value={config.projectsArchive?.ctaButtonLabel || "Start a Conversation"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaButtonLabel: val } }))}
+                            placeholder="Start a Conversation"
+                          />
+                        </FormField>
+                        <FormField label="CTA Action Button Link / URL">
+                          <TextInput
+                            value={config.projectsArchive?.ctaButtonLink || "mailto:yogendrachaudhary1011@gmail.com"}
+                            onChange={(val) => updateConfig((c) => ({ ...c, projectsArchive: { ...(c.projectsArchive || {}), ctaButtonLink: val } }))}
+                            placeholder="mailto:... or https://..."
+                          />
+                        </FormField>
                       </div>
                     </div>
                   </div>
