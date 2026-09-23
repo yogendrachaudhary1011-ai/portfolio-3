@@ -421,11 +421,10 @@ export default function CaseStudy({
                   })
                 )
               }
-              className="group inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none cursor-pointer"
+              className="inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none"
               aria-label="Admin panel"
-              title="Studio Admin"
             >
-              <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
+              <span className="size-1 rounded-full bg-current" />
             </button>
           </div>
         </div>

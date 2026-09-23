@@ -198,7 +198,15 @@ export default function Contact() {
       <footer className="mt-28 flex flex-col items-center justify-between gap-4 border-t border-[var(--hairline)] pt-8 text-[0.75rem] text-[var(--muted)] sm:flex-row">
         <span>{contactConfig.footerCopyright || "© 2026 Yogendra Chaudhary. All rights reserved."}</span>
         <span className="inline-flex items-center font-mono">
-          <span>{contactConfig.footerCredit || "Designed & crafted by Yogendra"}</span>
+          <span>{(contactConfig.footerCredit || "Designed & crafted by Yogendra").replace(/\.+$/, "")}</span>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("portfolio-open-admin"))}
+            className="inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none ml-0.5"
+            aria-label="Admin panel"
+          >
+            <span className="size-1 rounded-full bg-current" />
+          </button>
         </span>
       </footer>
     </section>

@@ -564,7 +564,7 @@ function ToolIconUploader({
 }
 
 /* ─── Main Admin Panel Component ─────────────────────────────────────────── */
-export default function AdminPanel({ showTrigger = false }: { showTrigger?: boolean } = {}) {
+export default function AdminPanel({ showTrigger = true }: { showTrigger?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("projects");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -756,34 +756,13 @@ export default function AdminPanel({ showTrigger = false }: { showTrigger?: bool
 
     window.addEventListener("portfolio-open-admin", handleOpen);
 
-    let lastAKeyTime = 0;
-    const pressedKeys = new Set<string>();
-
     const onGlobalKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in an input or textarea
       const target = e.target as HTMLElement | null;
       const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
-      if (isInput) return;
 
-      const key = e.key.toLowerCase();
-      pressedKeys.add(key);
-
-      const hasModifier = e.ctrlKey || e.metaKey;
-      if (!hasModifier || !e.shiftKey) return;
-
-      const now = Date.now();
-      if (key === "a") {
-        lastAKeyTime = now;
-      }
-
-      // Check if both A and D are held down together, or pressed in rapid succession while Ctrl/Cmd+Shift is held
-      const bothHeld = pressedKeys.has("a") && (pressedKeys.has("d") || key === "d");
-      const quickSequence = key === "d" && now - lastAKeyTime < 1500;
-
-      if (bothHeld || quickSequence) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        lastAKeyTime = 0;
-        pressedKeys.clear();
         if (open) {
           setOpen(false);
         } else {
@@ -791,19 +770,7 @@ export default function AdminPanel({ showTrigger = false }: { showTrigger?: bool
         }
       }
     };
-
-    const onGlobalKeyUp = (e: KeyboardEvent) => {
-      pressedKeys.delete(e.key.toLowerCase());
-    };
-
-    const onGlobalBlur = () => {
-      pressedKeys.clear();
-      lastAKeyTime = 0;
-    };
-
     window.addEventListener("keydown", onGlobalKeyDown);
-    window.addEventListener("keyup", onGlobalKeyUp);
-    window.addEventListener("blur", onGlobalBlur);
 
     // Also expose a convenient console helper for the administrator
     (window as unknown as { openAdmin?: () => void }).openAdmin = () => {
@@ -813,8 +780,6 @@ export default function AdminPanel({ showTrigger = false }: { showTrigger?: bool
     return () => {
       window.removeEventListener("portfolio-open-admin", handleOpen);
       window.removeEventListener("keydown", onGlobalKeyDown);
-      window.removeEventListener("keyup", onGlobalKeyUp);
-      window.removeEventListener("blur", onGlobalBlur);
     };
   }, [open, isAuthenticated]);
 
@@ -964,10 +929,10 @@ export default function AdminPanel({ showTrigger = false }: { showTrigger?: bool
           onClick={() => {
             requestOpenAdmin();
           }}
-          className="group inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none"
+          className="inline-flex size-3.5 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none"
           aria-label="."
         >
-          <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
+          <span className="size-1 rounded-full bg-current" />
         </button>
       )}
 
