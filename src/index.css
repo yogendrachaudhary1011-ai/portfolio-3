@@ -240,70 +240,107 @@ html {
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: 0.875rem;
+  touch-action: manipulation;
   transition:
-    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.3s ease,
-    box-shadow 0.4s ease;
+    box-shadow 0.3s ease;
 }
+
 .hover-lift {
+  touch-action: manipulation;
   transition:
-    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.3s ease,
-    box-shadow 0.35s ease;
-}
-.hover-lift:hover {
-  transform: translateY(-4px);
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--card-border));
-  box-shadow: var(--shadow-lift), 0 0 0 1px var(--accent-soft);
-}
-/* Tactile click press animations */
-.hover-lift:active {
-  transform: translateY(-1px) scale(0.985);
-  box-shadow: var(--shadow-soft);
-  transition-duration: 0.09s;
+    box-shadow 0.3s ease;
 }
 
-.card-interactive {
-  cursor: pointer;
-  transition:
-    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.3s ease,
-    box-shadow 0.35s ease;
-}
-.card-interactive:active {
-  transform: scale(0.982) translateY(1px);
-  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
-  transition-duration: 0.09s;
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--accent) 36%, var(--card-border));
+    box-shadow: var(--shadow-lift), 0 0 0 1px var(--accent-soft);
+  }
 }
 
-/* Universal tactile button click feedback */
+/* Tactile click & mobile touch press animations for cards */
+.hover-lift:active,
+.hover-lift.is-pressed,
+.hover-lift[data-pressed="true"],
+.card-interactive:active,
+.card-interactive.is-pressed,
+.card-interactive[data-pressed="true"],
+.card-surface:active,
+.card-surface.is-pressed,
+.card-surface[data-pressed="true"],
+.active-press-card:active,
+.active-press-card.is-pressed,
+.active-press-card[data-pressed="true"] {
+  transform: scale(0.98) translateY(1px) !important;
+  box-shadow: var(--shadow-soft) !important;
+  transition-duration: 0.08s !important;
+}
+
+/* Universal tactile button & interactive link click feedback (desktop & mobile) */
 button:not(:disabled):active,
-[role="button"]:not([aria-disabled="true"]):active {
-  transform: scale(0.965);
+button:not(:disabled).is-pressed,
+button:not(:disabled)[data-pressed="true"],
+[role="button"]:not([aria-disabled="true"]):active,
+[role="button"]:not([aria-disabled="true"]).is-pressed,
+[role="button"]:not([aria-disabled="true"])[data-pressed="true"],
+a:not([aria-disabled="true"]):active,
+a:not([aria-disabled="true"]).is-pressed,
+a:not([aria-disabled="true"])[data-pressed="true"] {
+  transform: scale(0.95);
   transition: transform 0.08s cubic-bezier(0.2, 0.8, 0.4, 1);
+  touch-action: manipulation;
 }
 
 /* Dedicated click-animation utility classes */
 .active-press {
+  touch-action: manipulation;
   transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.15s ease;
 }
-.active-press:active {
-  transform: scale(0.95);
-  transition-duration: 0.08s;
+.active-press:active,
+.active-press.is-pressed,
+.active-press[data-pressed="true"] {
+  transform: scale(0.95) !important;
+  transition-duration: 0.08s !important;
 }
 
 .active-press-card {
+  touch-action: manipulation;
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
-.active-press-card:active {
-  transform: scale(0.985) translateY(1px);
-  box-shadow: var(--shadow-soft);
-  transition-duration: 0.09s;
+
+.active-press-subtle:active,
+.active-press-subtle.is-pressed,
+.active-press-subtle[data-pressed="true"] {
+  transform: scale(0.985) !important;
+  transition-duration: 0.08s !important;
 }
 
-.active-press-subtle:active {
-  transform: scale(0.985);
-  transition-duration: 0.08s;
+/* Mobile-specific tactile click enhancements */
+@media (max-width: 768px), (pointer: coarse) {
+  button, a, [role="button"], .card-surface, .hover-lift, .active-press {
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation !important;
+  }
+
+  /* Extra tactile depth on mobile taps */
+  button:not(:disabled):active,
+  button:not(:disabled).is-pressed,
+  button:not(:disabled)[data-pressed="true"] {
+    transform: scale(0.94) !important;
+    transition: transform 0.08s cubic-bezier(0.2, 0.8, 0.4, 1) !important;
+  }
+
+  .btn-shine:active,
+  .btn-shine.is-pressed,
+  .btn-shine[data-pressed="true"] {
+    transform: scale(0.95) !important;
+    opacity: 0.92;
+  }
 }
 
 /* gradient sweep border on hover */

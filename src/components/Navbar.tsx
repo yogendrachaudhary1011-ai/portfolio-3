@@ -439,7 +439,7 @@ export default function Navbar({
                 type="button"
                 onClick={handleHomeClick}
                 aria-current={isHomeActive ? "page" : undefined}
-                className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 px-2.5 rounded-xl text-left transition-all active:scale-[0.98] active:bg-[var(--chip)]/60 ${
+                className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 px-2.5 rounded-xl text-left transition-all duration-150 active:scale-[0.96] active:bg-[var(--chip)]/80 select-none cursor-pointer ${
                   isHomeActive ? "text-[var(--accent)]" : "text-[var(--fg)]"
                 }`}
               >
@@ -459,7 +459,7 @@ export default function Navbar({
                   </span>
                 </div>
                 <div
-                  className={`grid size-7 place-items-center rounded-full transition-all ${
+                  className={`grid size-7 place-items-center rounded-full transition-all duration-150 group-active:scale-90 group-[.is-pressed]:scale-90 ${
                     isHomeActive
                       ? "bg-[var(--accent)] text-[var(--bg)] shadow-xs"
                       : "border border-[var(--hairline)] text-[var(--muted)] group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]"
@@ -482,7 +482,7 @@ export default function Navbar({
                     setMenuOpen(false);
                   }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 px-2.5 rounded-xl text-left transition-all active:scale-[0.98] active:bg-[var(--chip)]/60 ${
+                  className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 px-2.5 rounded-xl text-left transition-all duration-150 active:scale-[0.96] active:bg-[var(--chip)]/80 select-none cursor-pointer ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--fg)]"
                   }`}
                 >
@@ -502,7 +502,7 @@ export default function Navbar({
                   </div>
 
                   <div
-                    className={`grid size-7 place-items-center rounded-full transition-all ${
+                    className={`grid size-7 place-items-center rounded-full transition-all duration-150 group-active:scale-90 group-[.is-pressed]:scale-90 ${
                       isActive
                         ? "bg-[var(--accent)] text-[var(--bg)] shadow-xs"
                         : "border border-[var(--hairline)] text-[var(--muted)] group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]"
@@ -522,7 +522,7 @@ export default function Navbar({
           <a
             href="#contact"
             onClick={handleContact}
-            className="btn-shine flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--fg)] text-[0.84rem] font-medium text-[var(--bg)] shadow-md transition-transform active:scale-98"
+            className="btn-shine flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--fg)] text-[0.84rem] font-medium text-[var(--bg)] shadow-md transition-all duration-150 active:scale-95 select-none cursor-pointer"
           >
             <Sparkles size={14} />
             <span>Let’s Talk — Start a Project</span>
