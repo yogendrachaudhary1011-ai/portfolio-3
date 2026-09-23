@@ -17,9 +17,11 @@ import { SiteProvider, useSite } from "./siteContext";
 import { type Project } from "./data";
 
 /* ─── Intro splash ─────────────────────────────────────────────────── */
+/* ─── Cinematic Loading Screen ─────────────────────────────────────────── */
 function IntroScreen({ onDone }: { onDone: () => void }) {
   const { config } = useSite();
   const [lifting, setLifting] = useState(false);
+  const [progress, setProgress] = useState(12);
 
   const NAME = config.hero.marqueeName || "YOGENDRA CHAUDHARY";
   const TAGLINE = (config.hero.tagline || "JUNIOR · UI/UX · DESIGNER").toUpperCase();
@@ -27,25 +29,28 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   const dismiss = useCallback(() => {
     if (lifting) return;
     setLifting(true);
-    try {
-      sessionStorage.setItem("portfolio_intro_shown", "true");
-    } catch {
-      // Storage might be restricted in some sandboxes
-    }
-    setTimeout(onDone, 320);
+    setTimeout(onDone, 380);
   }, [lifting, onDone]);
 
   useEffect(() => {
-    // Cinematic timing: auto-lifts at 1.2s -> completes at 1.75s
+    // Smooth progress counter simulation during asset/font loading
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        const step = Math.floor(Math.random() * 18) + 12;
+        return Math.min(prev + step, 100);
+      });
+    }, 120);
+
+    // Auto-lift at 1.4s -> completes at 1.85s
     const t1 = setTimeout(() => {
+      setProgress(100);
       setLifting(true);
-      try {
-        sessionStorage.setItem("portfolio_intro_shown", "true");
-      } catch {
-        // Storage might be restricted
-      }
-    }, 1200);
-    const t2 = setTimeout(onDone, 1750);
+    }, 1400);
+    const t2 = setTimeout(onDone, 1850);
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" || e.key === " " || e.key === "Enter") {
@@ -56,6 +61,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
     window.addEventListener("keydown", onKey);
 
     return () => {
+      clearInterval(interval);
       clearTimeout(t1);
       clearTimeout(t2);
       window.removeEventListener("keydown", onKey);
@@ -67,12 +73,12 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   return (
     <div
       role="dialog"
-      aria-label="Welcome splash screen"
+      aria-label="Portfolio Loading Screen"
       onClick={dismiss}
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 300,
+        zIndex: 9999,
         background: "#08080a",
         display: "flex",
         flexDirection: "column",
@@ -80,25 +86,24 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         justifyContent: "center",
         gap: "1.2rem",
         cursor: "pointer",
-        /* Hardware accelerated GPU translate instead of heavy clipPath recalculation */
         transform: lifting ? "translate3d(0, -100%, 0)" : "translate3d(0, 0, 0)",
-        opacity: lifting ? 0.96 : 1,
+        opacity: lifting ? 0.94 : 1,
         transition: lifting ? "transform 0.55s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.55s ease-in" : "none",
         willChange: lifting ? "transform, opacity" : undefined,
         pointerEvents: lifting ? "none" : "all",
       }}
     >
-      {/* subtle ambient glow in center using hardware-native radial gradient instead of expensive blur filter */}
+      {/* subtle ambient glow in center */}
       <div
         className="pointer-events-none absolute -z-10 size-[280px] sm:size-[480px] rounded-full"
         style={{
-          background: "radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(169, 157, 255, 0.12) 0%, transparent 70%)",
           transform: "translate3d(0, 0, 0)",
         }}
         aria-hidden="true"
       />
 
-      {/* letter cascade — stacked on mobile so name fills the screen without any side clipping; inline on tablet & desktop */}
+      {/* letter cascade — stacked on mobile so name fills screen without clipping; inline on tablet & desktop */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 max-w-[94vw] px-2 text-center select-none pointer-events-none">
         {words.map((word, wIdx) => {
           const startIndex = words.slice(0, wIdx).reduce((acc, w) => acc + w.length, 0);
@@ -138,7 +143,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         }}
       />
 
-      {/* tagline expands letter-spacing */}
+      {/* tagline */}
       <span
         style={{
           display: "block",
@@ -155,15 +160,30 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
       >
         {TAGLINE}
       </span>
+
+      {/* Loading Progress Bar & Percentage Indicator */}
+      <div className="mt-3 flex flex-col items-center gap-2 select-none">
+        <div className="h-[2px] w-36 sm:w-48 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full bg-gradient-to-r from-[var(--accent)] to-purple-400 transition-all duration-150 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="flex items-center gap-2 font-mono text-[0.58rem] tracking-[0.16em] text-white/50">
+          <span>LOADING</span>
+          <span>{progress}%</span>
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           dismiss();
         }}
-        className="mt-2 sm:mt-4 rounded-full border border-white/20 px-4 py-1.5 sm:py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-all hover:border-white/50 hover:text-white active:scale-95 focus-visible:outline-white cursor-pointer"
+        className="mt-2 rounded-full border border-white/15 px-3.5 py-1 font-mono text-[0.56rem] uppercase tracking-[0.16em] text-white/50 transition-all hover:border-white/50 hover:text-white active:scale-95 cursor-pointer"
       >
-        Tap anywhere to enter
+        Click to skip
       </button>
     </div>
   );
@@ -175,12 +195,11 @@ function PortfolioApp() {
   const [previousView, setPreviousView] = useState<"home" | "projects">("home");
   const [projectIndex, setProjectIndex] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
+  // Always display loading screen on initial page mount/reload
   const [introVisible, setIntroVisible] = useState(() => {
     if (typeof window === "undefined") return true;
     try {
-      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const seen = sessionStorage.getItem("portfolio_intro_shown") === "true";
-      return !prefersReduced && !seen;
+      return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     } catch {
       return true;
     }
@@ -193,11 +212,6 @@ function PortfolioApp() {
 
   const doneIntro = useCallback(() => {
     setIntroVisible(false);
-    try {
-      sessionStorage.setItem("portfolio_intro_shown", "true");
-    } catch {
-      // Ignore storage errors
-    }
   }, []);
 
   const scrollTo = (id: string) => {
