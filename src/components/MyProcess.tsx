@@ -3,10 +3,14 @@ import { Reveal, SplitText, WordReveal } from "./common";
 import { useSite } from "../siteContext";
 
 /* Sticky stack geometry */
-const NAV_OFFSET = 88; // px — clears the floating navbar
+const NAV_OFFSET = 88; // px — clears the floating navbar on desktop
+const MOBILE_NAV_OFFSET = 70; // px — clears floating navbar on mobile
 const HEAD_GAP = 16; // px — breathing room below the pinned heading
-const PEEK = 12; // px — exposed top edge of each covered card
+const PEEK = 12; // px — exposed top edge of each covered card on desktop
+const MOBILE_PEEK = 8; // px — exposed top edge on mobile
 const stickyTop = (i: number, headH: number) => NAV_OFFSET + headH + HEAD_GAP + i * PEEK;
+const getCardStickyTop = (i: number, headH: number, isMobile: boolean) =>
+  isMobile ? MOBILE_NAV_OFFSET + i * MOBILE_PEEK : stickyTop(i, headH);
 
 /* ─── Per-step lightweight visual ─────────────────────────────────────── */
 const V = {
@@ -146,21 +150,23 @@ export default function MyProcess() {
 
     const measure = () => {
       raf = 0;
-      if (!isIntersecting || (typeof window !== "undefined" && window.innerWidth < 768)) return;
+      if (!isIntersecting) return;
 
+      const mobile = typeof window !== "undefined" && window.innerWidth < 768;
       const h = headingRef.current?.offsetHeight ?? headH;
       let idx = 0;
       const cards = cardRefs.current;
       for (let i = 0; i < cards.length; i++) {
         const el = cards[i];
-        if (el && el.getBoundingClientRect().top <= stickyTop(i, h) + 4) {
+        const targetTop = getCardStickyTop(i, h, mobile);
+        if (el && el.getBoundingClientRect().top <= targetTop + 8) {
           idx = i;
         }
       }
       setActive((prev) => (prev !== idx ? idx : prev));
 
       const lastCard = cards[STEPS.length - 1];
-      if (lastCard && headingRef.current) {
+      if (!mobile && lastCard && headingRef.current) {
         const finalCardTop = lastCard.getBoundingClientRect().top;
         const finalCardStickyTop = stickyTop(STEPS.length - 1, h);
         const exitRange = Math.max(h + 48, 1);
@@ -244,27 +250,44 @@ export default function MyProcess() {
           />
         </div>
 
+        {/* Mobile current step indicator */}
+        <div className="mt-4 flex items-center justify-between md:hidden px-1">
+          <span className="font-mono text-[0.62rem] tracking-[0.14em] text-[var(--process-fg)]">
+            Step {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {STEPS.map((_, idx) => (
+              <span
+                key={idx}
+                className="h-1 rounded-full transition-all duration-300"
+                style={{
+                  width: idx === active ? 16 : 5,
+                  background: idx === active ? "#a99dff" : "var(--process-border)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Stack + progress rail */}
-        <div className="mt-12 flex gap-6 sm:mt-14">
+        <div className="mt-10 flex gap-6 sm:mt-14">
           <div className="min-w-0 flex-1">
             {STEPS.map((step, i) => {
               const depth = active - i; // >0 == covered/behind
-              const scale = depth > 0 && !isMobile ? 1 - Math.min(depth, 4) * 0.014 : 1;
-              const brightness = depth > 0 && !isMobile ? 1 - Math.min(depth, 4) * 0.05 : 1;
+              const scale = depth > 0 ? 1 - Math.min(depth, 4) * (isMobile ? 0.016 : 0.014) : 1;
+              const brightness = depth > 0 ? 1 - Math.min(depth, 4) * (isMobile ? 0.06 : 0.05) : 1;
+              const topVal = getCardStickyTop(i, headH, isMobile);
+
               return (
                 <div
                   key={`${step.title}-${i}`}
                   ref={(el) => { cardRefs.current[i] = el; }}
-                  className="relative md:sticky mb-5"
-                  style={
-                    isMobile
-                      ? undefined
-                      : {
-                          top: stickyTop(i, headH),
-                          scrollMarginTop: stickyTop(i, headH) - 8,
-                          zIndex: i + 1,
-                        }
-                  }
+                  className="sticky mb-5"
+                  style={{
+                    top: topVal,
+                    scrollMarginTop: topVal - 8,
+                    zIndex: i + 1,
+                  }}
                 >
                   <Reveal delay={i === 0 ? 0 : 0.04} dir="up">
                     <article
@@ -275,11 +298,11 @@ export default function MyProcess() {
                       className="grid gap-5 overflow-hidden rounded-2xl border border-[var(--process-border)] bg-[var(--process-card)] p-5 sm:gap-7 sm:p-6 md:grid-cols-[1.25fr_0.75fr] md:items-center cursor-pointer select-none active:scale-[0.985] active:brightness-95"
                       style={{
                         minHeight: "clamp(220px, 29vh, 288px)",
-                        transform: isMobile ? undefined : `scale(${scale})`,
+                        transform: `scale(${scale})`,
                         transformOrigin: "center top",
-                        filter: isMobile ? undefined : `brightness(${brightness})`,
+                        filter: `brightness(${brightness})`,
                         boxShadow: "var(--shadow-soft)",
-                        transition: isMobile ? "transform 0.15s ease, filter 0.15s ease" : "transform 0.5s cubic-bezier(0.22,1,0.36,1), filter 0.5s cubic-bezier(0.22,1,0.36,1)",
+                        transition: "transform 0.45s cubic-bezier(0.22,1,0.36,1), filter 0.45s cubic-bezier(0.22,1,0.36,1)",
                       }}
                     >
                       {/* Left — text */}
