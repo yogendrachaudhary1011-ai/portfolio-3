@@ -6,9 +6,9 @@ import { NAV } from "../data";
 import { Magnetic } from "./common";
 import { useSite } from "../siteContext";
 
-/* Intro curtain fully gone at ~2.35s. We start navbar elements at 1.9s so
-   they're already mid-animation when the curtain finishes rising. */
-const BASE = 1.9; // seconds
+/* Intro curtain lifts at 1.2s. We start navbar elements at 1.3s so
+   they're already seamlessly mid-animation when the curtain finishes rising. */
+const BASE = 1.3; // seconds
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();

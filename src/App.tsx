@@ -25,9 +25,9 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   const TAGLINE = (config.hero.tagline || "JUNIOR · UI/UX · DESIGNER").toUpperCase();
 
   useEffect(() => {
-    // letters finish ~0.9s → hold → curtain lifts at 1.6s → fully gone at 2.35s
-    const t1 = setTimeout(() => setLifting(true), 1600);
-    const t2 = setTimeout(onDone, 2400);
+    // Snappier, cinematic timing: cascade completes at 0.75s -> lifts at 1.2s -> completes at 1.7s
+    const t1 = setTimeout(() => setLifting(true), 1200);
+    const t2 = setTimeout(onDone, 1750);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [onDone]);
 
@@ -39,22 +39,28 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         position: "fixed",
         inset: 0,
         zIndex: 300,
-        background: "#0a0a0a",
+        background: "#08080a",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         gap: "1.2rem",
-        /* clip-path curtain rises upward when lifting */
-        clipPath: lifting ? "inset(100% 0 0 0)" : "inset(0 0 0 0)",
-        transition: lifting ? "clip-path 0.75s cubic-bezier(0.76,0,0.24,1)" : "none",
+        /* Hardware accelerated GPU translate instead of heavy clipPath recalculation */
+        transform: lifting ? "translate3d(0, -100%, 0)" : "translate3d(0, 0, 0)",
+        opacity: lifting ? 0.96 : 1,
+        transition: lifting ? "transform 0.55s cubic-bezier(0.76, 0, 0.24, 1), opacity 0.55s ease-in" : "none",
+        willChange: lifting ? "transform, opacity" : undefined,
         pointerEvents: lifting ? "none" : "all",
       }}
     >
-      {/* subtle ambient glow in center */}
+      {/* subtle ambient glow in center using hardware-native radial gradient instead of expensive blur filter */}
       <div
-        className="pointer-events-none absolute -z-10 size-[280px] sm:size-[480px] rounded-full bg-white/[0.035] blur-3xl"
-        style={{ transform: "translateZ(0)" }}
+        className="pointer-events-none absolute -z-10 size-[280px] sm:size-[480px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%)",
+          transform: "translate3d(0, 0, 0)",
+        }}
+        aria-hidden="true"
       />
 
       {/* letter cascade — stacked on mobile so name fills the screen without any side clipping; inline on tablet & desktop */}
@@ -73,7 +79,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
                     key={cIdx}
                     className="inline-block font-display font-extrabold text-[#ececec] tracking-[-0.025em] leading-none text-[clamp(2.5rem,10vw,3.8rem)] sm:text-[clamp(2.4rem,4.8vw,5.5rem)]"
                     style={{
-                      animation: `intro-char 0.62s cubic-bezier(0.22,1,0.36,1) ${idx * 0.045}s both`,
+                      animation: `intro-char 0.45s cubic-bezier(0.22,1,0.36,1) ${idx * 0.035}s both`,
                     }}
                   >
                     {ch}
@@ -93,7 +99,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
           background: "#ececec",
           opacity: 0.25,
           transformOrigin: "center",
-          animation: "intro-line 0.6s cubic-bezier(0.22,1,0.36,1) 0.72s both",
+          animation: "intro-line 0.5s cubic-bezier(0.22,1,0.36,1) 0.55s both",
         }}
       />
 
@@ -109,14 +115,17 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
           textAlign: "center",
           padding: "0 0.5rem",
           letterSpacing: "0.22em",
-          animation: "intro-sub 0.65s cubic-bezier(0.22,1,0.36,1) 0.88s both",
+          animation: "intro-sub 0.5s cubic-bezier(0.22,1,0.36,1) 0.65s both",
         }}
       >
         {TAGLINE}
       </span>
       <button
         type="button"
-        onClick={onDone}
+        onClick={() => {
+          setLifting(true);
+          setTimeout(onDone, 300);
+        }}
         className="mt-2 sm:mt-4 rounded-full border border-white/20 px-4 py-1.5 sm:py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-all hover:border-white/50 hover:text-white active:scale-95 focus-visible:outline-white"
       >
         Skip intro

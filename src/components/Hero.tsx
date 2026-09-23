@@ -2,9 +2,9 @@ import { useRef, useEffect } from "react";
 import { useParallax } from "./common";
 import { useSite } from "../siteContext";
 
-/* Intro curtain starts lifting at 1.6s. Hero elements animate in
-   starting at 1.75s so they're already mid-reveal when fully visible. */
-const BASE = 1.75;
+/* Intro curtain starts lifting at 1.2s. Hero elements animate in
+   starting at 1.25s so they're already seamlessly mid-reveal when fully visible. */
+const BASE = 1.25;
 
 export default function Hero() {
   const { config, settings } = useSite();

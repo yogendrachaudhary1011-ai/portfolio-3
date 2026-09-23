@@ -456,27 +456,27 @@ html {
   animation: drift 22s ease-in-out infinite;
 }
 
-/* ---- intro screen keyframes ---- */
+/* ---- intro screen keyframes (hardware accelerated 3D transforms) ---- */
 
 @keyframes intro-char {
   0% {
     opacity: 0;
-    transform: translateY(1.1em) skewY(6deg);
+    transform: translate3d(0, 100%, 0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) skewY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes intro-line {
   0% { transform: scaleX(0); opacity: 0; }
-  100% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0.3; }
 }
 
 @keyframes intro-sub {
-  0% { opacity: 0; transform: translateY(14px); letter-spacing: 0.6em; }
-  100% { opacity: 0.6; transform: translateY(0); letter-spacing: 0.3em; }
+  0% { opacity: 0; transform: translate3d(0, 10px, 0); }
+  100% { opacity: 0.7; transform: translate3d(0, 0, 0); }
 }
 
 /* ---- page load text entrance animations (fired after intro, via animation-delay) ---- */
