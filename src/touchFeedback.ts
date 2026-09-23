@@ -38,6 +38,40 @@ export function setupTouchFeedback(): () => void {
     el.classList.remove("is-pressed");
   };
 
+  const handlePointerMove = (e: PointerEvent) => {
+    if (!currentPressedElement) return;
+
+    // If moved more than 10px, the user is scrolling or dragging, cancel the press state
+    const dx = Math.abs(e.clientX - startX);
+    const dy = Math.abs(e.clientY - startY);
+    if (dx > 10 || dy > 10) {
+      removePressState(currentPressedElement);
+      currentPressedElement = null;
+      window.removeEventListener("pointermove", handlePointerMove, { capture: true });
+    }
+  };
+
+  const handlePointerUpOrCancel = () => {
+    window.removeEventListener("pointermove", handlePointerMove, { capture: true });
+
+    if (!currentPressedElement) return;
+
+    const el = currentPressedElement;
+    currentPressedElement = null;
+
+    const elapsed = Date.now() - pressStartTime;
+    const MIN_HOLD_MS = 110; // Guarantees the user visibly perceives the click depression on quick taps
+
+    if (elapsed < MIN_HOLD_MS) {
+      releaseTimer = window.setTimeout(() => {
+        removePressState(el);
+        releaseTimer = null;
+      }, MIN_HOLD_MS - elapsed);
+    } else {
+      removePressState(el);
+    }
+  };
+
   const handlePointerDown = (e: PointerEvent) => {
     // Only handle primary pointer (left click or single touch)
     if (e.button !== 0 && e.pointerType === "mouse") return;
@@ -66,42 +100,13 @@ export function setupTouchFeedback(): () => void {
 
     interactive.setAttribute("data-pressed", "true");
     interactive.classList.add("is-pressed");
-  };
 
-  const handlePointerMove = (e: PointerEvent) => {
-    if (!currentPressedElement) return;
-
-    // If moved more than 10px, the user is scrolling or dragging, cancel the press state
-    const dx = Math.abs(e.clientX - startX);
-    const dy = Math.abs(e.clientY - startY);
-    if (dx > 10 || dy > 10) {
-      removePressState(currentPressedElement);
-      currentPressedElement = null;
-    }
-  };
-
-  const handlePointerUpOrCancel = () => {
-    if (!currentPressedElement) return;
-
-    const el = currentPressedElement;
-    currentPressedElement = null;
-
-    const elapsed = Date.now() - pressStartTime;
-    const MIN_HOLD_MS = 110; // Guarantees the user visibly perceives the click depression on quick taps
-
-    if (elapsed < MIN_HOLD_MS) {
-      releaseTimer = window.setTimeout(() => {
-        removePressState(el);
-        releaseTimer = null;
-      }, MIN_HOLD_MS - elapsed);
-    } else {
-      removePressState(el);
-    }
+    // Only attach pointermove during an active press to avoid zero-work listener overhead during regular scrolling
+    window.addEventListener("pointermove", handlePointerMove, { passive: true, capture: true });
   };
 
   // Add passive listeners for maximum performance
   window.addEventListener("pointerdown", handlePointerDown, { passive: true, capture: true });
-  window.addEventListener("pointermove", handlePointerMove, { passive: true, capture: true });
   window.addEventListener("pointerup", handlePointerUpOrCancel, { passive: true, capture: true });
   window.addEventListener("pointercancel", handlePointerUpOrCancel, { passive: true, capture: true });
 

@@ -42,11 +42,23 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
     return () => ro.disconnect();
   }, []);
 
+  // Only auto-advance when carousel is in user's viewport
+  const [isInViewport, setIsInViewport] = useState(true);
   useEffect(() => {
-    if (paused || n <= 1) return;
+    const el = stageRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => {
+      setIsInViewport(entry.isIntersecting);
+    }, { threshold: 0.1 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (paused || !isInViewport || n <= 1) return;
     const t = setInterval(() => setActive((a) => (a + 1) % n), 4600);
     return () => clearInterval(t);
-  }, [n, paused]);
+  }, [n, paused, isInViewport]);
 
   const go = (d: number) => {
     if (n <= 0) return;

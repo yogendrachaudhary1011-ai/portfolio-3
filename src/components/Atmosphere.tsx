@@ -5,12 +5,21 @@ export function ScrollProgress() {
 
   useEffect(() => {
     let raf = 0;
+    let cachedMax = 0;
+
+    const measureMax = () => {
+      const h = document.documentElement;
+      const docH = Math.max(h.scrollHeight, document.body ? document.body.scrollHeight : 0);
+      const winH = window.innerHeight || h.clientHeight || 1;
+      cachedMax = Math.max(0, docH - winH);
+    };
+
     const update = () => {
       raf = 0;
       if (!barRef.current) return;
-      const h = document.documentElement;
-      const max = h.scrollHeight - h.clientHeight;
-      const progress = max > 0 ? Math.min(1, Math.max(0, h.scrollTop / max)) : 0;
+      if (cachedMax <= 0) measureMax();
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const progress = cachedMax > 0 ? Math.min(1, Math.max(0, scrollY / cachedMax)) : 0;
       barRef.current.style.transform = `scaleX(${progress})`;
     };
 
@@ -18,10 +27,19 @@ export function ScrollProgress() {
       if (!raf) raf = requestAnimationFrame(update);
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const onResize = () => {
+      measureMax();
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+
+    measureMax();
     update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
+
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
@@ -45,7 +63,7 @@ export function Atmosphere() {
   return (
     <>
       {/* fixed ambient background with GPU-native radial gradients (zero filter blur overhead) */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden contain-strict" aria-hidden="true">
         <div
           className="ambient-orb drift"
           style={{

@@ -12,7 +12,7 @@ export const img = (id: string, w: number, h: number) => {
   return `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format,compress&q=80`;
 };
 
-export const getFullWidthImageUrl = (id: string) => {
+export const getFullWidthImageUrl = (id: string, customWidth?: number) => {
   if (!id) return "";
   if (id.startsWith("http") || id.startsWith("data:") || id.startsWith("blob:") || id.startsWith("/")) return id;
   if (id.startsWith("cloud-img://")) {
@@ -21,7 +21,15 @@ export const getFullWidthImageUrl = (id: string) => {
     if (cached) return cached;
     return "";
   }
-  return `https://images.unsplash.com/photo-${id}?w=1440&auto=format,compress&q=80`;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  const w = customWidth || (isMobile ? 860 : 1440);
+  return `https://images.unsplash.com/photo-${id}?w=${w}&auto=format,compress&q=80`;
+};
+
+export const getImageSrcSet = (id: string) => {
+  if (!id || id.startsWith("data:") || id.startsWith("blob:") || id.startsWith("cloud-img://") || id.startsWith("/")) return undefined;
+  const photoId = id.startsWith("http") ? id : `https://images.unsplash.com/photo-${id}`;
+  return `${photoId}?w=640&auto=format,compress&q=80 640w, ${photoId}?w=1080&auto=format,compress&q=80 1080w, ${photoId}?w=1440&auto=format,compress&q=80 1440w`;
 };
 
 export const PORTRAIT = "1573496359142-b8d87734a5a2";

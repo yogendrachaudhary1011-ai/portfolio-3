@@ -118,6 +118,14 @@ main > section:not(#home) {
   scroll-margin-top: 6rem;
 }
 
+/* Off-screen layout & paint optimization for mobile viewports */
+@media (max-width: 768px) {
+  main > section:not(#home) {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 650px;
+  }
+}
+
 ::selection {
   background: var(--accent);
   color: #fff;
@@ -320,35 +328,8 @@ a:not([aria-disabled="true"])[data-pressed="true"] {
   transition-duration: 0.08s !important;
 }
 
-/* Mobile-specific performance & tactile click enhancements */
+/* Mobile-specific tactile click enhancements */
 @media (max-width: 768px), (pointer: coarse) {
-  /* Prevent continuous GPU repaints of large radial background gradients during touch scrolling */
-  .ambient-orb.drift {
-    animation: none !important;
-    transform: translate3d(0, 0, 0) !important;
-  }
-
-  .floaty {
-    animation: none !important;
-    transform: translateY(0) !important;
-  }
-
-  .text-gradient {
-    animation: none !important;
-  }
-
-  /* Content visibility optimization: frees mobile main thread & GPU compositor by skipping offscreen section layout */
-  main > section:not(#home) {
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 700px;
-  }
-
-  /* Smooth momentum touch scrolling across iOS and Android */
-  html, body {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: none;
-  }
-
   button, a, [role="button"], .card-surface, .hover-lift, .active-press {
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation !important;
@@ -573,20 +554,41 @@ a:not([aria-disabled="true"])[data-pressed="true"] {
 
 @keyframes drift {
   0% {
-    transform: translate(0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   33% {
-    transform: translate(6%, -8%) scale(1.1);
+    transform: translate3d(6%, -8%, 0) scale(1.08);
   }
   66% {
-    transform: translate(-5%, 5%) scale(0.95);
+    transform: translate3d(-5%, 5%, 0) scale(0.96);
   }
   100% {
-    transform: translate(0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
+}
+.ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  contain: strict;
 }
 .drift {
   animation: drift 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (max-width: 768px) {
+  .ambient-orb.drift {
+    animation-duration: 34s;
+    will-change: auto;
+  }
+  .liquid-nav,
+  .liquid-menu {
+    backdrop-filter: blur(14px) saturate(135%);
+    -webkit-backdrop-filter: blur(14px) saturate(135%);
+  }
 }
 
 /* ---- intro screen keyframes (hardware accelerated 3D transforms) ---- */

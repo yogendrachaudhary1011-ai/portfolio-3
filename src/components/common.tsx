@@ -11,7 +11,7 @@ export function useInView<T extends HTMLElement>(once = true) {
 
     // Reveal immediately if already within (or above) the viewport on mount.
     const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 1.05) {
+    if (rect.top < window.innerHeight * 0.95) {
       setInView(true);
       if (once) return;
     }
@@ -30,13 +30,13 @@ export function useInView<T extends HTMLElement>(once = true) {
           setInView(false);
         }
       },
-      { threshold: 0.05, rootMargin: "100px 0px 50px 0px" },
+      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" },
     );
     io.observe(el);
 
     // Safety net: never leave content permanently hidden if the observer
     // misbehaves inside a proxied iframe.
-    const fallback = window.setTimeout(() => setInView(true), 1200);
+    const fallback = window.setTimeout(() => setInView(true), 1600);
 
     return () => {
       io.disconnect();
@@ -47,8 +47,7 @@ export function useInView<T extends HTMLElement>(once = true) {
   return { ref, inView };
 }
 
-/* Scroll-linked parallax: applies translateY directly to DOM element via rAF with IntersectionObserver.
-   Automatically bypassed on mobile/touch screens to ensure 60fps/120fps stutter-free touch scrolling. */
+/* Scroll-linked parallax: applies translateY directly to DOM element via rAF with IntersectionObserver */
 export function useParallax<T extends HTMLElement>(strength = 40) {
   const ref = useRef<T>(null);
   const [y] = useState(0);
@@ -57,8 +56,8 @@ export function useParallax<T extends HTMLElement>(strength = 40) {
     const el = ref.current;
     if (!el) return;
 
-    // On mobile / touchscreens, bypass scroll calculations completely to prevent layout reflows
-    if (typeof window !== "undefined" && (window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches)) {
+    // On touchscreens and coarse pointer mobile devices, disable JS parallax to preserve 120Hz native momentum scrolling
+    if (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768) {
       return;
     }
 
@@ -100,7 +99,7 @@ export function useParallax<T extends HTMLElement>(strength = 40) {
   return { ref, y };
 }
 
-/* Character-by-character 3D flip reveal on desktop, with clean, lightweight word reveal on mobile */
+/* Character-by-character 3D flip reveal — use for section headings */
 export function SplitText({
   text,
   className,
@@ -115,37 +114,6 @@ export function SplitText({
   stagger?: number;
 }) {
   const { ref, inView } = useInView<HTMLElement>();
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsMobile(window.innerWidth < 640);
-    }
-  }, []);
-
-  // Lightweight mobile render: word-by-word GPU-friendly transform (no 3D perspective overhead per letter)
-  if (isMobile) {
-    return (
-      // @ts-expect-error polymorphic ref
-      <Tag ref={ref} className={className}>
-        {text.split(" ").map((word, idx) => (
-          <span
-            key={`${word}-${idx}`}
-            style={{
-              display: "inline-block",
-              marginRight: "0.26em",
-              opacity: inView ? 1 : 0,
-              transform: inView ? "translateY(0)" : "translateY(14px)",
-              transition: `opacity 0.45s ease ${delay + idx * 0.04}s, transform 0.45s cubic-bezier(0.22,1,0.36,1) ${delay + idx * 0.04}s`,
-            }}
-          >
-            {word}
-          </span>
-        ))}
-      </Tag>
-    );
-  }
-
   let characterIndex = 0;
   return (
     // @ts-expect-error polymorphic ref
@@ -163,7 +131,6 @@ export function SplitText({
                     opacity: inView ? 1 : 0,
                     transform: inView ? "translateY(0) rotateX(0)" : "translateY(0.65em) rotateX(-75deg)",
                     transition: `opacity 0.55s ease ${delay + index * stagger}s, transform 0.65s cubic-bezier(0.22,1,0.36,1) ${delay + index * stagger}s`,
-                    willChange: "opacity, transform",
                   }}
                 >
                   {ch}
@@ -381,17 +348,13 @@ export function Magnetic({
   className?: string;
   strength?: number;
 }) {
-  const isTouch = typeof window !== "undefined" && (window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches);
   const ref = useRef<HTMLDivElement>(null);
   const set = useSmoothed((v) => {
     if (ref.current) ref.current.style.transform = `translate3d(${v[0]}px, ${v[1]}px, 0)`;
   }, 0.18);
 
-  if (isTouch) {
-    return <div className={className} style={{ display: "inline-block" }}>{children}</div>;
-  }
-
   const onMove = (e: React.MouseEvent) => {
+    // Only execute on devices with fine pointer (mouse/trackpad), not touch screens
     if (window.matchMedia("(pointer: coarse)").matches) return;
     const el = ref.current;
     if (!el) return;
@@ -424,7 +387,6 @@ export function Tilt({
   max?: number;
   glare?: boolean;
 }) {
-  const isTouch = typeof window !== "undefined" && (window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches);
   const ref = useRef<HTMLDivElement>(null);
   const set = useSmoothed((v) => {
     const el = ref.current;
@@ -433,10 +395,6 @@ export function Tilt({
     el.style.setProperty("--gx", `${v[2]}%`);
     el.style.setProperty("--gy", `${v[3]}%`);
   }, 0.14);
-
-  if (isTouch) {
-    return <div className={className}>{children}</div>;
-  }
 
   const onMove = (e: React.MouseEvent) => {
     if (window.matchMedia("(pointer: coarse)").matches) return;

@@ -15,7 +15,7 @@ import {
   Download,
   ExternalLink,
 } from "lucide-react";
-import { getFullWidthImageUrl, type Project } from "../data";
+import { getFullWidthImageUrl, getImageSrcSet, type Project } from "../data";
 import { useSite } from "../siteContext";
 
 interface CaseStudyProps {
@@ -312,6 +312,8 @@ export default function CaseStudy({
 
                         <img
                           src={resolvedUrl}
+                          srcSet={getImageSrcSet(imgSrc)}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 92vw, 1440px"
                           alt={`${currentProject.title} - Visual ${idx + 1}`}
                           loading={idx < 2 ? "eager" : "lazy"}
                           fetchPriority={idx === 0 ? "high" : "auto"}
