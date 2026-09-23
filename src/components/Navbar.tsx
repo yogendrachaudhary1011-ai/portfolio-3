@@ -103,7 +103,9 @@ export default function Navbar({
   const links = useMemo(() => {
     return NAV.map((n, i) => {
       let id = n.toLowerCase().replace(/[^a-z]+/g, "-");
-      if (n === "Experience") id = "trainings";
+      if (n === "Project Work") id = "work";
+      else if (n === "Design Process") id = "process";
+      else if (n === "Experience") id = "trainings";
       return { label: n, id, num: String(i + 1).padStart(2, "0") };
     }).filter((link) => {
       if (!settings?.sections) return true;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Linkedin, External, Arrow, Github, Dribbble } from "../icons";
+import { Mail, Linkedin, Behance, External, Arrow, Github, Dribbble } from "../icons";
 import { Reveal, Tilt } from "./common";
 import { useSite } from "../siteContext";
 import { sendMessageToCloud } from "../cloudStore";
@@ -9,6 +9,7 @@ const iconFor = (label: string) => {
   const l = label.toLowerCase();
   if (l.includes("email") || l.includes("mail")) return Mail;
   if (l.includes("linkedin")) return Linkedin;
+  if (l.includes("behance")) return Behance;
   if (l.includes("github")) return Github;
   if (l.includes("dribbble")) return Dribbble;
   return External;

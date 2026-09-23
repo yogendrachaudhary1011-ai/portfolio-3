@@ -26,7 +26,7 @@ export const getFullWidthImageUrl = (id: string) => {
 
 export const PORTRAIT = "1573496359142-b8d87734a5a2";
 
-export const NAV = ["Work", "What I Can Do", "Process", "About", "Experience", "Skills"];
+export const NAV = ["Project Work", "What I Can Do", "Design Process", "About", "Experience", "Skills"];
 
 export const galleryProjects = [
   {
