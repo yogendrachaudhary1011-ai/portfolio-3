@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useEffect } from "react";
 import { useParallax } from "./common";
 import { useSite } from "../siteContext";
 
@@ -15,18 +15,47 @@ export default function Hero() {
   const showBio = settings?.textVisibility?.showDescriptions ?? true;
   const showBadges = settings?.textVisibility?.showBadges ?? true;
 
-  const { ref: portraitRef, y } = useParallax<HTMLDivElement>(50);
+  const { ref: portraitRef } = useParallax<HTMLDivElement>(50);
   const sectionRef = useRef<HTMLElement>(null);
-  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const rafRef = useRef<number | null>(null);
 
-  const onMove = (e: React.MouseEvent) => {
-    const r = sectionRef.current?.getBoundingClientRect();
-    if (!r) return;
-    setMouse({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height });
-  };
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
 
-  const tiltX = (mouse.x - 0.5) * 18;
-  const tiltY = (mouse.y - 0.5) * 18;
+    el.style.setProperty("--spot-x", "50%");
+    el.style.setProperty("--spot-y", "50%");
+    el.style.setProperty("--tilt-x", "0px");
+    el.style.setProperty("--rot-x", "0deg");
+    el.style.setProperty("--rot-y", "0deg");
+
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+
+    const onPointerMove = (e: MouseEvent) => {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width;
+        const py = (e.clientY - r.top) / r.height;
+        const tiltX = (px - 0.5) * 18;
+        const tiltY = (py - 0.5) * 18;
+
+        el.style.setProperty("--spot-x", `${(px * 100).toFixed(1)}%`);
+        el.style.setProperty("--spot-y", `${(py * 100).toFixed(1)}%`);
+        el.style.setProperty("--tilt-x", `${tiltX.toFixed(1)}px`);
+        el.style.setProperty("--rot-y", `${(-tiltX * 0.25).toFixed(2)}deg`);
+        el.style.setProperty("--rot-x", `${(tiltY * 0.2).toFixed(2)}deg`);
+      });
+    };
+
+    el.addEventListener("mousemove", onPointerMove, { passive: true });
+    return () => {
+      el.removeEventListener("mousemove", onPointerMove);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   const bio = heroConfig.bio || "Creating thoughtful, intuitive, and engaging digital experiences.";
   const bioWords = bio.split(" ");
@@ -36,7 +65,6 @@ export default function Hero() {
     <section
       id="home"
       ref={sectionRef}
-      onMouseMove={onMove}
       className="relative flex min-h-[44rem] items-end overflow-hidden pt-20 sm:min-h-screen sm:pt-24"
     >
       <h1 className="sr-only">{marqueeName}, {heroConfig.tagline}</h1>
@@ -45,7 +73,7 @@ export default function Hero() {
       <div
         className="pointer-events-none absolute inset-0 transition-opacity"
         style={{
-          background: `radial-gradient(600px circle at ${mouse.x * 100}% ${mouse.y * 100}%, var(--accent-soft), transparent 60%)`,
+          background: "radial-gradient(600px circle at var(--spot-x, 50%) var(--spot-y, 50%), var(--accent-soft), transparent 60%)",
         }}
       />
 
@@ -53,8 +81,8 @@ export default function Hero() {
       <div
         className="pointer-events-none absolute inset-0 flex items-center"
         style={{
-          transform: `translateX(${tiltX}px)`,
-          transition: "transform 0.6s ease-out",
+          transform: "translateX(var(--tilt-x, 0px))",
+          transition: "transform 0.4s ease-out",
           animation: `load-fade 1.4s ease ${BASE - 0.1}s both`,
         }}
       >
@@ -75,28 +103,28 @@ export default function Hero() {
       <div
         ref={portraitRef}
         className="relative z-10 mx-auto flex w-full max-w-6xl justify-center px-6"
-        style={{ transform: `translate3d(0, ${y}px, 0)`, willChange: "transform" }}
       >
         <div
           className="relative flex justify-center"
           style={{
-            transform: `perspective(1200px) rotateY(${-tiltX * 0.25}deg) rotateX(${tiltY * 0.2}deg)`,
-            transition: "transform 0.6s cubic-bezier(0.22,1,0.36,1)",
+            transform: "perspective(1200px) rotateY(var(--rot-y, 0deg)) rotateX(var(--rot-x, 0deg))",
+            transition: "transform 0.4s cubic-bezier(0.22,1,0.36,1)",
             transformStyle: "preserve-3d",
           }}
         >
-          {/* glow */}
+          {/* glow without expensive gaussian blur */}
           <div
             className="pointer-events-none absolute left-1/2 top-[12%] -z-10 size-[46vh] max-h-[420px] max-w-[420px] -translate-x-1/2 rounded-full"
             style={{
-              background: "var(--glow-1)",
-              filter: "blur(70px)",
+              background: "radial-gradient(circle, var(--glow-1) 0%, transparent 70%)",
               animation: `load-fade 1.6s ease ${BASE + 0.2}s both`,
             }}
           />
           <img
             src={heroConfig.portraitImage}
             alt={marqueeName}
+            fetchPriority="high"
+            decoding="async"
             className="h-[66vh] max-h-[760px] w-auto object-contain object-bottom drop-shadow-2xl sm:h-[74vh]"
             style={{
               maskImage: "linear-gradient(to bottom, black 86%, transparent)",

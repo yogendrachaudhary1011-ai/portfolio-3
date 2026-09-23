@@ -7,8 +7,6 @@ const NAV_OFFSET = 88; // px — clears the floating navbar
 const HEAD_GAP = 16; // px — breathing room below the pinned heading
 const PEEK = 12; // px — exposed top edge of each covered card
 const stickyTop = (i: number, headH: number) => NAV_OFFSET + headH + HEAD_GAP + i * PEEK;
-const stackTop = (i: number, headH: number, headingExit: number) =>
-  NAV_OFFSET + headH * (1 - headingExit) + HEAD_GAP + i * PEEK;
 
 /* ─── Per-step lightweight visual ─────────────────────────────────────── */
 const V = {
@@ -121,60 +119,90 @@ export default function MyProcess() {
 
   const [active, setActive] = useState(0);
   const [headH, setHeadH] = useState(0);
-  const [headingExit, setHeadingExit] = useState(0);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const headingRef = useRef<HTMLDivElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let raf = 0;
-    const measure = () => {
-      raf = 0;
-      const sec = headingRef.current?.closest("section");
-      if (sec) {
-        const secRect = sec.getBoundingClientRect();
-        if (secRect.bottom < -120 || secRect.top > window.innerHeight + 120) {
-          return;
-        }
-      }
+    let isIntersecting = false;
+
+    const updateHeadingH = () => {
       const h = headingRef.current?.offsetHeight ?? 0;
       setHeadH((prev) => (prev !== h ? h : prev));
+    };
+
+    updateHeadingH();
+
+    const measure = () => {
+      raf = 0;
+      if (!isIntersecting) return;
+
+      const h = headingRef.current?.offsetHeight ?? headH;
       let idx = 0;
-      cardRefs.current.forEach((el, i) => {
-        if (el && el.getBoundingClientRect().top <= stickyTop(i, h) + 4) idx = i;
-      });
+      const cards = cardRefs.current;
+      for (let i = 0; i < cards.length; i++) {
+        const el = cards[i];
+        if (el && el.getBoundingClientRect().top <= stickyTop(i, h) + 4) {
+          idx = i;
+        }
+      }
       setActive((prev) => (prev !== idx ? idx : prev));
-      const lastCard = cardRefs.current[STEPS.length - 1];
-      if (lastCard) {
+
+      const lastCard = cards[STEPS.length - 1];
+      if (lastCard && headingRef.current) {
         const finalCardTop = lastCard.getBoundingClientRect().top;
         const finalCardStickyTop = stickyTop(STEPS.length - 1, h);
         const exitRange = Math.max(h + 48, 1);
         const progress = Math.max(0, Math.min(1, (finalCardStickyTop + exitRange - finalCardTop) / exitRange));
-        const rounded = Math.round(progress * 100) / 100;
-        setHeadingExit((prev) => (prev !== rounded ? rounded : prev));
+        headingRef.current.style.transform = `translateY(calc(${-progress * 100}% - ${progress * 12}px))`;
       }
     };
+
     const onScroll = () => {
+      if (!raf && isIntersecting) raf = requestAnimationFrame(measure);
+    };
+
+    const onResize = () => {
+      updateHeadingH();
       if (!raf) raf = requestAnimationFrame(measure);
     };
+
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined" && sectionRef.current) {
+      observer = new IntersectionObserver(([entry]) => {
+        isIntersecting = entry.isIntersecting;
+        if (isIntersecting) onScroll();
+      }, { rootMargin: "200px" });
+      observer.observe(sectionRef.current);
+    } else {
+      isIntersecting = true;
+    }
+
     measure();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
       if (raf) cancelAnimationFrame(raf);
+      if (observer) observer.disconnect();
     };
-  }, [STEPS.length]);
+  }, [STEPS.length, headH]);
 
   const goTo = (i: number) => cardRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <section
       id="process"
+      ref={sectionRef}
       className="relative bg-[var(--process-bg)] py-24 text-[var(--process-fg)] sm:py-32"
     >
       <div className="process-grid pointer-events-none absolute inset-0 opacity-60" />
-      <div className="pointer-events-none absolute -left-28 top-40 size-[26rem] rounded-full bg-[var(--glow-2)] opacity-50 blur-[130px]" />
+      <div
+        className="pointer-events-none absolute -left-28 top-40 size-[26rem] rounded-full opacity-50"
+        style={{ background: "radial-gradient(circle, var(--glow-2) 0%, transparent 70%)" }}
+      />
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6">
         {/* Pinned heading */}
@@ -183,7 +211,6 @@ export default function MyProcess() {
           className="sticky z-30 grid max-w-6xl gap-6 pb-5 md:grid-cols-[1fr_290px] md:items-end"
           style={{
             top: NAV_OFFSET,
-            transform: `translateY(calc(${-headingExit * 100}% - ${headingExit * 12}px))`,
             willChange: "transform",
           }}
         >
@@ -220,7 +247,7 @@ export default function MyProcess() {
                   ref={(el) => { cardRefs.current[i] = el; }}
                   className="sticky mb-5"
                   style={{
-                    top: stackTop(i, headH, headingExit),
+                    top: stickyTop(i, headH),
                     scrollMarginTop: stickyTop(i, headH) - 8,
                     zIndex: i + 1,
                   }}

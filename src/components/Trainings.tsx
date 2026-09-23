@@ -4,14 +4,16 @@ import { External } from "../icons";
 import { useSite } from "../siteContext";
 
 function TrainingImage({ src, alt }: { src: string; alt: string }) {
-  const { ref, y } = useParallax<HTMLDivElement>(28);
+  const { ref } = useParallax<HTMLDivElement>(28);
   return (
     <Reveal className="flex-1" dir="up">
       <div className="group relative overflow-hidden rounded-2xl border border-[var(--card-border)] shadow-xl">
-        <div ref={ref} style={{ transform: `translate3d(0, ${y * 0.5}px, 0)`, willChange: "transform" }}>
+        <div ref={ref}>
           <img
             src={src}
             alt={alt}
+            loading="lazy"
+            decoding="async"
             className="aspect-[16/11] w-full scale-[1.12] object-cover transition-transform duration-700 ease-out group-hover:scale-[1.2]"
           />
         </div>

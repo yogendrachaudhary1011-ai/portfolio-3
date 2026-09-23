@@ -129,13 +129,15 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
                 boxShadow: isActive ? "var(--shadow-lift), 0 0 60px -16px var(--glow-1)" : "var(--shadow-soft)",
                 transition:
                   "transform 0.8s cubic-bezier(0.33,1,0.68,1), opacity 0.6s ease, filter 0.7s ease, box-shadow 0.7s ease",
-                willChange: "transform, opacity",
+                willChange: interactive ? "transform, opacity" : undefined,
               }}
             >
               <img
                 src={img(p?.thumbnail ?? p?.image ?? "1551288049-bebda4e38f71", 720, 460)}
                 alt={p?.title || "Project Preview"}
                 draggable={false}
+                loading={isActive ? "eager" : "lazy"}
+                decoding="async"
                 className="pointer-events-none size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
               />
               <span

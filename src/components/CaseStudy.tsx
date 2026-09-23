@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -74,22 +74,33 @@ export default function CaseStudy({
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentProject?.title, index]);
 
-  // Track scroll progress for top reading bar
+  // Track scroll progress directly without triggering React re-renders
   useEffect(() => {
-    const handleScroll = () => {
+    let raf = 0;
+    const updateProgress = () => {
+      raf = 0;
+      if (!progressBarRef.current) return;
       const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (totalHeight > 0) {
-        setScrollProgress((window.scrollY / totalHeight) * 100);
-      }
+      const progress = totalHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / totalHeight)) : 0;
+      progressBarRef.current.style.transform = `scaleX(${progress})`;
     };
+
+    const handleScroll = () => {
+      if (!raf) raf = requestAnimationFrame(updateProgress);
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    updateProgress();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   // Keyboard navigation for lightbox & next/prev
@@ -158,8 +169,9 @@ export default function CaseStudy({
       {/* ─── Reading Progress Indicator Bar ─────────────────────────────── */}
       {showTopBar && (
         <div
-          className="fixed top-0 left-0 h-[3px] bg-[var(--accent)] z-[100] transition-all duration-150"
-          style={{ width: `${scrollProgress}%` }}
+          ref={progressBarRef}
+          className="fixed top-0 left-0 h-[3px] w-full bg-[var(--accent)] z-[100] origin-left pointer-events-none will-change-transform"
+          style={{ transform: "scaleX(0)" }}
         />
       )}
 
@@ -302,6 +314,7 @@ export default function CaseStudy({
                           src={resolvedUrl}
                           alt={`${currentProject.title} - Visual ${idx + 1}`}
                           loading={idx < 2 ? "eager" : "lazy"}
+                          fetchPriority={idx === 0 ? "high" : "auto"}
                           decoding="async"
                           onClick={() => setLightboxIndex(idx)}
                           className="w-full h-auto block object-cover md:object-contain cursor-zoom-in rounded-none shadow-none m-0 p-0"

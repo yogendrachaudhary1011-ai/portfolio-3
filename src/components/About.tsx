@@ -36,10 +36,15 @@ export default function About() {
         <Reveal dir="up">
           <div className="card-surface hover-lift flex items-start gap-4 p-4 sm:items-center sm:gap-5 sm:p-5">
             <div className="relative shrink-0">
-              <span className="absolute -inset-1 rounded-full opacity-60" style={{ background: "var(--glow-1)", filter: "blur(14px)" }} />
+              <span
+                className="absolute -inset-1 rounded-full opacity-60"
+                style={{ background: "radial-gradient(circle, var(--glow-1) 0%, transparent 70%)" }}
+              />
               <img
                 src={about.avatarImage}
                 alt={about.name}
+                loading="lazy"
+                decoding="async"
                 className="relative size-20 rounded-full border border-[var(--card-border)] object-cover"
               />
             </div>

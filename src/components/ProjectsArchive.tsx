@@ -157,7 +157,7 @@ export default function ProjectsArchive({
         <div className="mt-14 divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
           {projects.map((p, originalIndex) => {
             const coverSrc = p.thumbnail || p.image || (p.media && p.media[0]) || "";
-            const resolvedCover = coverSrc ? getFullWidthImageUrl(coverSrc) : "";
+            const resolvedCover = coverSrc ? (coverSrc.startsWith("http") || coverSrc.startsWith("data:") ? coverSrc : img(coverSrc, 160, 160)) : "";
 
             return (
               <Reveal key={`${p?.title || "proj"}-${originalIndex}`} delay={originalIndex * 0.04} dir="up">

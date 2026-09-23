@@ -9,7 +9,7 @@ export const img = (id: string, w: number, h: number) => {
     if (cached) return cached;
     return "";
   }
-  return `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format`;
+  return `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format,compress&q=80`;
 };
 
 export const getFullWidthImageUrl = (id: string) => {
@@ -21,7 +21,7 @@ export const getFullWidthImageUrl = (id: string) => {
     if (cached) return cached;
     return "";
   }
-  return `https://images.unsplash.com/photo-${id}?w=2400&auto=format&q=90`;
+  return `https://images.unsplash.com/photo-${id}?w=1440&auto=format,compress&q=80`;
 };
 
 export const PORTRAIT = "1573496359142-b8d87734a5a2";

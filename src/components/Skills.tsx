@@ -9,7 +9,10 @@ export default function Skills() {
   return (
     <section id="skills" className="relative overflow-hidden py-24 sm:py-32">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[var(--hairline)]" />
-      <div className="pointer-events-none absolute -right-32 top-16 size-80 rounded-full bg-[var(--accent)]/10 blur-[110px]" />
+      <div
+        className="pointer-events-none absolute -right-32 top-16 size-80 rounded-full"
+        style={{ background: "radial-gradient(circle, var(--accent) 0%, transparent 70%)", opacity: 0.1 }}
+      />
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6">
         <div className="grid items-end gap-8 border-b border-[var(--hairline)] pb-10 md:grid-cols-[1fr_290px]">
           <div>

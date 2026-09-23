@@ -11,7 +11,10 @@ export default function Capabilities() {
   return (
     <section id="what-i-can-do" className="relative overflow-hidden bg-[var(--process-bg)] py-24 text-[var(--process-fg)] sm:py-32">
       <div className="process-grid pointer-events-none absolute inset-0 opacity-70" />
-      <div className="pointer-events-none absolute -right-28 top-28 size-[28rem] rounded-full bg-[var(--glow-1)] opacity-50 blur-[130px]" />
+      <div
+        className="pointer-events-none absolute -right-28 top-28 size-[28rem] rounded-full opacity-50"
+        style={{ background: "radial-gradient(circle, var(--glow-1) 0%, transparent 70%)" }}
+      />
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6">
         <div className="grid items-end gap-8 border-b border-[var(--process-border)] pb-10 md:grid-cols-[1fr_auto]">

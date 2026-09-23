@@ -47,31 +47,50 @@ export function useInView<T extends HTMLElement>(once = true) {
   return { ref, inView };
 }
 
-/* Scroll-linked parallax: returns a ref + translateY based on element position */
+/* Scroll-linked parallax: applies translateY directly to DOM element via rAF with IntersectionObserver */
 export function useParallax<T extends HTMLElement>(strength = 40) {
   const ref = useRef<T>(null);
   const [y, setY] = useState(0);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    let isVisible = true;
     let raf = 0;
+
     const update = () => {
+      raf = 0;
+      if (!isVisible || !el) return;
       const rect = el.getBoundingClientRect();
       const raw = (rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
       const progress = Math.max(-1, Math.min(1, raw));
-      setY(-progress * strength);
-      raf = 0;
+      const offset = -progress * strength;
+      el.style.transform = `translate3d(0, ${offset}px, 0)`;
     };
+
     const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
+      if (!raf && isVisible) raf = requestAnimationFrame(update);
     };
+
+    let io: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined") {
+      io = new IntersectionObserver(([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) onScroll();
+      }, { rootMargin: "100px" });
+      io.observe(el);
+    }
+
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
       if (raf) cancelAnimationFrame(raf);
+      if (io) io.disconnect();
     };
   }, [strength]);
+
   return { ref, y };
 }
 
@@ -189,7 +208,7 @@ export function Reveal({
   delay = 0,
   className,
   dir = "up",
-  blur = true,
+  blur = false,
   style,
 }: {
   children: ReactNode;
@@ -206,10 +225,10 @@ export function Reveal({
       className={className}
       style={{
         opacity: inView ? 1 : 0,
-        transform: inView ? "translate(0,0)" : offsets[dir],
-        filter: blur ? (inView ? "blur(0)" : "blur(8px)") : undefined,
-        transition: `opacity 0.8s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform 0.9s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter 0.9s ease ${delay}s`,
-        willChange: "opacity, transform",
+        transform: inView ? "translate3d(0,0,0)" : offsets[dir],
+        filter: blur ? (inView ? "none" : "blur(6px)") : undefined,
+        transition: `opacity 0.75s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform 0.85s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter 0.75s ease ${delay}s`,
+        willChange: inView ? undefined : "opacity, transform",
         ...style,
       }}
     >
@@ -315,7 +334,7 @@ function useSmoothed(apply: (v: number[]) => void, factor = 0.12) {
   return set;
 }
 
-/* Magnetic hover wrapper — element leans toward the cursor */
+/* Magnetic hover wrapper — element leans toward the cursor on desktop fine pointer devices */
 export function Magnetic({
   children,
   className,
@@ -331,6 +350,8 @@ export function Magnetic({
   }, 0.18);
 
   const onMove = (e: React.MouseEvent) => {
+    // Only execute on devices with fine pointer (mouse/trackpad), not touch screens
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -342,17 +363,15 @@ export function Magnetic({
       ref={ref}
       onMouseMove={onMove}
       onMouseLeave={() => set([0, 0])}
-      onTouchEnd={() => set([0, 0])}
-      onTouchCancel={() => set([0, 0])}
       className={className}
-      style={{ display: "inline-block", willChange: "transform" }}
+      style={{ display: "inline-block" }}
     >
       {children}
     </div>
   );
 }
 
-/* 3D tilt card responding to pointer position */
+/* 3D tilt card responding to pointer position on desktop fine pointer devices */
 export function Tilt({
   children,
   className,
@@ -374,6 +393,7 @@ export function Tilt({
   }, 0.14);
 
   const onMove = (e: React.MouseEvent) => {
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -387,10 +407,8 @@ export function Tilt({
       ref={ref}
       onMouseMove={onMove}
       onMouseLeave={() => set([0, 0, 50, 50])}
-      onTouchEnd={() => set([0, 0, 50, 50])}
-      onTouchCancel={() => set([0, 0, 50, 50])}
       className={className}
-      style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+      style={{ transformStyle: "preserve-3d" }}
     >
       {children}
       {glare && (
