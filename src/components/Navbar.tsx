@@ -418,8 +418,8 @@ export default function Navbar({
       <div
         className={`fixed inset-x-0 bottom-0 top-14 z-40 flex flex-col justify-between overflow-y-auto bg-[var(--bg)]/98 px-5 pb-6 pt-4 backdrop-blur-2xl transition-all duration-300 md:hidden ${
           menuOpen
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-4 opacity-0"
+            ? "pointer-events-auto translate-y-0 opacity-100 visible"
+            : "pointer-events-none -translate-y-4 opacity-0 invisible"
         }`}
       >
         {/* Navigation Section */}

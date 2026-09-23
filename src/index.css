@@ -320,8 +320,35 @@ a:not([aria-disabled="true"])[data-pressed="true"] {
   transition-duration: 0.08s !important;
 }
 
-/* Mobile-specific tactile click enhancements */
+/* Mobile-specific performance & tactile click enhancements */
 @media (max-width: 768px), (pointer: coarse) {
+  /* Prevent continuous GPU repaints of large radial background gradients during touch scrolling */
+  .ambient-orb.drift {
+    animation: none !important;
+    transform: translate3d(0, 0, 0) !important;
+  }
+
+  .floaty {
+    animation: none !important;
+    transform: translateY(0) !important;
+  }
+
+  .text-gradient {
+    animation: none !important;
+  }
+
+  /* Content visibility optimization: frees mobile main thread & GPU compositor by skipping offscreen section layout */
+  main > section:not(#home) {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 700px;
+  }
+
+  /* Smooth momentum touch scrolling across iOS and Android */
+  html, body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: none;
+  }
+
   button, a, [role="button"], .card-surface, .hover-lift, .active-press {
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation !important;

@@ -119,9 +119,16 @@ export default function MyProcess() {
 
   const [active, setActive] = useState(0);
   const [headH, setHeadH] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const headingRef = useRef<HTMLDivElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth < 768);
+    }
+  }, []);
 
   useEffect(() => {
     let raf = 0;
@@ -130,13 +137,16 @@ export default function MyProcess() {
     const updateHeadingH = () => {
       const h = headingRef.current?.offsetHeight ?? 0;
       setHeadH((prev) => (prev !== h ? h : prev));
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth < 768);
+      }
     };
 
     updateHeadingH();
 
     const measure = () => {
       raf = 0;
-      if (!isIntersecting) return;
+      if (!isIntersecting || (typeof window !== "undefined" && window.innerWidth < 768)) return;
 
       const h = headingRef.current?.offsetHeight ?? headH;
       let idx = 0;
@@ -205,13 +215,13 @@ export default function MyProcess() {
       />
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6">
-        {/* Pinned heading */}
+        {/* Pinned heading on desktop, natural flow on mobile */}
         <div
           ref={headingRef}
-          className="sticky z-30 grid max-w-6xl gap-6 pb-5 md:grid-cols-[1fr_290px] md:items-end"
+          className="relative md:sticky z-30 grid max-w-6xl gap-6 pb-5 md:grid-cols-[1fr_290px] md:items-end"
           style={{
-            top: NAV_OFFSET,
-            willChange: "transform",
+            top: isMobile ? undefined : NAV_OFFSET,
+            willChange: isMobile ? undefined : "transform",
           }}
         >
           <div>
@@ -239,18 +249,22 @@ export default function MyProcess() {
           <div className="min-w-0 flex-1">
             {STEPS.map((step, i) => {
               const depth = active - i; // >0 == covered/behind
-              const scale = depth > 0 ? 1 - Math.min(depth, 4) * 0.014 : 1;
-              const brightness = depth > 0 ? 1 - Math.min(depth, 4) * 0.05 : 1;
+              const scale = depth > 0 && !isMobile ? 1 - Math.min(depth, 4) * 0.014 : 1;
+              const brightness = depth > 0 && !isMobile ? 1 - Math.min(depth, 4) * 0.05 : 1;
               return (
                 <div
                   key={`${step.title}-${i}`}
                   ref={(el) => { cardRefs.current[i] = el; }}
-                  className="sticky mb-5"
-                  style={{
-                    top: stickyTop(i, headH),
-                    scrollMarginTop: stickyTop(i, headH) - 8,
-                    zIndex: i + 1,
-                  }}
+                  className="relative md:sticky mb-5"
+                  style={
+                    isMobile
+                      ? undefined
+                      : {
+                          top: stickyTop(i, headH),
+                          scrollMarginTop: stickyTop(i, headH) - 8,
+                          zIndex: i + 1,
+                        }
+                  }
                 >
                   <Reveal delay={i === 0 ? 0 : 0.04} dir="up">
                     <article
