@@ -83,7 +83,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           <Magnetic strength={0.3}>
             <button
               onClick={onMore}
-              className="btn-shine inline-flex items-center gap-2 self-start rounded-full bg-[var(--fg)] px-6 py-3 text-[0.8rem] font-medium text-[var(--bg)] transition-transform duration-300 hover:scale-[1.03]"
+              className="btn-shine inline-flex items-center gap-2 self-start rounded-full bg-[var(--fg)] px-6 py-3 text-[0.8rem] font-medium text-[var(--bg)] transition-transform duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer"
             >
               View More Projects <External className="size-4" />
             </button>
@@ -142,9 +142,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
               role="button"
               tabIndex={isActive ? 0 : -1}
               aria-label={isActive ? `Open ${p?.title || "Project"} case study` : `View ${p?.title || "Project"}`}
-              className={`group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] ${
-                isActive ? "cursor-pointer" : "cursor-pointer"
-              }`}
+              className={`group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] cursor-pointer select-none transition-shadow active:shadow-sm`}
               style={{
                 width: cardW,
                 height: cardW * 0.62,
@@ -159,28 +157,30 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
                 willChange: interactive ? "transform, opacity" : undefined,
               }}
             >
-              <img
-                src={img(p?.thumbnail ?? p?.image ?? "1551288049-bebda4e38f71", 720, 460)}
-                alt={p?.title || "Project Preview"}
-                draggable={false}
-                loading={isActive ? "eager" : "lazy"}
-                decoding="async"
-                className="pointer-events-none size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
-              />
-              <span
-                className="pointer-events-none absolute inset-0"
-                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent 45%)" }}
-              />
-              {isActive && (
-                <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:opacity-90">
-                  <span className="font-mono text-[0.62rem] uppercase tracking-wider bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
-                    Click to Open Case Study
-                  </span>
-                  <span className="size-7 grid place-items-center rounded-full bg-white/20 backdrop-blur-md">
-                    <External className="size-3.5 text-white" />
-                  </span>
-                </div>
-              )}
+              <div className="relative size-full overflow-hidden transition-transform duration-150 ease-out group-active:scale-[0.97] group-active:brightness-95">
+                <img
+                  src={img(p?.thumbnail ?? p?.image ?? "1551288049-bebda4e38f71", 720, 460)}
+                  alt={p?.title || "Project Preview"}
+                  draggable={false}
+                  loading={isActive ? "eager" : "lazy"}
+                  decoding="async"
+                  className="pointer-events-none size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
+                />
+                <span
+                  className="pointer-events-none absolute inset-0"
+                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent 45%)" }}
+                />
+                {isActive && (
+                  <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:opacity-90">
+                    <span className="font-mono text-[0.62rem] uppercase tracking-wider bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
+                      Click to Open Case Study
+                    </span>
+                    <span className="size-7 grid place-items-center rounded-full bg-white/20 backdrop-blur-md">
+                      <External className="size-3.5 text-white" />
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -191,7 +191,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         <button
           onClick={() => go(-1)}
           aria-label="Previous"
-          className="control-surface grid size-11 place-items-center rounded-full"
+          className="control-surface grid size-11 place-items-center rounded-full active:scale-90"
         >
           <Arrow className="size-4 rotate-180" />
         </button>
@@ -201,7 +201,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
               key={i}
               onClick={() => setActive(i)}
               aria-label={`Go to project ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
+              className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer active:scale-75 ${
                 i === safeActive ? "w-8 bg-[var(--accent)]" : "w-1.5 bg-[var(--muted)]/40 hover:bg-[var(--muted)]"
               }`}
             />
@@ -210,7 +210,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         <button
           onClick={() => go(1)}
           aria-label="Next"
-          className="control-surface grid size-11 place-items-center rounded-full"
+          className="control-surface grid size-11 place-items-center rounded-full active:scale-90"
         >
           <Arrow className="size-4" />
         </button>
@@ -227,7 +227,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           <button
             type="button"
             onClick={() => onProject(safeActive)}
-            className="group mt-6 inline-flex items-center gap-2 border-b border-current pb-1 text-[0.8rem] font-medium cursor-pointer"
+            className="group mt-6 inline-flex items-center gap-2 border-b border-current pb-1 text-[0.8rem] font-medium cursor-pointer transition-transform duration-150 hover:text-[var(--accent)] active:scale-95 active:translate-x-1"
           >
             View Project <Arrow className="size-4 transition-transform group-hover:translate-x-1" />
           </button>

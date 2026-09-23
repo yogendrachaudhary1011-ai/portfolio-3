@@ -94,17 +94,17 @@ export default function Contact() {
                     href={c.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="card-surface hover-lift relative flex items-center gap-4 rounded-2xl px-5 py-5 cursor-pointer"
+                    className="card-surface hover-lift relative flex items-center gap-4 rounded-2xl px-5 py-5 cursor-pointer select-none transition-all duration-200 active:scale-[0.97] active:shadow-sm"
                   >
                     <span className="absolute right-4 top-3 font-mono text-[0.6rem] text-[var(--muted)]">{c.num}</span>
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] transition-transform duration-300 group-hover:scale-110">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] transition-transform duration-200 group-hover:scale-110 group-active:scale-95">
                       <Icon className="size-5" />
                     </span>
                     <div className="min-w-0">
                       <p className="label !text-[0.55rem]">{c.label}</p>
                       <p className="truncate text-[0.92rem] font-medium">{c.value}</p>
                     </div>
-                    <External className="ml-auto size-4 shrink-0 text-[var(--muted)] opacity-0 transition-opacity group-hover:opacity-100" />
+                    <External className="ml-auto size-4 shrink-0 text-[var(--muted)] opacity-0 transition-opacity group-hover:opacity-100 group-active:scale-90" />
                   </a>
                 </Tilt>
               </Reveal>
@@ -150,7 +150,7 @@ export default function Contact() {
               <button
                 type="submit"
                 disabled={status === "submitting"}
-                className={`btn-shine inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] px-6 py-3 text-[0.78rem] font-medium transition-colors cursor-pointer ${
+                className={`btn-shine inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] px-6 py-3 text-[0.78rem] font-medium transition-all duration-200 active:scale-95 cursor-pointer ${
                   status === "submitting"
                     ? "opacity-60 cursor-not-allowed bg-[var(--chip)] text-[var(--muted)]"
                     : status === "success"

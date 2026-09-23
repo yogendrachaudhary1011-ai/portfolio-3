@@ -51,7 +51,7 @@ export default function Capabilities() {
                   }}
                   aria-expanded={selected}
                   aria-controls={contentId}
-                  className={`group grid w-full grid-cols-[2.25rem_1fr_auto] gap-3 border-b border-[var(--process-border)] py-5 text-left transition-colors duration-500 sm:grid-cols-[5rem_1fr_auto] sm:py-8 cursor-pointer ${selected ? "text-[var(--process-fg)]" : "text-[var(--process-muted)] hover:text-[var(--process-fg)]"}`}
+                  className={`group grid w-full grid-cols-[2.25rem_1fr_auto] gap-3 border-b border-[var(--process-border)] py-5 text-left transition-all duration-300 sm:grid-cols-[5rem_1fr_auto] sm:py-8 cursor-pointer select-none active:scale-[0.99] active:translate-x-1 ${selected ? "text-[var(--process-fg)]" : "text-[var(--process-muted)] hover:text-[var(--process-fg)]"}`}
                 >
                   <span className="pt-2 font-mono text-[0.62rem] tracking-[0.18em] text-[#a99dff]">{practice.num}</span>
                   <div>
@@ -71,7 +71,7 @@ export default function Capabilities() {
                     </div>
                   </div>
                   <span
-                    className={`mt-2 grid size-8 shrink-0 place-items-center rounded-full border transition-all duration-500 ${
+                    className={`mt-2 grid size-8 shrink-0 place-items-center rounded-full border transition-all duration-300 group-active:scale-90 ${
                       selected
                         ? "rotate-45 border-[#a99dff] bg-[#a99dff] text-[#101011]"
                         : "border-[var(--process-border)] text-[var(--process-muted)] group-hover:border-[#a99dff] group-hover:text-[var(--process-fg)]"

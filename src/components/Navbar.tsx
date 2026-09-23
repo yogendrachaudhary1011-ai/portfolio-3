@@ -433,13 +433,13 @@ export default function Navbar({
             </span>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1">
             {isHomeVisible && (
               <button
                 type="button"
                 onClick={handleHomeClick}
                 aria-current={isHomeActive ? "page" : undefined}
-                className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 text-left transition-colors ${
+                className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 px-2.5 rounded-xl text-left transition-all active:scale-[0.98] active:bg-[var(--chip)]/60 ${
                   isHomeActive ? "text-[var(--accent)]" : "text-[var(--fg)]"
                 }`}
               >
@@ -482,7 +482,7 @@ export default function Navbar({
                     setMenuOpen(false);
                   }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 text-left transition-colors ${
+                  className={`group flex w-full items-center justify-between border-b border-[var(--hairline)] py-3.5 px-2.5 rounded-xl text-left transition-all active:scale-[0.98] active:bg-[var(--chip)]/60 ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--fg)]"
                   }`}
                 >
@@ -586,7 +586,7 @@ export default function Navbar({
                 onClick={handleHomeClick}
                 aria-label="Home"
                 aria-current={isHomeActive ? "page" : undefined}
-                className={`relative z-10 grid size-8 place-items-center rounded-full transition-colors duration-300 hover:text-[var(--fg)] cursor-pointer ${
+                className={`relative z-10 grid size-8 place-items-center rounded-full transition-all duration-200 hover:text-[var(--fg)] active:scale-90 cursor-pointer ${
                   isHomeActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
                 }`}
                 style={{
@@ -613,7 +613,7 @@ export default function Navbar({
                     onNav?.(l.id);
                   }}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative z-10 rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 font-mono text-[0.58rem] sm:text-[0.62rem] uppercase tracking-[0.12em] sm:tracking-[0.14em] whitespace-nowrap transition-colors duration-300 hover:text-[var(--fg)] cursor-pointer ${
+                  className={`relative z-10 rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 font-mono text-[0.58rem] sm:text-[0.62rem] uppercase tracking-[0.12em] sm:tracking-[0.14em] whitespace-nowrap transition-all duration-200 hover:text-[var(--fg)] active:scale-95 cursor-pointer ${
                     isActive ? "text-[var(--bg)]" : "text-[var(--muted)]"
                   }`}
                   style={{

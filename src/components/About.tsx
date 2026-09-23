@@ -34,7 +34,7 @@ export default function About() {
 
       <div className="mt-14 max-w-3xl">
         <Reveal dir="up">
-          <div className="card-surface hover-lift flex items-start gap-4 p-4 sm:items-center sm:gap-5 sm:p-5">
+          <div className="card-surface hover-lift flex items-start gap-4 p-4 sm:items-center sm:gap-5 sm:p-5 cursor-pointer select-none active:scale-[0.985]">
             <div className="relative shrink-0">
               <span
                 className="absolute -inset-1 rounded-full opacity-60"
@@ -84,7 +84,7 @@ export default function About() {
                 style={{ fontSize: "calc(0.95rem * var(--subheading-scale, 1))" }}
               >
                 {about.bioParagraph2}{" "}
-                <a href={about.ctaHref || "#work"} className="group relative font-medium text-[var(--fg)]">
+                <a href={about.ctaHref || "#work"} className="group relative inline-block font-medium text-[var(--fg)] transition-transform active:scale-95">
                   {about.ctaLabel || "View selected work"}
                   <span className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-100 bg-[var(--accent)] transition-transform duration-300 group-hover:scale-x-0" />
                 </a>

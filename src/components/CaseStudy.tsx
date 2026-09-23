@@ -184,7 +184,7 @@ export default function CaseStudy({
                 id="back-to-work-btn"
                 type="button"
                 onClick={onBack}
-                className="group inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-4 py-1.5 text-xs font-semibold text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)] cursor-pointer"
+                className="group inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-4 py-1.5 text-xs font-semibold text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)] active:scale-95 cursor-pointer select-none"
               >
                 <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
                 <span>{backButtonLabel}</span>
@@ -205,7 +205,7 @@ export default function CaseStudy({
                     type="button"
                     onClick={() => onSelectProject(prevIndex)}
                     title="Previous Case Study"
-                    className="rounded-full p-1.5 text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+                    className="rounded-full p-1.5 text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-transform active:scale-90 cursor-pointer"
                   >
                     <ChevronLeft className="size-3.5" />
                   </button>
@@ -213,7 +213,7 @@ export default function CaseStudy({
                     type="button"
                     onClick={() => onSelectProject(nextIndex)}
                     title="Next Case Study"
-                    className="rounded-full p-1.5 text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
+                    className="rounded-full p-1.5 text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-transform active:scale-90 cursor-pointer"
                   >
                     <ChevronRight className="size-3.5" />
                   </button>
@@ -223,7 +223,7 @@ export default function CaseStudy({
               <button
                 type="button"
                 onClick={handleShare}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--card)] px-3 py-1.5 text-[0.68rem] font-mono uppercase tracking-wider text-[var(--muted)] hover:text-[var(--fg)] hover:border-[var(--accent)] transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--card)] px-3 py-1.5 text-[0.68rem] font-mono uppercase tracking-wider text-[var(--muted)] hover:text-[var(--fg)] hover:border-[var(--accent)] transition-all active:scale-95 cursor-pointer select-none"
                 title="Share Case Study"
               >
                 {copied ? <Check className="size-3 text-emerald-400" /> : <Share2 className="size-3" />}
@@ -274,7 +274,7 @@ export default function CaseStudy({
                 href={pdfDeckUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all select-none"
               >
                 <FileText className="size-3.5" />
                 <span>{pdfButtonLabel}</span>
@@ -303,7 +303,7 @@ export default function CaseStudy({
                         <button
                           type="button"
                           onClick={() => setLightboxIndex(idx)}
-                          className="absolute right-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/70 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur-md opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/90 cursor-pointer shadow-none"
+                          className="absolute right-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/70 px-3.5 py-1.5 text-xs font-medium text-white backdrop-blur-md opacity-0 transition-all group-hover:opacity-100 hover:bg-black/90 active:scale-90 cursor-pointer shadow-none"
                           title="View Fullscreen"
                         >
                           <Maximize2 className="size-3.5" />
@@ -365,7 +365,7 @@ export default function CaseStudy({
         <div className="mx-auto max-w-5xl px-4 sm:px-6 mt-28">
           <div
             onClick={() => onSelectProject(nextIndex)}
-            className="group relative overflow-hidden rounded-3xl border border-[var(--card-border)] bg-gradient-to-r from-[var(--card)] to-[var(--bg-2)] p-8 sm:p-12 transition-all duration-300 hover:border-[var(--accent)] hover:shadow-2xl cursor-pointer"
+            className="group relative overflow-hidden rounded-3xl border border-[var(--card-border)] bg-gradient-to-r from-[var(--card)] to-[var(--bg-2)] p-8 sm:p-12 transition-all duration-200 hover:border-[var(--accent)] hover:shadow-2xl cursor-pointer select-none active:scale-[0.985] active:border-[var(--accent)]"
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
               <div>
@@ -380,7 +380,7 @@ export default function CaseStudy({
                 </p>
               </div>
 
-              <div className="grid size-12 place-items-center rounded-full bg-[var(--fg)] text-[var(--bg)] transition-transform duration-300 group-hover:scale-110 flex-shrink-0 self-start sm:self-center">
+              <div className="grid size-12 place-items-center rounded-full bg-[var(--fg)] text-[var(--bg)] transition-transform duration-200 group-hover:scale-110 group-active:scale-95 flex-shrink-0 self-start sm:self-center">
                 <ArrowRight className="size-5" />
               </div>
             </div>
@@ -394,7 +394,7 @@ export default function CaseStudy({
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-6 py-2.5 text-xs font-semibold text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)] cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-6 py-2.5 text-xs font-semibold text-[var(--fg)] transition-all hover:border-[var(--accent)] hover:bg-[var(--chip)] active:scale-95 cursor-pointer select-none"
           >
             <ArrowLeft className="size-3.5" />
             <span>{bottomReturnLabel}</span>
@@ -404,7 +404,7 @@ export default function CaseStudy({
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--muted)] hover:text-[var(--fg)] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-[var(--muted)] hover:text-[var(--fg)] transition-all active:scale-95 cursor-pointer select-none"
             >
               <ArrowUp className="size-3.5" />
               <span>{backToTopLabel}</span>
@@ -421,7 +421,7 @@ export default function CaseStudy({
                   })
                 )
               }
-              className="inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none"
+              className="inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none active:scale-75"
               aria-label="Admin panel"
             >
               <span className="size-1 rounded-full bg-current" />
@@ -448,7 +448,7 @@ export default function CaseStudy({
             <button
               type="button"
               onClick={() => setLightboxIndex(null)}
-              className="rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20 transition-colors cursor-pointer"
+              className="rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20 transition-transform active:scale-90 cursor-pointer"
               title="Close (Esc)"
             >
               <X className="size-5" />
@@ -463,7 +463,7 @@ export default function CaseStudy({
                 e.stopPropagation();
                 setLightboxIndex((curr) => (curr !== null ? (curr - 1 + images.length) % images.length : 0));
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-colors cursor-pointer"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-transform active:scale-90 cursor-pointer"
               title="Previous visual (Left arrow)"
             >
               <ChevronLeft className="size-6" />
@@ -478,7 +478,7 @@ export default function CaseStudy({
                 e.stopPropagation();
                 setLightboxIndex((curr) => (curr !== null ? (curr + 1) % images.length : 0));
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-colors cursor-pointer"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-transform active:scale-90 cursor-pointer"
               title="Next visual (Right arrow)"
             >
               <ChevronRight className="size-6" />

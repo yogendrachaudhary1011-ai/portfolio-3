@@ -19,7 +19,7 @@ export default function Awards() {
           {awardPhotos.map((p, i) => (
             <Reveal key={p} delay={i * 0.08} dir="up" className={i % 2 ? "mt-6" : ""}>
               <div
-                className="group relative overflow-hidden rounded-xl border border-[var(--card-border)] shadow-lg transition-all duration-500 hover:z-10 hover:!rotate-0 hover:scale-[1.07] hover:shadow-[0_20px_50px_-16px_var(--glow-1)]"
+                className="group relative overflow-hidden rounded-xl border border-[var(--card-border)] shadow-lg transition-all duration-300 hover:z-10 hover:!rotate-0 hover:scale-[1.07] hover:shadow-[0_20px_50px_-16px_var(--glow-1)] cursor-pointer select-none active:scale-95 active:rotate-0"
                 style={{ rotate: rot[i] }}
               >
                 <img
@@ -43,15 +43,15 @@ export default function Awards() {
               <Tilt max={5} className="group relative rounded-2xl [transform-style:preserve-3d]">
                 <a
                   href="#"
-                  className="card-surface hover-lift flex items-center justify-between rounded-2xl px-5 py-6"
+                  className="card-surface hover-lift flex items-center justify-between rounded-2xl px-5 py-6 cursor-pointer select-none transition-all duration-200 active:scale-[0.97] active:shadow-sm"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="grid size-11 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] transition-transform duration-300 group-hover:scale-110">
+                    <span className="grid size-11 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] transition-transform duration-200 group-hover:scale-110 group-active:scale-95">
                       <Trophy className="size-5" />
                     </span>
                     <span className="font-medium">{a.title}</span>
                   </div>
-                  <External className="size-4 text-[var(--muted)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" />
+                  <External className="size-4 text-[var(--muted)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)] group-active:scale-90" />
                 </a>
               </Tilt>
             </Reveal>

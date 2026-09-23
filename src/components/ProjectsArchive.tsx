@@ -65,7 +65,7 @@ export default function ProjectsArchive({
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-colors cursor-pointer py-1"
+              className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-all active:scale-95 cursor-pointer py-1 select-none"
             >
               <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
               <span>{archiveConfig?.archiveBackButton || "Back to Overview"}</span>
@@ -82,7 +82,7 @@ export default function ProjectsArchive({
               <button
                 type="button"
                 onClick={() => setActiveSectionFilter("all")}
-                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all cursor-pointer ${
+                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all active:scale-95 cursor-pointer select-none ${
                   activeSectionFilter === "all"
                     ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
                     : "text-[var(--muted)] hover:text-[var(--fg)]"
@@ -93,7 +93,7 @@ export default function ProjectsArchive({
               <button
                 type="button"
                 onClick={() => setActiveSectionFilter("archive")}
-                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all active:scale-95 cursor-pointer select-none flex items-center gap-1.5 ${
                   activeSectionFilter === "archive"
                     ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
                     : "text-[var(--muted)] hover:text-[var(--fg)]"
@@ -107,7 +107,7 @@ export default function ProjectsArchive({
               <button
                 type="button"
                 onClick={() => setActiveSectionFilter("beyond")}
-                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all active:scale-95 cursor-pointer select-none flex items-center gap-1.5 ${
                   activeSectionFilter === "beyond"
                     ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
                     : "text-[var(--muted)] hover:text-[var(--fg)]"
@@ -171,7 +171,7 @@ export default function ProjectsArchive({
                   onMouseEnter={() => setHoveredIdx(originalIndex)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => onProject(p, originalIndex)}
-                  className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-8 text-left transition-all duration-300 rounded-2xl px-4 sm:px-6 cursor-pointer overflow-hidden border border-transparent hover:border-[var(--card-border)]"
+                  className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-8 text-left transition-all duration-200 rounded-2xl px-4 sm:px-6 cursor-pointer overflow-hidden border border-transparent hover:border-[var(--card-border)] select-none active:scale-[0.985] active:bg-[var(--chip)]/60"
                 >
                   {/* Origin-left expanding background wipe with subtle accent tint */}
                   <span
@@ -223,7 +223,7 @@ export default function ProjectsArchive({
 
                   {/* Right: CTA Arrow Button */}
                   <div className="relative z-10 flex items-center self-end md:self-center flex-shrink-0 pt-2 md:pt-0">
-                    <div className="grid size-9 sm:size-10 place-items-center rounded-full border border-[var(--hairline)] bg-[var(--card)] text-[var(--muted)] transition-all duration-300 group-hover:border-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white group-hover:scale-110 group-hover:rotate-45 shadow-xs">
+                    <div className="grid size-9 sm:size-10 place-items-center rounded-full border border-[var(--hairline)] bg-[var(--card)] text-[var(--muted)] transition-all duration-300 group-hover:border-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white group-hover:scale-110 group-hover:rotate-45 group-active:scale-90 shadow-xs">
                       <ArrowUpRight className="size-4 transition-transform duration-300" />
                     </div>
                   </div>
@@ -261,12 +261,12 @@ export default function ProjectsArchive({
             {digitalProjects.map((d, i) => (
               <Reveal key={`${d?.title || "digital"}-${i}`} delay={i * 0.08} dir="up">
                 <Tilt max={7} className="group h-full">
-                  <div className="card-surface hover-lift flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)]">
+                  <div className="card-surface hover-lift flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] cursor-pointer select-none transition-all duration-200 active:scale-[0.97] active:shadow-inner">
                     <div className="relative overflow-hidden">
                       <img
                         src={img(digitalImages[i % digitalImages.length], 520, 340)}
                         alt={d?.title || "Digital Exploration"}
-                        className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110 group-active:scale-100"
                         loading="lazy"
                       />
                       <span
@@ -319,7 +319,7 @@ export default function ProjectsArchive({
                     onContact();
                   }
                 }}
-                className="btn-shine inline-flex items-center gap-2 self-start rounded-full border border-[var(--card-border)] bg-[var(--card)] px-7 py-4 text-[0.82rem] font-medium text-[var(--fg)] transition-colors hover:bg-[var(--fg)] hover:text-[var(--bg)] cursor-pointer"
+                className="btn-shine inline-flex items-center gap-2 self-start rounded-full border border-[var(--card-border)] bg-[var(--card)] px-7 py-4 text-[0.82rem] font-medium text-[var(--fg)] transition-all duration-200 hover:bg-[var(--fg)] hover:text-[var(--bg)] active:scale-95 cursor-pointer"
               >
                 <span>{archiveConfig?.ctaButtonLabel || archiveConfig?.ctaButton || "Start a conversation"}</span>
                 <ArrowRight className="size-4" />

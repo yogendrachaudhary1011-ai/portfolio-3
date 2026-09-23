@@ -17,7 +17,7 @@ export default function CoffeeWidget() {
       onClick={add}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="glass fixed bottom-6 left-4 z-50 flex items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_var(--glow-1)] active:scale-95"
+      className="group glass fixed bottom-6 left-4 z-50 flex items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 shadow-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_var(--glow-1)] active:scale-90 cursor-pointer select-none"
       style={{ boxShadow: "var(--shadow-soft)" }}
     >
       {/* floating +1 pops */}
@@ -36,8 +36,8 @@ export default function CoffeeWidget() {
       >
         <span className="whitespace-nowrap pl-1 text-[0.72rem] font-medium">Get me a coffee</span>
       </span>
-      <span className="text-base transition-transform duration-300 hover:rotate-12">☕</span>
-      <span className="grid min-w-7 place-items-center rounded-full bg-[var(--chip)] px-1.5 py-0.5 font-mono text-[0.68rem]">
+      <span className="text-base transition-transform duration-300 group-hover:rotate-12 group-active:scale-125">☕</span>
+      <span className="grid min-w-7 place-items-center rounded-full bg-[var(--chip)] px-1.5 py-0.5 font-mono text-[0.68rem] transition-transform duration-200 group-active:scale-110">
         {count}
       </span>
     </button>

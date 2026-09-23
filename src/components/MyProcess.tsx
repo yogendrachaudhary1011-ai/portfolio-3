@@ -254,7 +254,11 @@ export default function MyProcess() {
                 >
                   <Reveal delay={i === 0 ? 0 : 0.04} dir="up">
                     <article
-                      className="grid gap-5 overflow-hidden rounded-2xl border border-[var(--process-border)] bg-[var(--process-card)] p-5 sm:gap-7 sm:p-6 md:grid-cols-[1.25fr_0.75fr] md:items-center"
+                      onClick={() => goTo(i)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Step ${i + 1}: ${step.title}`}
+                      className="grid gap-5 overflow-hidden rounded-2xl border border-[var(--process-border)] bg-[var(--process-card)] p-5 sm:gap-7 sm:p-6 md:grid-cols-[1.25fr_0.75fr] md:items-center cursor-pointer select-none active:scale-[0.985] active:brightness-95"
                       style={{
                         minHeight: "clamp(220px, 29vh, 288px)",
                         transform: `scale(${scale})`,
@@ -313,7 +317,7 @@ export default function MyProcess() {
                       onClick={() => goTo(i)}
                       aria-label={`Go to step ${String(i + 1).padStart(2, "0")} — ${step.title}`}
                       aria-current={on ? "step" : undefined}
-                      className="group grid size-9 place-items-center rounded-full"
+                      className="group grid size-9 place-items-center rounded-full cursor-pointer transition-transform active:scale-75"
                     >
                       <span
                         className="rounded-full transition-all duration-500"
