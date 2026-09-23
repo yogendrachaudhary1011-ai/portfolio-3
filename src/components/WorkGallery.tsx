@@ -94,13 +94,28 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
       {/* coverflow stage */}
       <div
         ref={stageRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Interactive projects coverflow"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(-1);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(1);
+          } else if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onProject(safeActive);
+          }
+        }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={onUp}
-        className="relative mx-auto flex h-[255px] touch-pan-y select-none items-center justify-center overflow-hidden [perspective:1600px] sm:h-[340px] md:h-[380px]"
+        className="relative mx-auto flex h-[255px] touch-pan-y select-none items-center justify-center overflow-hidden [perspective:1600px] sm:h-[340px] md:h-[380px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] rounded-2xl"
         style={{ cursor: "grab" }}
       >
         {galleryItems.map((p, i) => {
@@ -116,8 +131,20 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           return (
             <div
               key={`${p?.title || "project"}-${i}`}
-              onClick={() => !moved.current && interactive && setActive(i)}
-              className="group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)]"
+              onClick={() => {
+                if (moved.current) return;
+                if (isActive) {
+                  onProject(safeActive);
+                } else if (interactive) {
+                  setActive(i);
+                }
+              }}
+              role="button"
+              tabIndex={isActive ? 0 : -1}
+              aria-label={isActive ? `Open ${p?.title || "Project"} case study` : `View ${p?.title || "Project"}`}
+              className={`group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] ${
+                isActive ? "cursor-pointer" : "cursor-pointer"
+              }`}
               style={{
                 width: cardW,
                 height: cardW * 0.62,
@@ -142,8 +169,18 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
               />
               <span
                 className="pointer-events-none absolute inset-0"
-                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent 45%)" }}
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent 45%)" }}
               />
+              {isActive && (
+                <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:opacity-90">
+                  <span className="font-mono text-[0.62rem] uppercase tracking-wider bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
+                    Click to Open Case Study
+                  </span>
+                  <span className="size-7 grid place-items-center rounded-full bg-white/20 backdrop-blur-md">
+                    <External className="size-3.5 text-white" />
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}

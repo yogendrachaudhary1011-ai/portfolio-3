@@ -112,14 +112,10 @@ body {
   transition: background-color 0.35s ease, color 0.35s ease;
 }
 
-/* Shared vertical rhythm for the portfolio's content sections.
-   Using content-visibility: auto allows browsers to skip layout & paint of offscreen sections,
-   dramatically speeding up initial render, scrolling, and battery life on mobile devices. */
+/* Shared vertical rhythm for the portfolio's content sections. */
 main > section:not(#home) {
   padding-block: var(--section-space, clamp(6rem, 10vw, 8rem));
   scroll-margin-top: 6rem;
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 750px;
 }
 
 ::selection {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useTheme } from "../theme";
 import { Sun, Moon } from "../icons";
-import { Home, Menu, X, ArrowUpRight, ArrowLeft, Mail, Sparkles } from "lucide-react";
+import { Home, Menu, X, ArrowUpRight, ArrowLeft, Mail, Sparkles, ArrowUp } from "lucide-react";
 import { NAV } from "../data";
 import { Magnetic } from "./common";
 import { useSite } from "../siteContext";
@@ -96,6 +96,21 @@ export default function Navbar({
       if (navUnlockTimerRef.current) clearTimeout(navUnlockTimerRef.current);
     };
   }, []);
+
+  // Lock background scroll when mobile navigation overlay is open
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   const isHomeVisible = showHomeButton || variant === "home";
   const isHomeActive = current === "home";
@@ -621,6 +636,17 @@ export default function Navbar({
         id="floating-action-bar"
         className="glass fixed bottom-4 right-4 z-[90] flex items-center gap-1.5 rounded-full p-1.5 shadow-[var(--shadow-soft)] transition-all duration-300 pointer-events-auto opacity-100 translate-y-0 sm:bottom-5 sm:right-5 sm:gap-2 sm:p-2"
       >
+        {scrolled && (
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label="Scroll to top"
+            title="Scroll to top"
+            className="grid size-9 sm:size-10 place-items-center rounded-full text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-colors active:scale-95 cursor-pointer"
+          >
+            <ArrowUp className="size-4 sm:size-[18px]" />
+          </button>
+        )}
         <ThemeToggle />
         <Magnetic strength={0.22}>
           <a

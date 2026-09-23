@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Reveal, SplitText, WordReveal } from "./common";
 import { useSite } from "../siteContext";
+import { ArrowUpRight } from "lucide-react";
 
 export default function Capabilities() {
   const [active, setActive] = useState(0);
@@ -37,19 +38,30 @@ export default function Capabilities() {
         <div className="mt-6">
           {practices.map((practice, index) => {
             const selected = active === index;
+            const contentId = `practice-panel-${index}`;
             return (
               <Reveal key={practice.num} delay={index * 0.055} blur={false}>
                 <button
                   type="button"
-                  onClick={() => setActive(index)}
-                  onMouseEnter={() => setActive(index)}
+                  onClick={() => setActive((curr) => (curr === index ? -1 : index))}
+                  onMouseEnter={() => {
+                    if (typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches) {
+                      setActive(index);
+                    }
+                  }}
                   aria-expanded={selected}
-                  className={`group grid w-full grid-cols-[2.25rem_1fr_auto] gap-3 border-b border-[var(--process-border)] py-5 text-left transition-colors duration-500 sm:grid-cols-[5rem_1fr_auto] sm:py-8 ${selected ? "text-[var(--process-fg)]" : "text-[var(--process-muted)] hover:text-[var(--process-fg)]"}`}
+                  aria-controls={contentId}
+                  className={`group grid w-full grid-cols-[2.25rem_1fr_auto] gap-3 border-b border-[var(--process-border)] py-5 text-left transition-colors duration-500 sm:grid-cols-[5rem_1fr_auto] sm:py-8 cursor-pointer ${selected ? "text-[var(--process-fg)]" : "text-[var(--process-muted)] hover:text-[var(--process-fg)]"}`}
                 >
                   <span className="pt-2 font-mono text-[0.62rem] tracking-[0.18em] text-[#a99dff]">{practice.num}</span>
                   <div>
                     <h3 className="font-display text-[1.7rem] font-semibold leading-[1.02] tracking-[-0.055em] sm:text-5xl">{practice.title}</h3>
-                    <div className={`grid transition-[grid-template-rows,opacity] duration-500 ${selected ? "mt-5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div
+                      id={contentId}
+                      role="region"
+                      aria-label={practice.title}
+                      className={`grid transition-[grid-template-rows,opacity] duration-500 ${selected ? "mt-5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+                    >
                       <div className="overflow-hidden">
                         <p className="max-w-2xl pr-2 text-sm leading-relaxed text-[var(--process-muted)] sm:text-[0.95rem]">{practice.desc}</p>
                         <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2">
@@ -58,7 +70,15 @@ export default function Capabilities() {
                       </div>
                     </div>
                   </div>
-                  <span className={`mt-2 grid size-8 place-items-center rounded-full border text-lg transition-all duration-500 ${selected ? "rotate-45 border-[#a99dff] bg-[#a99dff] text-[#101011]" : "border-[var(--process-border)] text-[var(--process-muted)] group-hover:border-[#a99dff]"}`}>↗</span>
+                  <span
+                    className={`mt-2 grid size-8 shrink-0 place-items-center rounded-full border transition-all duration-500 ${
+                      selected
+                        ? "rotate-45 border-[#a99dff] bg-[#a99dff] text-[#101011]"
+                        : "border-[var(--process-border)] text-[var(--process-muted)] group-hover:border-[#a99dff] group-hover:text-[var(--process-fg)]"
+                    }`}
+                  >
+                    <ArrowUpRight className="size-4 transition-transform" />
+                  </span>
                 </button>
               </Reveal>
             );

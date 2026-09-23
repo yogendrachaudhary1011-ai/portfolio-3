@@ -47,6 +47,9 @@ export default function Contact() {
 
       setForm({ name: "", email: "", message: "" });
       setStatus("success");
+      setTimeout(() => {
+        setStatus("idle");
+      }, 5000);
     } catch (err) {
       console.error("Error saving message to database:", err);
       setStatus("error");
@@ -90,8 +93,8 @@ export default function Contact() {
                   <a
                     href={c.href}
                     target="_blank"
-                    rel="noreferrer"
-                    className="card-surface hover-lift relative flex items-center gap-4 rounded-2xl px-5 py-5"
+                    rel="noopener noreferrer"
+                    className="card-surface hover-lift relative flex items-center gap-4 rounded-2xl px-5 py-5 cursor-pointer"
                   >
                     <span className="absolute right-4 top-3 font-mono text-[0.6rem] text-[var(--muted)]">{c.num}</span>
                     <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] transition-transform duration-300 group-hover:scale-110">
@@ -195,16 +198,7 @@ export default function Contact() {
       <footer className="mt-28 flex flex-col items-center justify-between gap-4 border-t border-[var(--hairline)] pt-8 text-[0.75rem] text-[var(--muted)] sm:flex-row">
         <span>{contactConfig.footerCopyright || "© 2026 Yogendra Chaudhary. All rights reserved."}</span>
         <span className="inline-flex items-center font-mono">
-          <span>{(contactConfig.footerCredit || "Designed & crafted by Yogendra").replace(/\.+$/, "")}</span>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("portfolio-open-admin"))}
-            className="group inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 hover:text-[var(--fg)]/80 transition-colors focus:outline-none cursor-pointer ml-0.5"
-            aria-label="Admin panel"
-            title="Studio Admin"
-          >
-            <span className="size-1 rounded-full bg-current transition-transform duration-200 group-hover:scale-150" />
-          </button>
+          <span>{contactConfig.footerCredit || "Designed & crafted by Yogendra"}</span>
         </span>
       </footer>
     </section>

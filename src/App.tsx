@@ -24,17 +24,51 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   const NAME = config.hero.marqueeName || "YOGENDRA CHAUDHARY";
   const TAGLINE = (config.hero.tagline || "JUNIOR · UI/UX · DESIGNER").toUpperCase();
 
+  const dismiss = useCallback(() => {
+    if (lifting) return;
+    setLifting(true);
+    try {
+      sessionStorage.setItem("portfolio_intro_shown", "true");
+    } catch {
+      // Storage might be restricted in some sandboxes
+    }
+    setTimeout(onDone, 320);
+  }, [lifting, onDone]);
+
   useEffect(() => {
-    // Snappier, cinematic timing: cascade completes at 0.75s -> lifts at 1.2s -> completes at 1.7s
-    const t1 = setTimeout(() => setLifting(true), 1200);
+    // Cinematic timing: auto-lifts at 1.2s -> completes at 1.75s
+    const t1 = setTimeout(() => {
+      setLifting(true);
+      try {
+        sessionStorage.setItem("portfolio_intro_shown", "true");
+      } catch {
+        // Storage might be restricted
+      }
+    }, 1200);
     const t2 = setTimeout(onDone, 1750);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [onDone]);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        dismiss();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [dismiss, onDone]);
 
   const words = useMemo(() => NAME.trim().split(/\s+/), [NAME]);
 
   return (
     <div
+      role="dialog"
+      aria-label="Welcome splash screen"
+      onClick={dismiss}
       style={{
         position: "fixed",
         inset: 0,
@@ -45,6 +79,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         alignItems: "center",
         justifyContent: "center",
         gap: "1.2rem",
+        cursor: "pointer",
         /* Hardware accelerated GPU translate instead of heavy clipPath recalculation */
         transform: lifting ? "translate3d(0, -100%, 0)" : "translate3d(0, 0, 0)",
         opacity: lifting ? 0.96 : 1,
@@ -64,7 +99,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
       />
 
       {/* letter cascade — stacked on mobile so name fills the screen without any side clipping; inline on tablet & desktop */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 max-w-[94vw] px-2 text-center select-none">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 max-w-[94vw] px-2 text-center select-none pointer-events-none">
         {words.map((word, wIdx) => {
           const startIndex = words.slice(0, wIdx).reduce((acc, w) => acc + w.length, 0);
           return (
@@ -122,13 +157,13 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
       </span>
       <button
         type="button"
-        onClick={() => {
-          setLifting(true);
-          setTimeout(onDone, 300);
+        onClick={(e) => {
+          e.stopPropagation();
+          dismiss();
         }}
-        className="mt-2 sm:mt-4 rounded-full border border-white/20 px-4 py-1.5 sm:py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-all hover:border-white/50 hover:text-white active:scale-95 focus-visible:outline-white"
+        className="mt-2 sm:mt-4 rounded-full border border-white/20 px-4 py-1.5 sm:py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-all hover:border-white/50 hover:text-white active:scale-95 focus-visible:outline-white cursor-pointer"
       >
-        Skip intro
+        Tap anywhere to enter
       </button>
     </div>
   );
@@ -137,16 +172,33 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 /* ─── Portfolio Content ─────────────────────────────────────────────── */
 function PortfolioApp() {
   const [view, setView] = useState<"home" | "projects" | "case-study">("home");
+  const [previousView, setPreviousView] = useState<"home" | "projects">("home");
   const [projectIndex, setProjectIndex] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
-  const [introVisible, setIntroVisible] = useState(true);
+  const [introVisible, setIntroVisible] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const seen = sessionStorage.getItem("portfolio_intro_shown") === "true";
+      return !prefersReduced && !seen;
+    } catch {
+      return true;
+    }
+  });
 
   const { projects, settings } = useSite();
   const [selectedProject, setSelectedProject] = useState<Project | null>(projects[0] ?? null);
 
   const currentCaseStudyProject = (projects && projects[projectIndex]) ?? selectedProject ?? projects?.[0] ?? null;
 
-  const doneIntro = useCallback(() => setIntroVisible(false), []);
+  const doneIntro = useCallback(() => {
+    setIntroVisible(false);
+    try {
+      sessionStorage.setItem("portfolio_intro_shown", "true");
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
 
   const scrollTo = (id: string) => {
     if (id === "home") {
@@ -155,7 +207,8 @@ function PortfolioApp() {
     }
     const el = document.getElementById(id);
     if (el) {
-      const navOffset = 76;
+      const isMobile = window.innerWidth < 768;
+      const navOffset = isMobile ? 64 : 76;
       const elementTop = el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
       window.scrollTo({
         top: Math.max(0, elementTop - navOffset),
@@ -169,14 +222,65 @@ function PortfolioApp() {
       if (destination) scrollTo(destination);
       return;
     }
+    if (view === "home" || view === "projects") {
+      setPreviousView(view);
+    }
     setTransitioning(true);
     setTimeout(() => {
       setView(next);
-      if (destination) window.setTimeout(() => scrollTo(destination), 50);
+      if (destination) window.setTimeout(() => scrollTo(destination), 60);
       else window.scrollTo(0, 0);
       setTransitioning(false);
-    }, 480);
+    }, 400);
   };
+
+  useEffect(() => {
+    // Track keys pressed together or in sequence for Ctrl+Shift+A+D / Cmd+Shift+A+D
+    let lastAKeyTime = 0;
+    const pressedKeys = new Set<string>();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      pressedKeys.add(key);
+
+      const hasModifier = e.ctrlKey || e.metaKey;
+      if (!hasModifier || !e.shiftKey) return;
+
+      const now = Date.now();
+      if (key === "a") {
+        lastAKeyTime = now;
+      }
+
+      // Check if both A and D are held down together, or pressed in rapid succession while Ctrl/Cmd+Shift is held
+      const bothHeld = pressedKeys.has("a") && (pressedKeys.has("d") || key === "d");
+      const quickSequence = key === "d" && now - lastAKeyTime < 1500;
+
+      if (bothHeld || quickSequence) {
+        e.preventDefault();
+        lastAKeyTime = 0;
+        pressedKeys.clear();
+        window.dispatchEvent(new CustomEvent("portfolio-open-admin"));
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      pressedKeys.delete(e.key.toLowerCase());
+    };
+
+    const handleBlur = () => {
+      pressedKeys.clear();
+      lastAKeyTime = 0;
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
 
   return (
     <>
@@ -237,6 +341,7 @@ function PortfolioApp() {
             />
             <ProjectsArchive
               projects={projects}
+              onBack={() => navigate("home", "work")}
               onContact={() => navigate("home", "contact")}
               onProject={(project, index) => {
                 setProjectIndex(index);
@@ -258,7 +363,13 @@ function PortfolioApp() {
             <CaseStudy
               project={currentCaseStudyProject}
               index={projectIndex}
-              onBack={() => navigate("projects")}
+              onBack={() => {
+                if (previousView === "home") {
+                  navigate("home", "work");
+                } else {
+                  navigate("projects");
+                }
+              }}
               onSelectProject={(nextIdx) => {
                 setProjectIndex(nextIdx);
                 setSelectedProject(projects[nextIdx]);

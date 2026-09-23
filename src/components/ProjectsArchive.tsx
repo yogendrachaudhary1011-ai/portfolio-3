@@ -20,10 +20,12 @@ const digitalImages = [
 
 export default function ProjectsArchive({
   projects,
+  onBack,
   onContact,
   onProject,
 }: {
   projects: Project[];
+  onBack?: () => void;
   onContact: () => void;
   onProject: (project: Project, index: number) => void;
 }) {
@@ -42,6 +44,16 @@ export default function ProjectsArchive({
     window.scrollTo(0, 0);
   }, []);
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const activeSectionsCount = [showListing, showExplorations].filter(Boolean).length;
 
   return (
@@ -52,13 +64,7 @@ export default function ProjectsArchive({
           {/* Top Left Navigation Link */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                if (window.history.length > 1) {
-                  window.history.back();
-                } else {
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }
-              }}
+              onClick={handleBack}
               className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-colors cursor-pointer py-1"
             >
               <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
