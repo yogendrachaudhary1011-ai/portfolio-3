@@ -275,11 +275,11 @@ export default function MyProcess() {
                       className="grid gap-5 overflow-hidden rounded-2xl border border-[var(--process-border)] bg-[var(--process-card)] p-5 sm:gap-7 sm:p-6 md:grid-cols-[1.25fr_0.75fr] md:items-center cursor-pointer select-none active:scale-[0.985] active:brightness-95"
                       style={{
                         minHeight: "clamp(220px, 29vh, 288px)",
-                        transform: `scale(${scale})`,
+                        transform: isMobile ? undefined : `scale(${scale})`,
                         transformOrigin: "center top",
-                        filter: `brightness(${brightness})`,
+                        filter: isMobile ? undefined : `brightness(${brightness})`,
                         boxShadow: "var(--shadow-soft)",
-                        transition: "transform 0.5s cubic-bezier(0.22,1,0.36,1), filter 0.5s cubic-bezier(0.22,1,0.36,1)",
+                        transition: isMobile ? "transform 0.15s ease, filter 0.15s ease" : "transform 0.5s cubic-bezier(0.22,1,0.36,1), filter 0.5s cubic-bezier(0.22,1,0.36,1)",
                       }}
                     >
                       {/* Left — text */}

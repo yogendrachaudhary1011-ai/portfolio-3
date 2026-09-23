@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { ThemeProvider } from "./theme";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -20,7 +20,8 @@ import { type Project } from "./data";
 function IntroScreen({ onDone }: { onDone: () => void }) {
   const { config } = useSite();
   const [lifting, setLifting] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const counterRef = useRef<HTMLSpanElement>(null);
 
   const NAME = config.hero.marqueeName || "YOGENDRA CHAUDHARY";
   const TAGLINE = (config.hero.tagline || "JUNIOR · UI/UX · DESIGNER").toUpperCase();
@@ -32,14 +33,26 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   }, [lifting, onDone]);
 
   useEffect(() => {
-    // Smooth progress counter 0 -> 100%
+    // Ultra-optimized direct DOM progress updates (0 React re-renders during countdown)
     const start = performance.now();
     const duration = 1150;
     let raf = 0;
+    let lastPct = -1;
+
     const tick = (now: number) => {
       const elapsed = now - start;
       const pct = Math.min(100, Math.floor((elapsed / duration) * 100));
-      setProgress(pct);
+
+      if (pct !== lastPct) {
+        lastPct = pct;
+        if (progressBarRef.current) {
+          progressBarRef.current.style.width = `${pct}%`;
+        }
+        if (counterRef.current) {
+          counterRef.current.textContent = `${pct}%`;
+        }
+      }
+
       if (elapsed < duration) {
         raf = requestAnimationFrame(tick);
       }
@@ -86,6 +99,9 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         justifyContent: "center",
         gap: "1.2rem",
         cursor: "pointer",
+        touchAction: "none",
+        overscrollBehavior: "none",
+        contain: "strict",
         /* Hardware accelerated GPU translate instead of heavy clipPath recalculation */
         transform: lifting ? "translate3d(0, -100%, 0)" : "translate3d(0, 0, 0)",
         opacity: lifting ? 0.96 : 1,
@@ -121,6 +137,9 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
                     className="inline-block font-display font-extrabold text-[#ececec] tracking-[-0.025em] leading-none text-[clamp(2.5rem,10vw,3.8rem)] sm:text-[clamp(2.4rem,4.8vw,5.5rem)]"
                     style={{
                       animation: `intro-char 0.45s cubic-bezier(0.22,1,0.36,1) ${idx * 0.035}s both`,
+                      willChange: "transform, opacity",
+                      backfaceVisibility: "hidden",
+                      WebkitBackfaceVisibility: "hidden",
                     }}
                   >
                     {ch}
@@ -141,6 +160,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
           opacity: 0.25,
           transformOrigin: "center",
           animation: "intro-line 0.5s cubic-bezier(0.22,1,0.36,1) 0.55s both",
+          willChange: "transform, opacity",
         }}
       />
 
@@ -157,34 +177,39 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
           padding: "0 0.5rem",
           letterSpacing: "0.22em",
           animation: "intro-sub 0.5s cubic-bezier(0.22,1,0.36,1) 0.65s both",
+          willChange: "transform, opacity",
         }}
       >
         {TAGLINE}
       </span>
 
-      {/* Loading progress bar & counter */}
-      <div className="flex flex-col items-center gap-1.5 mt-1">
-        <div className="h-[2px] w-28 sm:w-36 bg-white/10 rounded-full overflow-hidden">
+      {/* Loading indicator with animated "Loading..." text and progress bar */}
+      <div className="flex flex-col items-center gap-2.5 mt-2 select-none pointer-events-none">
+        <div className="h-[2px] w-32 sm:w-44 bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)] transition-[width] duration-75 ease-out rounded-full"
-            style={{ width: `${progress}%` }}
+            ref={progressBarRef}
+            className="h-full bg-gradient-to-r from-[var(--accent)] via-[#d0a8ff] to-[var(--accent-2)] rounded-full"
+            style={{ width: "0%" }}
           />
         </div>
-        <span className="font-mono text-[0.6rem] text-white/50 tracking-wider">
-          {progress}%
-        </span>
+        <div className="inline-flex items-center gap-2">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-[var(--accent)]" />
+          </span>
+          <span className="font-mono text-[0.66rem] uppercase tracking-[0.24em] text-white/75">
+            Loading
+            <span className="loading-dots-anim inline-flex ml-0.5 tracking-normal font-sans">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </span>
+          </span>
+          <span ref={counterRef} className="font-mono text-[0.6rem] text-white/40 tracking-wider ml-1">
+            0%
+          </span>
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          dismiss();
-        }}
-        className="mt-1 sm:mt-2 rounded-full border border-white/20 px-4 py-1.5 sm:py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/70 transition-all hover:border-white/50 hover:text-white active:scale-95 focus-visible:outline-white cursor-pointer"
-      >
-        Tap anywhere to enter
-      </button>
     </div>
   );
 }
@@ -213,6 +238,17 @@ function PortfolioApp() {
   const doneIntro = useCallback(() => {
     setIntroVisible(false);
   }, []);
+
+  useEffect(() => {
+    if (introVisible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [introVisible]);
 
   const scrollTo = (id: string) => {
     if (id === "home") {

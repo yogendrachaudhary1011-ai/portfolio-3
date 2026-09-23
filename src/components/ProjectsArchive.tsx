@@ -61,19 +61,16 @@ export default function ProjectsArchive({
       {/* ─── Persistent Top Bar & Section Controls ───────────────────────── */}
       <div className="mx-auto max-w-6xl px-5 pt-28 sm:px-6 sm:pt-32">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-[var(--hairline)]">
-          {/* Top Left Navigation Link */}
+          {/* Top Left Navigation Button */}
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={handleBack}
-              className="group inline-flex items-center gap-2 text-xs font-mono tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-all active:scale-95 cursor-pointer py-1 select-none"
+              className="btn-shine group inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--fg)] shadow-xs transition-all duration-200 hover:border-[var(--accent)] hover:bg-[var(--chip)] hover:text-[var(--accent)] active:scale-95 cursor-pointer select-none"
             >
               <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />
               <span>{archiveConfig?.archiveBackButton || "Back to Overview"}</span>
             </button>
-            <span className="text-[var(--hairline)]">/</span>
-            <span className="text-[0.68rem] font-mono uppercase tracking-widest text-[var(--muted)]">
-              {showListing ? `${projects.length} ${archiveConfig?.archiveCountSuffix || "Selected Artifacts"}` : "Project Archive"}
-            </span>
           </div>
 
           {/* Section View Tabs */}
@@ -171,7 +168,7 @@ export default function ProjectsArchive({
                   onMouseEnter={() => setHoveredIdx(originalIndex)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => onProject(p, originalIndex)}
-                  className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-8 text-left transition-all duration-200 rounded-2xl px-4 sm:px-6 cursor-pointer overflow-hidden border border-transparent hover:border-[var(--card-border)] select-none active:scale-[0.985] active:bg-[var(--chip)]/60"
+                  className="card-surface active-press-card group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-8 text-left transition-all duration-200 rounded-2xl px-4 sm:px-6 cursor-pointer overflow-hidden border border-transparent hover:border-[var(--card-border)] select-none active:scale-[0.985] active:bg-[var(--chip)]/60"
                 >
                   {/* Origin-left expanding background wipe with subtle accent tint */}
                   <span

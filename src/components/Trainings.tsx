@@ -7,7 +7,7 @@ function TrainingImage({ src, alt }: { src: string; alt: string }) {
   const { ref } = useParallax<HTMLDivElement>(28);
   return (
     <Reveal className="flex-1" dir="up">
-      <div className="group relative overflow-hidden rounded-2xl border border-[var(--card-border)] shadow-xl cursor-pointer select-none transition-transform duration-200 active:scale-[0.985]">
+      <div className="card-surface active-press-card group relative overflow-hidden rounded-2xl border border-[var(--card-border)] shadow-xl cursor-pointer select-none transition-transform duration-200 active:scale-[0.985]">
         <div ref={ref}>
           <img
             src={src}

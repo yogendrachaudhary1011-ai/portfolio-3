@@ -169,7 +169,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
                 willChange: interactive ? "transform, opacity" : undefined,
               }}
             >
-              <div className="relative size-full overflow-hidden transition-all duration-150 ease-out group-active:scale-[0.97] group-active:brightness-95 group-[.is-pressed]:scale-[0.97] group-[.is-pressed]:brightness-95 group-[data-pressed='true']:scale-[0.97]">
+              <div className="relative size-full overflow-hidden transition-all duration-150 ease-out group-active:scale-[0.95] group-active:brightness-90 group-[.is-pressed]:scale-[0.95] group-[.is-pressed]:brightness-90 group-[data-pressed='true']:scale-[0.95]">
                 <img
                   src={img(p?.thumbnail ?? p?.image ?? "1551288049-bebda4e38f71", 720, 460)}
                   alt={p?.title || "Project Preview"}

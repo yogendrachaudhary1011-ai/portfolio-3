@@ -34,7 +34,7 @@ export default function Skills() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
           {tools.map((tool, index) => (
             <Reveal key={`${tool.name}-${index}`} dir="up" delay={0.08 + index * 0.07}>
-              <Tilt className="group relative h-full overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 transition-all duration-300 hover:border-[var(--accent)]/40 cursor-pointer select-none active:scale-[0.97] active:shadow-inner" max={4}>
+              <Tilt className="card-surface active-press-card group relative h-full overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 transition-all duration-300 hover:border-[var(--accent)]/40 cursor-pointer select-none active:scale-[0.97] active:shadow-inner" max={4}>
                 <span className="absolute right-5 top-5 font-mono text-[0.62rem] tracking-[0.18em] text-[var(--muted)]">{tool.number || String(index + 1).padStart(2, "0")}</span>
                 <div className="relative grid size-16 place-items-center rounded-2xl border border-[var(--card-border)] bg-[var(--chip)] transition-transform duration-300 group-hover:scale-110 group-active:scale-95" style={{ boxShadow: `0 14px 34px -18px ${tool.accent}` }}>
                   <img src={tool.icon} alt={tool.name} className="size-9 object-contain" loading="lazy" />
