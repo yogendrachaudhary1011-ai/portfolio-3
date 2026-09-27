@@ -2,7 +2,11 @@ import { Typewriter, Reveal } from "./common";
 import { Verified } from "../icons";
 import { useSite } from "../siteContext";
 
-export default function About() {
+interface AboutProps {
+  onViewProjects?: () => void;
+}
+
+export default function About({ onViewProjects }: AboutProps = {}) {
   const { config, settings } = useSite();
   const about = config.about;
 
@@ -84,7 +88,20 @@ export default function About() {
                 style={{ fontSize: "calc(0.95rem * var(--subheading-scale, 1))" }}
               >
                 {about.bioParagraph2}{" "}
-                <a href={about.ctaHref || "#work"} className="group relative inline-block font-medium text-[var(--fg)] transition-transform active:scale-95">
+                <a
+                  href="#projects"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onViewProjects) {
+                      onViewProjects();
+                    } else {
+                      window.dispatchEvent(
+                        new CustomEvent("portfolio-navigate", { detail: { view: "projects" } })
+                      );
+                    }
+                  }}
+                  className="group relative inline-block font-medium text-[var(--fg)] transition-transform active:scale-95 cursor-pointer"
+                >
                   {about.ctaLabel || "View selected work"}
                   <span className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-100 bg-[var(--accent)] transition-transform duration-300 group-hover:scale-x-0" />
                 </a>

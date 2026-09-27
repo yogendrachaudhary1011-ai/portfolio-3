@@ -636,17 +636,25 @@ export default function Navbar({
         id="floating-action-bar"
         className="glass fixed bottom-4 right-4 z-[90] flex items-center gap-1.5 rounded-full p-1.5 shadow-[var(--shadow-soft)] transition-all duration-300 pointer-events-auto opacity-100 translate-y-0 sm:bottom-5 sm:right-5 sm:gap-2 sm:p-2"
       >
-        {scrolled && (
+        <div
+          className={`overflow-hidden transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center justify-center ${
+            scrolled
+              ? "max-w-12 opacity-100 scale-100 mr-0"
+              : "max-w-0 opacity-0 scale-75 -mr-1.5 sm:-mr-2 pointer-events-none"
+          }`}
+          aria-hidden={!scrolled}
+        >
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Scroll to top"
             title="Scroll to top"
-            className="grid size-9 sm:size-10 place-items-center rounded-full text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-colors active:scale-95 cursor-pointer"
+            tabIndex={scrolled ? 0 : -1}
+            className="group grid size-9 sm:size-10 place-items-center rounded-full text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--chip)] transition-all duration-200 active:scale-90 cursor-pointer"
           >
-            <ArrowUp className="size-4 sm:size-[18px]" />
+            <ArrowUp className="size-4 sm:size-[18px] transition-transform duration-200 group-hover:-translate-y-0.5" />
           </button>
-        )}
+        </div>
         <ThemeToggle />
         <Magnetic strength={0.22}>
           <a

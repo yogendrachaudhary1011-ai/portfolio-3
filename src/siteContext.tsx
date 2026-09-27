@@ -335,7 +335,7 @@ export const defaultSiteConfig: SiteConfig = {
     bioParagraph2:
       "I start with the problem, the user, and the friction — then refine the details that make an experience feel natural and consistent.",
     ctaLabel: "View selected work",
-    ctaHref: "#work",
+    ctaHref: "#projects",
   },
   capabilities: {
     kicker: "02 / What I can do",

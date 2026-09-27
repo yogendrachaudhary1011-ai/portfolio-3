@@ -322,13 +322,22 @@ function PortfolioApp() {
       lastAKeyTime = 0;
     };
 
+    const handleNavigate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ view: "home" | "projects" | "case-study"; destination?: string }>;
+      if (customEvent.detail?.view) {
+        navigate(customEvent.detail.view, customEvent.detail.destination);
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("blur", handleBlur);
+    window.addEventListener("portfolio-navigate", handleNavigate);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("portfolio-navigate", handleNavigate);
     };
   }, []);
 
@@ -374,7 +383,9 @@ function PortfolioApp() {
               )}
               {settings?.sections?.capabilities !== false && <Capabilities />}
               {settings?.sections?.process !== false && <MyProcess />}
-              {settings?.sections?.about !== false && <About />}
+              {settings?.sections?.about !== false && (
+                <About onViewProjects={() => navigate("projects")} />
+              )}
               {settings?.sections?.trainings !== false && <Trainings />}
               {settings?.sections?.skills !== false && <Skills />}
               {settings?.sections?.contact !== false && <Contact />}

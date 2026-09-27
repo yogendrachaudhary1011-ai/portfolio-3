@@ -156,8 +156,8 @@ export default function ProjectsArchive({
             </p>
           </Reveal>
 
-        {/* ─── Premium Redesigned Interactive List ────────────────────────── */}
-        <div className="mt-14 divide-y divide-[var(--hairline)] border-t border-[var(--hairline)]">
+        {/* ─── Premium Redesigned Interactive Cards with Spacing ────────── */}
+        <div className="mt-12 sm:mt-14 flex flex-col gap-4 sm:gap-5 md:gap-6">
           {projects.map((p, originalIndex) => {
             const coverSrc = p.thumbnail || p.image || (p.media && p.media[0]) || "";
             const resolvedCover = coverSrc ? (coverSrc.startsWith("http") || coverSrc.startsWith("data:") ? coverSrc : img(coverSrc, 160, 160)) : "";
@@ -168,7 +168,7 @@ export default function ProjectsArchive({
                   onMouseEnter={() => setHoveredIdx(originalIndex)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => onProject(p, originalIndex)}
-                  className="card-surface active-press-card group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-8 text-left transition-all duration-200 rounded-2xl px-4 sm:px-6 cursor-pointer overflow-hidden border border-transparent hover:border-[var(--card-border)] select-none active:scale-[0.985] active:bg-[var(--chip)]/60"
+                  className="card-surface active-press-card group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-7 text-left transition-all duration-300 rounded-2xl px-5 sm:px-7 cursor-pointer overflow-hidden border border-[var(--card-border)] bg-[var(--card)] hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-lift)] shadow-xs select-none active:scale-[0.988] active:bg-[var(--chip)]/60"
                 >
                   {/* Origin-left expanding background wipe with subtle accent tint */}
                   <span
@@ -254,7 +254,7 @@ export default function ProjectsArchive({
             </p>
           </Reveal>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
+          <div className="mt-12 grid gap-6 sm:gap-7 sm:grid-cols-2 md:grid-cols-3">
             {digitalProjects.map((d, i) => (
               <Reveal key={`${d?.title || "digital"}-${i}`} delay={i * 0.08} dir="up">
                 <Tilt max={7} className="group h-full">

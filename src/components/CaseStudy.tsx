@@ -103,6 +103,23 @@ export default function CaseStudy({
     };
   }, []);
 
+  // Resolve media array uploaded via Admin Panel (fallback to thumbnail/image if available)
+  const images =
+    currentProject?.media && currentProject.media.length > 0
+      ? currentProject.media
+      : [currentProject?.thumbnail ?? currentProject?.image ?? ""].filter(Boolean);
+
+  // Lock body scroll when fullscreen lightbox is open
+  useEffect(() => {
+    if (lightboxIndex !== null) {
+      const origOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = origOverflow;
+      };
+    }
+  }, [lightboxIndex]);
+
   // Keyboard navigation for lightbox & next/prev
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -118,7 +135,7 @@ export default function CaseStudy({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxIndex]);
+  }, [lightboxIndex, images.length]);
 
   if (!currentProject) {
     return (
@@ -144,12 +161,6 @@ export default function CaseStudy({
       </main>
     );
   }
-
-  // Resolve media array uploaded via Admin Panel (fallback to thumbnail/image if available)
-  const images =
-    currentProject.media && currentProject.media.length > 0
-      ? currentProject.media
-      : [currentProject.thumbnail ?? currentProject.image ?? ""].filter(Boolean);
 
   const handleShare = async () => {
     if (navigator.clipboard) {

@@ -60,7 +60,15 @@ export default function Trainings() {
                 <p className="mt-2 text-[0.82rem] font-medium text-[var(--accent)]">{t.org}</p>
                 <p className="mt-4 text-[0.92rem] leading-relaxed text-[var(--muted)]">{t.desc}</p>
                 <div className="mt-5 flex flex-wrap gap-x-8 gap-y-2">
-                  <a href="#work" className="label group inline-flex items-center gap-1.5 transition-all hover:text-[var(--fg)] active:scale-95">
+                  <a
+                    href="#work"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const el = document.getElementById("work");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="label group inline-flex items-center gap-1.5 transition-all hover:text-[var(--fg)] active:scale-95 cursor-pointer"
+                  >
                     {t.cert} <External className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                   </a>
                 </div>

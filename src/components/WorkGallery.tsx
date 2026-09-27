@@ -54,6 +54,10 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
     return () => io.disconnect();
   }, []);
 
+  const pointerStart = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isDragging = useRef(false);
+  const suppressClickUntil = useRef(0);
+
   useEffect(() => {
     if (paused || !isInViewport || n <= 1) return;
     const t = setInterval(() => setActive((a) => (a + 1) % n), 4600);
@@ -66,21 +70,39 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
   };
 
   const onDown = (e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX };
-    moved.current = false;
+    pointerStart.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+    isDragging.current = false;
     setPaused(true);
   };
+
   const onMove = (e: React.PointerEvent) => {
-    if (drag.current && Math.abs(e.clientX - drag.current.x) > 6) moved.current = true;
-  };
-  const onUp = (e: React.PointerEvent) => {
-    if (drag.current) {
-      const dx = e.clientX - drag.current.x;
-      if (Math.abs(dx) > 45) go(dx < 0 ? 1 : -1);
+    if (!pointerStart.current) return;
+    const dx = e.clientX - pointerStart.current.x;
+    const dy = e.clientY - pointerStart.current.y;
+    // Consider as drag only if moved horizontally by more than 18px and mostly horizontal
+    if (Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy)) {
+      isDragging.current = true;
     }
-    drag.current = null;
+  };
+
+  const onUp = (e: React.PointerEvent) => {
+    if (pointerStart.current) {
+      const dx = e.clientX - pointerStart.current.x;
+      if (isDragging.current && Math.abs(dx) > 40) {
+        go(dx < 0 ? 1 : -1);
+        suppressClickUntil.current = Date.now() + 250;
+      }
+    }
+    pointerStart.current = null;
+    isDragging.current = false;
     setPaused(false);
+  };
+
+  const handleOpenProject = (index: number) => {
+    if (Date.now() < suppressClickUntil.current || isDragging.current) {
+      return;
+    }
+    onProject(index);
   };
 
   const gap = cardW * 0.56;
@@ -118,7 +140,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
             go(1);
           } else if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onProject(safeActive);
+            handleOpenProject(safeActive);
           }
         }}
         onMouseEnter={() => setPaused(true)}
@@ -128,7 +150,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         onPointerUp={onUp}
         onPointerCancel={onUp}
         className="relative mx-auto flex h-[255px] touch-pan-y select-none items-center justify-center overflow-hidden [perspective:1600px] sm:h-[340px] md:h-[380px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] rounded-2xl"
-        style={{ cursor: "grab" }}
+        style={{ cursor: isDragging.current ? "grabbing" : "default" }}
       >
         {galleryItems.map((p, i) => {
           // shortest signed distance around the ring → cards always take the
@@ -143,17 +165,18 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           return (
             <div
               key={`${p?.title || "project"}-${i}`}
-              onClick={() => {
-                if (moved.current) return;
-                if (isActive) {
-                  onProject(safeActive);
-                } else if (interactive) {
-                  setActive(i);
+              onClick={() => handleOpenProject(i)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleOpenProject(i);
                 }
               }}
               role="button"
               tabIndex={isActive ? 0 : -1}
-              aria-label={isActive ? `Open ${p?.title || "Project"} case study` : `View ${p?.title || "Project"}`}
+              aria-label={`Open ${p?.title || "Project"} detail page`}
+              title={`Click to open ${p?.title || "project"} detail page`}
               className={`group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] cursor-pointer select-none transition-shadow active:shadow-sm`}
               style={{
                 width: cardW,
@@ -169,29 +192,35 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
                 willChange: interactive ? "transform, opacity" : undefined,
               }}
             >
-              <div className="relative size-full overflow-hidden transition-all duration-150 ease-out group-active:scale-[0.95] group-active:brightness-90 group-[.is-pressed]:scale-[0.95] group-[.is-pressed]:brightness-90 group-[data-pressed='true']:scale-[0.95]">
+              <div
+                className="relative size-full overflow-hidden transition-all duration-150 ease-out group-active:scale-[0.96] group-active:brightness-95 group-[.is-pressed]:scale-[0.96] cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenProject(i);
+                }}
+              >
                 <img
                   src={img(p?.thumbnail ?? p?.image ?? "1551288049-bebda4e38f71", 720, 460)}
                   alt={p?.title || "Project Preview"}
                   draggable={false}
                   loading={isActive ? "eager" : "lazy"}
                   decoding="async"
-                  className="pointer-events-none size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
+                  className="size-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105 cursor-pointer"
                 />
                 <span
                   className="pointer-events-none absolute inset-0"
-                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent 45%)" }}
+                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%)" }}
                 />
-                {isActive && (
-                  <div className="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:opacity-90">
-                    <span className="font-mono text-[0.62rem] uppercase tracking-wider bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
-                      Click to Open Case Study
-                    </span>
-                    <span className="size-7 grid place-items-center rounded-full bg-white/20 backdrop-blur-md">
-                      <External className="size-3.5 text-white" />
-                    </span>
-                  </div>
-                )}
+                {/* Subtle external link icon on hover without any distracting text */}
+                <div
+                  className={`pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-end text-white transition-opacity duration-300 ${
+                    isActive ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-80"
+                  }`}
+                >
+                  <span className="size-8 grid place-items-center rounded-full bg-black/60 backdrop-blur-md border border-white/20 shadow-md transition-transform duration-200 group-hover:scale-110">
+                    <External className="size-3.5 text-white" />
+                  </span>
+                </div>
               </div>
             </div>
           );
@@ -203,7 +232,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         <button
           onClick={() => go(-1)}
           aria-label="Previous"
-          className="control-surface grid size-11 place-items-center rounded-full active:scale-90"
+          className="control-surface grid size-11 place-items-center rounded-full active:scale-90 cursor-pointer"
         >
           <Arrow className="size-4 rotate-180" />
         </button>
@@ -222,7 +251,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         <button
           onClick={() => go(1)}
           aria-label="Next"
-          className="control-surface grid size-11 place-items-center rounded-full active:scale-90"
+          className="control-surface grid size-11 place-items-center rounded-full active:scale-90 cursor-pointer"
         >
           <Arrow className="size-4" />
         </button>
@@ -234,11 +263,17 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           <span className="label mb-3 block !text-[0.55rem] text-[var(--accent)]">
             {String(safeActive + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
           </span>
-          <h3 className="font-display text-2xl font-bold leading-snug md:text-[1.75rem]">{project?.title || "Untitled Project"}</h3>
+          <h3
+            onClick={() => handleOpenProject(safeActive)}
+            className="font-display text-2xl font-bold leading-snug md:text-[1.75rem] cursor-pointer hover:text-[var(--accent)] transition-colors inline-block"
+            title="Click to view project details"
+          >
+            {project?.title || "Untitled Project"}
+          </h3>
           <p className="mx-auto mt-4 max-w-2xl text-[0.95rem] leading-relaxed text-[var(--muted)]">{project?.desc || ""}</p>
           <button
             type="button"
-            onClick={() => onProject(safeActive)}
+            onClick={() => handleOpenProject(safeActive)}
             className="group mt-6 inline-flex items-center gap-2 border-b border-current pb-1 text-[0.8rem] font-medium cursor-pointer transition-transform duration-150 hover:text-[var(--accent)] active:scale-95 active:translate-x-1"
           >
             View Project <Arrow className="size-4 transition-transform group-hover:translate-x-1" />

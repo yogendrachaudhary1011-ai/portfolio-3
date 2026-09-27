@@ -185,16 +185,24 @@ export default function Hero() {
 
       {/* scroll down */}
       {showBadges && (
-        <div
-          className="absolute bottom-24 right-6 z-10 hidden items-center gap-3 md:flex"
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById("work");
+            if (el) el.scrollIntoView({ behavior: "smooth" });
+          }}
+          aria-label="Scroll down to selected work"
+          className="absolute bottom-24 right-6 z-10 hidden items-center gap-3 md:flex cursor-pointer select-none group text-[var(--muted)] hover:text-[var(--fg)] transition-colors active:scale-95"
           style={{
             writingMode: "vertical-rl",
             animation: `load-right 0.6s cubic-bezier(0.22,1,0.36,1) ${BASE + 0.65}s both`,
           }}
         >
-          <span className="label !text-[0.6rem]">{heroConfig.scrollText || "Scroll Down"}</span>
-          <span className="h-10 w-px animate-pulse bg-[var(--muted)]" />
-        </div>
+          <span className="label !text-[0.6rem] group-hover:text-[var(--accent)] transition-colors">
+            {heroConfig.scrollText || "Scroll Down"}
+          </span>
+          <span className="h-10 w-px animate-pulse bg-current transition-transform duration-300 group-hover:scale-y-125" />
+        </button>
       )}
     </section>
   );
