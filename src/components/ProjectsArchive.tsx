@@ -168,13 +168,10 @@ export default function ProjectsArchive({
                   onMouseEnter={() => setHoveredIdx(originalIndex)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => onProject(p, originalIndex)}
-                  className="card-surface active-press-card group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-7 text-left transition-all duration-300 rounded-2xl px-5 sm:px-7 cursor-pointer overflow-hidden border border-[var(--card-border)] bg-[var(--card)] hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-lift)] shadow-xs select-none active:scale-[0.988] active:bg-[var(--chip)]/60"
+                  data-cursor="view"
+                  data-cursor-text="VIEW ↗"
+                  className="card-surface active-press-card group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-7 text-left transition-all duration-300 rounded-2xl px-5 sm:px-7 cursor-pointer overflow-hidden border border-[var(--card-border)] bg-[var(--card)] hover:border-[var(--accent)]/50 hover:bg-[var(--chip)]/60 hover:shadow-[var(--shadow-lift)] shadow-xs select-none active:scale-[0.988]"
                 >
-                  {/* Origin-left expanding background wipe with subtle accent tint */}
-                  <span
-                    className="pointer-events-none absolute inset-0 origin-left scale-x-0 bg-gradient-to-r from-[var(--chip)] via-[var(--card)] to-[var(--chip)] transition-transform duration-500 ease-out group-hover:scale-x-100"
-                    style={{ borderRadius: "1rem" }}
-                  />
                   {/* Subtle accent glow border on hover */}
                   <span
                     className="pointer-events-none absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full bg-[var(--accent)] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
@@ -258,17 +255,17 @@ export default function ProjectsArchive({
             {digitalProjects.map((d, i) => (
               <Reveal key={`${d?.title || "digital"}-${i}`} delay={i * 0.08} dir="up">
                 <Tilt max={7} className="group h-full">
-                  <div className="card-surface hover-lift flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] cursor-pointer select-none transition-all duration-200 active:scale-[0.97] active:shadow-inner">
+                  <div
+                    data-cursor="view"
+                    data-cursor-text="EXPLORE ↗"
+                    className="card-surface hover-lift flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] cursor-pointer select-none transition-all duration-200 active:scale-[0.97] active:shadow-inner"
+                  >
                     <div className="relative overflow-hidden">
                       <img
                         src={img(digitalImages[i % digitalImages.length], 520, 340)}
                         alt={d?.title || "Digital Exploration"}
                         className="aspect-[3/2] w-full object-cover transition-transform duration-700 group-hover:scale-110 group-active:scale-100"
                         loading="lazy"
-                      />
-                      <span
-                        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                        style={{ background: "linear-gradient(to top, var(--accent-soft), transparent 55%)" }}
                       />
                     </div>
                     <div className="flex flex-1 flex-col p-5">

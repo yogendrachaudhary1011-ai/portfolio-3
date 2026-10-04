@@ -62,42 +62,7 @@ export function ScrollProgress() {
 export function Atmosphere() {
   return (
     <>
-      {/* fixed ambient background with GPU-native radial gradients (zero filter blur overhead) */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden contain-strict" aria-hidden="true">
-        <div
-          className="ambient-orb drift"
-          style={{
-            top: "-10%",
-            left: "-5%",
-            width: "45vw",
-            height: "45vw",
-            background: "radial-gradient(circle, var(--glow-1) 0%, transparent 68%)",
-          }}
-        />
-        <div
-          className="ambient-orb drift"
-          style={{
-            bottom: "-15%",
-            right: "-8%",
-            width: "50vw",
-            height: "50vw",
-            background: "radial-gradient(circle, var(--glow-2) 0%, transparent 68%)",
-            animationDelay: "-7s",
-          }}
-        />
-        <div
-          className="ambient-orb drift"
-          style={{
-            top: "40%",
-            left: "55%",
-            width: "30vw",
-            height: "30vw",
-            background: "radial-gradient(circle, var(--accent-soft) 0%, transparent 68%)",
-            animationDelay: "-14s",
-          }}
-        />
-      </div>
-      <div className="grain" aria-hidden="true" />
+      <div className="grain pointer-events-none fixed inset-0 -z-10 opacity-30" aria-hidden="true" />
     </>
   );
 }

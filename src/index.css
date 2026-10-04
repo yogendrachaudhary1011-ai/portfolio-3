@@ -118,6 +118,12 @@ main > section:not(#home) {
   scroll-margin-top: 6rem;
 }
 
+#work {
+  scroll-snap-align: center;
+  scroll-snap-stop: normal;
+  scroll-margin-block: 3rem;
+}
+
 /* Off-screen layout & paint optimization for mobile viewports */
 @media (max-width: 768px) {
   main > section:not(#home) {
@@ -552,14 +558,6 @@ a:not(.btn-shine)[data-pressed="true"] {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-.ambient-orb {
-  position: absolute;
-  border-radius: 9999px;
-  pointer-events: none;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  contain: paint;
-}
 
 /* ---------- keyframes ---------- */
 @keyframes marquee {
@@ -619,38 +617,7 @@ a:not(.btn-shine)[data-pressed="true"] {
   }
 }
 
-@keyframes drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  33% {
-    transform: translate3d(6%, -8%, 0) scale(1.08);
-  }
-  66% {
-    transform: translate3d(-5%, 5%, 0) scale(0.96);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-.ambient-orb {
-  position: absolute;
-  border-radius: 9999px;
-  pointer-events: none;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  contain: strict;
-}
-.drift {
-  animation: drift 22s ease-in-out infinite;
-  will-change: transform;
-}
-
 @media (max-width: 768px) {
-  .ambient-orb.drift {
-    animation-duration: 34s;
-    will-change: auto;
-  }
   .liquid-nav,
   .liquid-menu {
     backdrop-filter: blur(14px) saturate(135%);
@@ -826,3 +793,23 @@ a:not(.btn-shine)[data-pressed="true"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* Custom Magnetic Cursor integration */
+@media (hover: hover) and (pointer: fine) {
+  html.has-custom-cursor,
+  html.has-custom-cursor body,
+  html.has-custom-cursor a,
+  html.has-custom-cursor button,
+  html.has-custom-cursor [role="button"],
+  html.has-custom-cursor .btn-shine {
+    cursor: none;
+  }
+
+  html.has-custom-cursor input:not([type="button"]):not([type="submit"]),
+  html.has-custom-cursor textarea,
+  html.has-custom-cursor select,
+  html.has-custom-cursor [contenteditable="true"] {
+    cursor: text;
+  }
+}
+

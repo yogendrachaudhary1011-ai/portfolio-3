@@ -63,6 +63,7 @@ import {
   Key,
   ShieldCheck,
   LogOut,
+  ArrowLeft,
 } from "lucide-react";
 
 interface ConfirmDialogState {
@@ -663,15 +664,23 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
     }
   };
 
+  const closeAdmin = () => {
+    setOpen(false);
+    setAuthDialogOpen(false);
+    setLoginPassword("");
+    setAuthError(null);
+    if (typeof window !== "undefined" && window.location.pathname === "/admin") {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
+
   const handleLogout = () => {
     try {
       sessionStorage.removeItem("portfolio_admin_auth");
     } catch {}
     setIsAuthenticated(false);
-    setOpen(false);
-    setAuthDialogOpen(false);
-    setLoginPassword("");
-    setAuthError(null);
+    closeAdmin();
     triggerCloudToast("Admin session locked.");
   };
 
@@ -936,184 +945,178 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
         </button>
       )}
 
-      {/* ─── SECURITY AUTHENTICATION MODAL ──────────────────────────────────── */}
+      {/* ─── SECURITY AUTHENTICATION FULL-PAGE ───────────────────────────── */}
       {authDialogOpen && (
         <div
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl animate-in fade-in duration-200"
-          role="presentation"
-          onMouseDown={() => {
-            setAuthDialogOpen(false);
-            setAuthError(null);
-            setLoginPassword("");
-          }}
+          className="fixed inset-0 z-[150] flex h-screen w-screen min-h-screen flex-col justify-between overflow-y-auto bg-[var(--bg)] text-[var(--fg)] animate-in fade-in duration-200 select-none"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Studio Security Authentication"
         >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Studio Security Authentication"
-            onMouseDown={(e) => e.stopPropagation()}
-            className="w-full max-w-sm overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--card)] shadow-[0_24px_80px_rgba(0,0,0,0.7)] text-[var(--fg)] animate-in zoom-in-95 duration-150"
-          >
-            {/* Top Accent Gradient */}
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-80" />
-
-            {/* Header */}
-            <div className="flex items-start justify-between p-5 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="grid size-10 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] border border-[var(--hairline)] shadow-inner">
-                  <Lock className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-display text-sm font-bold tracking-tight text-[var(--fg)] sm:text-base">
-                      Studio Security
-                    </h3>
-                    <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.2 font-mono text-[0.62rem] text-amber-500 font-semibold">
-                      Protected
-                    </span>
-                  </div>
-                  <p className="text-[0.72rem] text-[var(--muted)] mt-0.5">
-                    Enter credentials to open Portfolio Studio
-                  </p>
-                </div>
+          {/* Top Full-Width Editorial Header */}
+          <header className="flex shrink-0 items-center justify-between border-b border-[var(--hairline)] bg-[var(--card)]/80 px-6 py-4 backdrop-blur-md sm:px-10">
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] border border-[var(--hairline)] shadow-inner">
+                <Lock className="size-4" />
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthDialogOpen(false);
-                  setAuthError(null);
-                  setLoginPassword("");
-                }}
-                className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="size-4" />
-              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-sm font-bold tracking-tight text-[var(--fg)]">
+                    Portfolio Studio
+                  </span>
+                  <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 font-mono text-[0.62rem] text-amber-500 font-semibold">
+                    Admin Portal
+                  </span>
+                </div>
+                <p className="text-[0.7rem] text-[var(--muted)]">
+                  Live Management &amp; Content Engine
+                </p>
+              </div>
             </div>
 
-            {/* Credentials Form */}
-            <form onSubmit={handleLoginSubmit} className="p-5 pt-2 space-y-4">
-              {/* Username Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--fg)]">
-                  Username
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    autoFocus
-                    required
-                    value={loginUsername}
-                    onChange={(e) => {
-                      setLoginUsername(e.target.value);
-                      if (authError) setAuthError(null);
-                    }}
-                    placeholder="Enter username"
-                    className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3.5 py-2.5 text-sm text-[var(--fg)] placeholder:text-[var(--muted)]/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all font-mono"
-                    autoComplete="username"
-                  />
+            <button
+              type="button"
+              onClick={closeAdmin}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--card)] px-4 py-2 text-xs font-semibold text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--fg)] transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Return to Portfolio</span>
+            </button>
+          </header>
+
+          {/* Centered High-End Login Interface */}
+          <main className="my-auto mx-auto w-full max-w-md px-6 py-12 sm:px-8">
+            <div className="rounded-3xl border border-[var(--hairline)] bg-[var(--card)] p-8 sm:p-10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl relative overflow-hidden">
+              {/* Subtle top accent gradient */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-90" />
+
+              <div className="text-center mb-8">
+                <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-[var(--chip)] text-[var(--accent)] border border-[var(--hairline)] shadow-[0_0_30px_var(--glow-1)]">
+                  <ShieldCheck className="size-7" />
                 </div>
+                <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--fg)] sm:text-3xl">
+                  Sign in to Studio
+                </h1>
+                <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed max-w-xs mx-auto">
+                  Enter administrative credentials to customize projects, layout, styling, and cloud database.
+                </p>
               </div>
 
-              {/* Password Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-[var(--fg)]">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={loginPassword}
-                    onChange={(e) => {
-                      setLoginPassword(e.target.value);
-                      if (authError) setAuthError(null);
-                    }}
-                    placeholder="Enter password"
-                    className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-3.5 py-2.5 pr-10 text-sm text-[var(--fg)] placeholder:text-[var(--muted)]/50 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all font-mono"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors p-1 cursor-pointer"
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
+              <form onSubmit={handleLoginSubmit} className="space-y-5">
+                {/* Username Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                    Admin Username
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      autoFocus
+                      required
+                      value={loginUsername}
+                      onChange={(e) => {
+                        setLoginUsername(e.target.value);
+                        if (authError) setAuthError(null);
+                      }}
+                      placeholder="Username"
+                      className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--fg)] placeholder:text-[var(--muted)]/40 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all font-mono"
+                      autoComplete="username"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Error Alert */}
-              {authError && (
-                <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500 animate-in fade-in duration-150">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <span>{authError}</span>
+                {/* Password Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={loginPassword}
+                      onChange={(e) => {
+                        setLoginPassword(e.target.value);
+                        if (authError) setAuthError(null);
+                      }}
+                      placeholder="••••••••••••"
+                      className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3 pr-11 text-sm text-[var(--fg)] placeholder:text-[var(--muted)]/40 focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all font-mono"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors p-1.5 cursor-pointer"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              {/* Footer Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--hairline)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthDialogOpen(false);
-                    setAuthError(null);
-                    setLoginPassword("");
-                  }}
-                  className="rounded-xl border border-[var(--hairline)] px-3.5 py-2 text-xs font-medium text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
+                {/* Error Alert */}
+                {authError && (
+                  <div className="flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-500 animate-in fade-in duration-150">
+                    <AlertCircle className="size-4 shrink-0" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                {/* Submit Action Button */}
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 shadow-sm transition-all cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3 px-5 text-sm font-semibold text-white hover:opacity-90 shadow-md transition-all cursor-pointer active:scale-[0.99]"
                 >
-                  <Key className="size-3.5" />
-                  <span>Unlock Studio</span>
+                  <Key className="size-4" />
+                  <span>Unlock Studio Dashboard</span>
                 </button>
-              </div>
-            </form>
-          </section>
+              </form>
+            </div>
+          </main>
+
+          {/* Bottom Security Footer */}
+          <footer className="shrink-0 border-t border-[var(--hairline)] bg-[var(--card)]/60 px-6 py-4 backdrop-blur-md sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-2 text-center">
+            <span className="font-mono text-[0.68rem] text-[var(--muted)]">
+              🔒 Encrypted session · Protected administrator area
+            </span>
+            <span className="font-mono text-[0.68rem] text-[var(--muted)]/70">
+              Shortcut: <kbd className="px-1.5 py-0.5 rounded bg-[var(--chip)] border border-[var(--hairline)] text-[0.65rem]">Ctrl + Shift + A + D</kbd>
+            </span>
+          </footer>
         </div>
       )}
 
-      {/* ─── STUDIO MODAL OVERLAY ──────────────────────────────────────────── */}
+      {/* ─── STUDIO FULL-PAGE APPLICATION ─────────────────────────────────── */}
       {open && isAuthenticated && (
         <div
-          className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 p-2 sm:p-5 backdrop-blur-xl animate-in fade-in duration-200"
-          role="presentation"
-          onMouseDown={() => setOpen(false)}
+          className="fixed inset-0 z-[140] flex h-screen w-screen min-h-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] animate-in fade-in duration-150"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Portfolio Studio Dashboard"
         >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Site Studio"
-            onMouseDown={(e) => e.stopPropagation()}
-            className="flex h-[90vh] max-h-[900px] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--card)] shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
-          >
+          <section className="flex h-full w-full flex-col overflow-hidden bg-[var(--bg)]">
             {/* Top Accent Line */}
             <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-80" />
 
-            {/* Modal Header */}
-            <div className="flex shrink-0 items-center justify-between border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-3 sm:px-6">
-              <div className="flex items-center gap-3">
-                <div className="grid size-8 place-items-center rounded-lg bg-[var(--chip)] text-[var(--accent)]">
-                  <Sliders className="size-4" />
+            {/* Full-Width Studio Header */}
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-3.5 sm:px-8">
+              <div className="flex items-center gap-3.5">
+                <div className="grid size-9 place-items-center rounded-xl bg-[var(--chip)] text-[var(--accent)] border border-[var(--hairline)] shadow-inner">
+                  <Sliders className="size-4.5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="font-display text-sm font-bold tracking-tight text-[var(--fg)] sm:text-base">
                       Portfolio Studio
                     </h2>
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 font-mono text-[0.62rem] text-emerald-400">
+                    <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 font-mono text-[0.62rem] text-emerald-400 font-semibold">
                       <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Live
+                      Live Engine
                     </span>
                   </div>
                   <p className="hidden text-[0.72rem] text-[var(--muted)] sm:block">
-                    Real-time visual editor &amp; Cloud Firestore synced
+                    Real-time CMS &amp; Cloud Firestore synchronized
                   </p>
                 </div>
               </div>
@@ -1124,7 +1127,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                   type="button"
                   onClick={() => setActiveTab("database")}
                   title="Click to view Cloud Database details"
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--chip)]/60 px-2.5 py-1 font-mono text-[0.68rem] text-[var(--fg)] hover:bg-[var(--chip)] transition-colors"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[var(--hairline)] bg-[var(--chip)]/60 px-3 py-1.5 font-mono text-[0.68rem] text-[var(--fg)] hover:bg-[var(--chip)] transition-colors cursor-pointer"
                 >
                   {cloudStatus.status === "syncing" ? (
                     <>
@@ -1149,7 +1152,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                   type="button"
                   onClick={handleManualPushToCloud}
                   disabled={isManualSyncing}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-3 py-1.5 text-xs font-semibold text-[var(--fg)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:opacity-50 transition-colors cursor-pointer"
                   title="Force push all content and projects to Cloud Firestore database"
                 >
                   {isManualSyncing ? (
@@ -1161,7 +1164,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                 </button>
 
                 {saveBanner && (
-                  <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 font-mono text-xs text-emerald-400 animate-in fade-in duration-150">
+                  <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 font-mono text-xs text-emerald-400 animate-in fade-in duration-150">
                     <Check className="size-3.5" /> Saved
                   </span>
                 )}
@@ -1170,20 +1173,23 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] bg-[var(--chip)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] hover:text-rose-400 hover:border-rose-500/30 transition-colors cursor-pointer"
                   title="Lock admin session and log out"
                 >
                   <LogOut className="size-3.5" />
                   <span className="hidden sm:inline">Lock</span>
                 </button>
 
+                {/* Exit Fullscreen Studio Button */}
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
-                  className="grid size-8 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--chip)] hover:text-[var(--fg)] transition-colors cursor-pointer"
-                  aria-label="Close"
+                  onClick={closeAdmin}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--fg)] px-4 py-1.5 text-xs font-semibold text-[var(--bg)] hover:opacity-90 transition-all cursor-pointer shadow-sm active:scale-95"
+                  aria-label="Exit Studio"
+                  title="Exit Studio and return to portfolio"
                 >
-                  <X className="size-4" />
+                  <ArrowLeft className="size-3.5" />
+                  <span>Exit Studio</span>
                 </button>
               </div>
             </div>
@@ -1262,7 +1268,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
               </div>
 
               {/* ─── Desktop Sidebar Navigation (>= md) ───────────────────────── */}
-              <nav className="hidden md:flex md:w-60 md:shrink-0 md:flex-col md:overflow-y-auto md:border-r md:border-[var(--hairline)] md:bg-[var(--bg)]/60 md:p-3">
+              <nav className="hidden md:flex md:w-64 lg:w-72 md:shrink-0 md:flex-col md:overflow-y-auto md:border-r md:border-[var(--hairline)] md:bg-[var(--card)]/40 md:p-4">
                 <div className="flex flex-col gap-4 w-full">
                   {navigationSections.map((sec) => (
                     <div key={sec.group} className="space-y-1 w-full">
@@ -1278,9 +1284,9 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                               key={tab.key}
                               type="button"
                               onClick={() => setActiveTab(tab.key)}
-                              className={`group flex items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-medium transition-all ${
+                              className={`group flex items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
                                 active
-                                  ? "bg-[var(--chip)] text-[var(--fg)] border border-[var(--hairline)] shadow-xs"
+                                  ? "bg-[var(--chip)] text-[var(--fg)] border border-[var(--hairline)] shadow-xs font-semibold"
                                   : "text-[var(--muted)] hover:bg-[var(--chip)]/50 hover:text-[var(--fg)]"
                               }`}
                             >
@@ -1333,7 +1339,8 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
               </nav>
 
               {/* Tab Panel Content */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-7">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10">
+                <div className="mx-auto max-w-6xl w-full">
                 {/* ────────────────── SECTIONS & VISIBILITY TAB ────────────────── */}
                 {activeTab === "sections" && (() => {
                   const homeSectionsActive = [
@@ -4446,6 +4453,7 @@ export default function AdminPanel({ showTrigger = true }: { showTrigger?: boole
                     )}
                   </div>
                 )}
+                </div>
               </div>
             </div>
 

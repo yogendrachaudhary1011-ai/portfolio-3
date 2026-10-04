@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { img, initialCaseStudies, type Project } from "../data";
 import { SectionHead, Magnetic } from "./common";
 import { External, Arrow } from "../icons";
@@ -56,7 +56,65 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
 
   const pointerStart = useRef<{ x: number; y: number; time: number } | null>(null);
   const isDragging = useRef(false);
+  const [dragOffset, setDragOffset] = useState(0);
   const suppressClickUntil = useRef(0);
+  const wheelAccumulator = useRef(0);
+  const lastWheelSnapTime = useRef(0);
+
+  // Smoothly center the active carousel card in the viewport
+  const alignToCenterViewport = useCallback(() => {
+    const el = stageRef.current;
+    if (!el || typeof window === "undefined") return;
+    const rect = el.getBoundingClientRect();
+    const stageCenter = rect.top + rect.height / 2;
+    const viewportCenter = window.innerHeight / 2;
+    const delta = stageCenter - viewportCenter;
+
+    // Smoothly snap to center if within natural reading threshold
+    if (Math.abs(delta) > 20 && Math.abs(delta) < window.innerHeight * 0.42) {
+      window.scrollBy({
+        top: delta,
+        behavior: "smooth",
+      });
+    }
+  }, []);
+
+  // Automatic scroll-snap to center when user scrolls near the carousel
+  useEffect(() => {
+    let scrollTimer: number;
+    let snapping = false;
+
+    const onScrollSnap = () => {
+      if (snapping) return;
+      clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => {
+        const el = stageRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const stageCenter = rect.top + rect.height / 2;
+        const viewportCenter = window.innerHeight / 2;
+        const delta = stageCenter - viewportCenter;
+
+        // When scrolling settles within snap threshold of center, snap card to center
+        if (Math.abs(delta) > 18 && Math.abs(delta) < 130) {
+          snapping = true;
+          window.scrollBy({
+            top: delta,
+            behavior: "smooth",
+          });
+          setTimeout(() => {
+            snapping = false;
+          }, 500);
+        }
+      }, 160);
+    };
+
+    window.addEventListener("scroll", onScrollSnap, { passive: true });
+    return () => {
+      clearTimeout(scrollTimer);
+      window.removeEventListener("scroll", onScrollSnap);
+    };
+  }, []);
 
   useEffect(() => {
     if (paused || !isInViewport || n <= 1) return;
@@ -79,29 +137,61 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
     if (!pointerStart.current) return;
     const dx = e.clientX - pointerStart.current.x;
     const dy = e.clientY - pointerStart.current.y;
-    // Consider as drag only if moved horizontally by more than 18px and mostly horizontal
-    if (Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy)) {
+    // Real-time drag follow with elastic resistance
+    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
       isDragging.current = true;
+      setDragOffset(dx);
     }
   };
 
   const onUp = (e: React.PointerEvent) => {
-    if (pointerStart.current) {
+    if (pointerStart.current && isDragging.current) {
       const dx = e.clientX - pointerStart.current.x;
-      if (isDragging.current && Math.abs(dx) > 40) {
+      if (Math.abs(dx) > 35) {
         go(dx < 0 ? 1 : -1);
+        alignToCenterViewport();
         suppressClickUntil.current = Date.now() + 250;
       }
     }
     pointerStart.current = null;
     isDragging.current = false;
+    setDragOffset(0);
     setPaused(false);
   };
 
-  const handleOpenProject = (index: number) => {
+  const onWheel = (e: React.WheelEvent) => {
+    const absX = Math.abs(e.deltaX);
+    const absY = Math.abs(e.deltaY);
+    const isHorizontal = absX > absY;
+    const delta = isHorizontal ? e.deltaX : e.deltaY;
+
+    if (isHorizontal || absY > 12) {
+      wheelAccumulator.current += delta;
+    }
+
+    const now = Date.now();
+    if (now - lastWheelSnapTime.current < 260) return;
+
+    if (Math.abs(wheelAccumulator.current) >= 32) {
+      const dir = wheelAccumulator.current > 0 ? 1 : -1;
+      go(dir);
+      alignToCenterViewport();
+      lastWheelSnapTime.current = now;
+      wheelAccumulator.current = 0;
+    }
+  };
+
+  const handleCardClick = (index: number, offset: number) => {
     if (Date.now() < suppressClickUntil.current || isDragging.current) {
       return;
     }
+    // Clicking a side card snaps it cleanly to center
+    if (offset !== 0) {
+      go(offset > 0 ? 1 : -1);
+      alignToCenterViewport();
+      return;
+    }
+    // Clicking the centered active card opens the case study
     onProject(index);
   };
 
@@ -130,17 +220,20 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         ref={stageRef}
         tabIndex={0}
         role="region"
-        aria-label="Interactive projects coverflow"
+        aria-label="Interactive projects coverflow with scroll snap"
+        onWheel={onWheel}
         onKeyDown={(e) => {
           if (e.key === "ArrowLeft") {
             e.preventDefault();
             go(-1);
+            alignToCenterViewport();
           } else if (e.key === "ArrowRight") {
             e.preventDefault();
             go(1);
+            alignToCenterViewport();
           } else if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            handleOpenProject(safeActive);
+            onProject(safeActive);
           }
         }}
         onMouseEnter={() => setPaused(true)}
@@ -149,7 +242,9 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={onUp}
-        className="relative mx-auto flex h-[255px] touch-pan-y select-none items-center justify-center overflow-hidden [perspective:1600px] sm:h-[340px] md:h-[380px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] rounded-2xl"
+        className="relative mx-auto flex h-[255px] touch-pan-y select-none items-center justify-center overflow-hidden [perspective:1600px] sm:h-[340px] md:h-[380px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] rounded-2xl scroll-snap-stage"
+        data-cursor="drag"
+        data-cursor-text="DRAG"
         style={{ cursor: isDragging.current ? "grabbing" : "default" }}
       >
         {galleryItems.map((p, i) => {
@@ -162,33 +257,39 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           // abs 0 = focus, abs 1 = visible side, abs 2 = invisible staging slot
           const opacity = abs === 0 ? 1 : abs === 1 ? 0.5 : 0;
           const interactive = abs <= 1;
+          const dragShift = isDragging.current ? dragOffset * 0.75 : 0;
+          const displayOffset = offset * gap + dragShift;
+
           return (
             <div
               key={`${p?.title || "project"}-${i}`}
-              onClick={() => handleOpenProject(i)}
+              onClick={() => handleCardClick(i, offset)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleOpenProject(i);
+                  handleCardClick(i, offset);
                 }
               }}
               role="button"
               tabIndex={isActive ? 0 : -1}
-              aria-label={`Open ${p?.title || "Project"} detail page`}
-              title={`Click to open ${p?.title || "project"} detail page`}
+              data-cursor="view"
+              data-cursor-text={isActive ? "VIEW ↗" : "CENTER"}
+              aria-label={isActive ? `Open ${p?.title || "Project"} detail page` : `Align ${p?.title || "Project"} to center`}
+              title={isActive ? `Click to open ${p?.title || "project"} detail page` : `Click to center ${p?.title || "project"}`}
               className={`group absolute overflow-hidden rounded-2xl border border-[var(--card-border)] bg-[var(--card)] cursor-pointer select-none transition-shadow active:shadow-sm`}
               style={{
                 width: cardW,
                 height: cardW * 0.62,
-                transform: `translate3d(${offset * gap}px,0,${-abs * 130}px) rotateY(${offset * -24}deg) scale(${isActive ? 1 : 0.88})`,
+                transform: `translate3d(${displayOffset}px,0,${-abs * 130}px) rotateY(${offset * -24 + (dragShift / gap) * -12}deg) scale(${isActive ? 1 : 0.88})`,
                 zIndex: 10 - abs,
                 opacity,
                 pointerEvents: interactive ? "auto" : "none",
                 filter: isActive ? "brightness(1)" : "brightness(0.55)",
                 boxShadow: isActive ? "var(--shadow-lift), 0 0 60px -16px var(--glow-1)" : "var(--shadow-soft)",
-                transition:
-                  "transform 0.8s cubic-bezier(0.33,1,0.68,1), opacity 0.6s ease, filter 0.7s ease, box-shadow 0.7s ease",
+                transition: isDragging.current
+                  ? "none"
+                  : "transform 0.65s cubic-bezier(0.25,1,0.5,1), opacity 0.5s ease, filter 0.5s ease, box-shadow 0.5s ease",
                 willChange: interactive ? "transform, opacity" : undefined,
               }}
             >
@@ -196,7 +297,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
                 className="relative size-full overflow-hidden transition-all duration-150 ease-out group-active:scale-[0.96] group-active:brightness-95 group-[.is-pressed]:scale-[0.96] cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleOpenProject(i);
+                  handleCardClick(i, offset);
                 }}
               >
                 <img
@@ -230,8 +331,11 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
       {/* controls */}
       <div className="mt-6 flex items-center justify-center gap-3 sm:mt-8 sm:gap-4">
         <button
-          onClick={() => go(-1)}
-          aria-label="Previous"
+          onClick={() => {
+            go(-1);
+            alignToCenterViewport();
+          }}
+          aria-label="Previous project"
           className="control-surface grid size-11 place-items-center rounded-full active:scale-90 cursor-pointer"
         >
           <Arrow className="size-4 rotate-180" />
@@ -240,7 +344,10 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           {galleryItems.map((_, i) => (
             <button
               key={i}
-              onClick={() => setActive(i)}
+              onClick={() => {
+                setActive(i);
+                alignToCenterViewport();
+              }}
               aria-label={`Go to project ${i + 1}`}
               className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer active:scale-75 ${
                 i === safeActive ? "w-8 bg-[var(--accent)]" : "w-1.5 bg-[var(--muted)]/40 hover:bg-[var(--muted)]"
@@ -249,8 +356,11 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           ))}
         </div>
         <button
-          onClick={() => go(1)}
-          aria-label="Next"
+          onClick={() => {
+            go(1);
+            alignToCenterViewport();
+          }}
+          aria-label="Next project"
           className="control-surface grid size-11 place-items-center rounded-full active:scale-90 cursor-pointer"
         >
           <Arrow className="size-4" />
@@ -264,7 +374,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
             {String(safeActive + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
           </span>
           <h3
-            onClick={() => handleOpenProject(safeActive)}
+            onClick={() => onProject(safeActive)}
             className="font-display text-2xl font-bold leading-snug md:text-[1.75rem] cursor-pointer hover:text-[var(--accent)] transition-colors inline-block"
             title="Click to view project details"
           >
@@ -273,7 +383,7 @@ export default function WorkGallery({ projects = initialCaseStudies, onMore, onP
           <p className="mx-auto mt-4 max-w-2xl text-[0.95rem] leading-relaxed text-[var(--muted)]">{project?.desc || ""}</p>
           <button
             type="button"
-            onClick={() => handleOpenProject(safeActive)}
+            onClick={() => onProject(safeActive)}
             className="group mt-6 inline-flex items-center gap-2 border-b border-current pb-1 text-[0.8rem] font-medium cursor-pointer transition-transform duration-150 hover:text-[var(--accent)] active:scale-95 active:translate-x-1"
           >
             View Project <Arrow className="size-4 transition-transform group-hover:translate-x-1" />

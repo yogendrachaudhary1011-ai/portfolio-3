@@ -68,14 +68,8 @@ export default function Hero() {
       className="relative flex min-h-[44rem] items-end overflow-hidden pt-20 sm:min-h-screen sm:pt-24"
     >
       <h1 className="sr-only">{marqueeName}, {heroConfig.tagline}</h1>
-      {/* dotted grid + spotlight */}
+      {/* subtle dotted grid */}
       <div className="grid-bg pointer-events-none absolute inset-0" />
-      <div
-        className="pointer-events-none absolute inset-0 transition-opacity"
-        style={{
-          background: "radial-gradient(600px circle at var(--spot-x, 50%) var(--spot-y, 50%), var(--accent-soft), transparent 60%)",
-        }}
-      />
 
       {/* giant scrolling outlined text */}
       <div

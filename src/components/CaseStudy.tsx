@@ -330,6 +330,8 @@ export default function CaseStudy({
                           fetchPriority={idx === 0 ? "high" : "auto"}
                           decoding="async"
                           onClick={() => setLightboxIndex(idx)}
+                          data-cursor="view"
+                          data-cursor-text="ZOOM ↗"
                           className="w-full h-auto block object-cover md:object-contain cursor-zoom-in rounded-none shadow-none m-0 p-0"
                           style={{
                             maxHeight: "none",
@@ -378,7 +380,9 @@ export default function CaseStudy({
         <div className="mx-auto max-w-5xl px-4 sm:px-6 mt-28">
           <div
             onClick={() => onSelectProject(nextIndex)}
-            className="card-surface active-press-card group relative overflow-hidden rounded-3xl border border-[var(--card-border)] bg-gradient-to-r from-[var(--card)] to-[var(--bg-2)] p-8 sm:p-12 transition-all duration-200 hover:border-[var(--accent)] hover:shadow-2xl cursor-pointer select-none active:scale-[0.985] active:border-[var(--accent)]"
+            data-cursor="view"
+            data-cursor-text="NEXT ↗"
+            className="card-surface active-press-card group relative overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card)] p-8 sm:p-12 transition-all duration-200 hover:border-[var(--accent)] hover:shadow-2xl cursor-pointer select-none active:scale-[0.985] active:border-[var(--accent)]"
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
               <div>

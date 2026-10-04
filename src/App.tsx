@@ -1,4 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  useParams,
+  Navigate,
+} from "react-router";
 import { ThemeProvider } from "./theme";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -13,6 +22,7 @@ import ProjectsArchive from "./components/ProjectsArchive";
 import CaseStudy from "./components/CaseStudy";
 import AdminPanel from "./components/AdminPanel";
 import { Atmosphere, ScrollProgress } from "./components/Atmosphere";
+import MagneticCursor from "./components/MagneticCursor";
 import { SiteProvider, useSite } from "./siteContext";
 import { type Project } from "./data";
 
@@ -110,15 +120,6 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
         pointerEvents: lifting ? "none" : "all",
       }}
     >
-      {/* subtle ambient glow in center using hardware-native radial gradient instead of expensive blur filter */}
-      <div
-        className="pointer-events-none absolute -z-10 size-[280px] sm:size-[480px] rounded-full"
-        style={{
-          background: "radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%)",
-          transform: "translate3d(0, 0, 0)",
-        }}
-        aria-hidden="true"
-      />
 
       {/* letter cascade — stacked on mobile so name fills the screen without any side clipping; inline on tablet & desktop */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-4 max-w-[94vw] px-2 text-center select-none pointer-events-none">
@@ -214,41 +215,10 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-/* ─── Portfolio Content ─────────────────────────────────────────────── */
-function PortfolioApp() {
-  const [view, setView] = useState<"home" | "projects" | "case-study">("home");
-  const [previousView, setPreviousView] = useState<"home" | "projects">("home");
-  const [projectIndex, setProjectIndex] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [introVisible, setIntroVisible] = useState(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      return !prefersReduced;
-    } catch {
-      return true;
-    }
-  });
-
+/* ─── Route Components ─────────────────────────────────────────────── */
+function HomePage() {
   const { projects, settings } = useSite();
-  const [selectedProject, setSelectedProject] = useState<Project | null>(projects[0] ?? null);
-
-  const currentCaseStudyProject = (projects && projects[projectIndex]) ?? selectedProject ?? projects?.[0] ?? null;
-
-  const doneIntro = useCallback(() => {
-    setIntroVisible(false);
-  }, []);
-
-  useEffect(() => {
-    if (introVisible) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [introVisible]);
+  const navigate = useNavigate();
 
   const scrollTo = (id: string) => {
     if (id === "home") {
@@ -267,25 +237,183 @@ function PortfolioApp() {
     }
   };
 
-  const navigate = (next: "home" | "projects" | "case-study", destination?: string) => {
-    if (next === view) {
-      if (destination) scrollTo(destination);
-      return;
+  return (
+    <>
+      <Navbar
+        variant="home"
+        showHomeButton
+        onNav={scrollTo}
+        onHome={() => scrollTo("home")}
+        onContact={() => scrollTo("contact")}
+      />
+      <main>
+        {settings?.sections?.hero !== false && <Hero />}
+        {settings?.sections?.work !== false && (
+          <WorkGallery
+            projects={projects}
+            onMore={() => navigate("/projects")}
+            onProject={(index) => {
+              navigate(`/project/${index}`);
+            }}
+          />
+        )}
+        {settings?.sections?.capabilities !== false && <Capabilities />}
+        {settings?.sections?.process !== false && <MyProcess />}
+        {settings?.sections?.about !== false && (
+          <About onViewProjects={() => navigate("/projects")} />
+        )}
+        {settings?.sections?.trainings !== false && <Trainings />}
+        {settings?.sections?.skills !== false && <Skills />}
+        {settings?.sections?.contact !== false && <Contact />}
+      </main>
+    </>
+  );
+}
+
+function ProjectsPage() {
+  const { projects } = useSite();
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <Navbar
+        variant="projects"
+        showHomeButton
+        onNav={(id) => navigate(`/#${id}`)}
+        onHome={() => navigate("/")}
+        onContact={() => navigate("/#contact")}
+      />
+      <ProjectsArchive
+        projects={projects}
+        onBack={() => navigate("/#work")}
+        onContact={() => navigate("/#contact")}
+        onProject={(_project, index) => {
+          navigate(`/project/${index}`);
+        }}
+      />
+    </>
+  );
+}
+
+function CaseStudyPage() {
+  const { id } = useParams<{ id: string }>();
+  const { projects } = useSite();
+  const navigate = useNavigate();
+
+  // Support numeric indices (/project/0) or title slugs (/project/fintech-app)
+  const numericIndex = id !== undefined && /^\d+$/.test(id) ? parseInt(id, 10) : -1;
+  const foundIndex =
+    numericIndex >= 0 && numericIndex < projects.length
+      ? numericIndex
+      : projects.findIndex(
+          (p) =>
+            p?.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-") === id
+        );
+  const resolvedIndex = foundIndex >= 0 ? foundIndex : 0;
+  const currentProject = projects[resolvedIndex] ?? projects[0];
+
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/#work");
     }
-    if (view === "home" || view === "projects") {
-      setPreviousView(view);
-    }
-    setTransitioning(true);
-    setTimeout(() => {
-      setView(next);
-      if (destination) window.setTimeout(() => scrollTo(destination), 60);
-      else window.scrollTo(0, 0);
-      setTransitioning(false);
-    }, 400);
   };
 
+  return (
+    <>
+      <Navbar
+        variant="case-study"
+        showHomeButton
+        active="work"
+        onNav={(navId) => navigate(`/#${navId}`)}
+        onHome={() => navigate("/")}
+        onContact={() => navigate("/#contact")}
+      />
+      <CaseStudy
+        project={currentProject}
+        index={resolvedIndex}
+        onBack={handleBack}
+        onSelectProject={(nextIdx) => {
+          navigate(`/project/${nextIdx}`);
+        }}
+      />
+    </>
+  );
+}
+
+/* ─── Portfolio Content with Router Synchronization ───────────────── */
+function PortfolioApp() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [transitioning, setTransitioning] = useState(false);
+  const prevPathRef = useRef(location.pathname);
+
+  const [introVisible, setIntroVisible] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      // If user directly visits a deep link URL (/projects, /project/0), skip intro splash
+      if (window.location.pathname !== "/" && window.location.pathname !== "") {
+        return false;
+      }
+      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      return !prefersReduced;
+    } catch {
+      return true;
+    }
+  });
+
+  const doneIntro = useCallback(() => {
+    setIntroVisible(false);
+  }, []);
+
   useEffect(() => {
-    // Track keys pressed together or in sequence for Ctrl+Shift+A+D / Cmd+Shift+A+D
+    if (introVisible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [introVisible]);
+
+  // Handle route change curtain transition
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      setTransitioning(true);
+      const timer = setTimeout(() => {
+        setTransitioning(false);
+        if (!location.hash) {
+          window.scrollTo(0, 0);
+        }
+      }, 280);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, location.hash]);
+
+  // Handle hash anchor jumps on home page (e.g. /#work, /#contact)
+  useEffect(() => {
+    if (location.pathname === "/" && location.hash) {
+      const id = location.hash.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        const timer = setTimeout(() => {
+          const isMobile = window.innerWidth < 768;
+          const navOffset = isMobile ? 64 : 76;
+          const elementTop = el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+          window.scrollTo({
+            top: Math.max(0, elementTop - navOffset),
+            behavior: "smooth",
+          });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
     let lastAKeyTime = 0;
     const pressedKeys = new Set<string>();
 
@@ -301,7 +429,6 @@ function PortfolioApp() {
         lastAKeyTime = now;
       }
 
-      // Check if both A and D are held down together, or pressed in rapid succession while Ctrl/Cmd+Shift is held
       const bothHeld = pressedKeys.has("a") && (pressedKeys.has("d") || key === "d");
       const quickSequence = key === "d" && now - lastAKeyTime < 1500;
 
@@ -324,8 +451,11 @@ function PortfolioApp() {
 
     const handleNavigate = (e: Event) => {
       const customEvent = e as CustomEvent<{ view: "home" | "projects" | "case-study"; destination?: string }>;
-      if (customEvent.detail?.view) {
-        navigate(customEvent.detail.view, customEvent.detail.destination);
+      const v = customEvent.detail?.view;
+      if (v === "projects") {
+        navigate("/projects");
+      } else if (v === "home") {
+        navigate(customEvent.detail?.destination ? `/#${customEvent.detail.destination}` : "/");
       }
     };
 
@@ -339,13 +469,24 @@ function PortfolioApp() {
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("portfolio-navigate", handleNavigate);
     };
-  }, []);
+  }, [navigate]);
+
+  // Handle direct navigation to /admin
+  useEffect(() => {
+    if (location.pathname === "/admin") {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("portfolio-open-admin"));
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]);
 
   return (
     <>
       {introVisible && <IntroScreen onDone={doneIntro} />}
       <Atmosphere />
       <ScrollProgress />
+      <MagneticCursor />
       <AdminPanel showTrigger={false} />
 
       {/* page transition curtain */}
@@ -354,90 +495,20 @@ function PortfolioApp() {
         style={{
           transform: transitioning ? "scaleY(1)" : "scaleY(0)",
           transformOrigin: transitioning ? "bottom" : "top",
-          transition: "transform 0.48s cubic-bezier(0.76,0,0.24,1)",
+          transition: "transform 0.42s cubic-bezier(0.76,0,0.24,1)",
         }}
       />
 
-      <div style={{ opacity: transitioning ? 0 : 1, transition: "opacity 0.4s ease" }}>
-        {view === "home" ? (
-          <>
-            <Navbar
-              variant="home"
-              showHomeButton
-              onNav={scrollTo}
-              onHome={() => scrollTo("home")}
-              onContact={() => scrollTo("contact")}
-            />
-            <main>
-              {settings?.sections?.hero !== false && <Hero />}
-              {settings?.sections?.work !== false && (
-                <WorkGallery
-                  projects={projects}
-                  onMore={() => navigate("projects")}
-                  onProject={(index) => {
-                    setProjectIndex(index);
-                    setSelectedProject(projects[index]);
-                    navigate("case-study");
-                  }}
-                />
-              )}
-              {settings?.sections?.capabilities !== false && <Capabilities />}
-              {settings?.sections?.process !== false && <MyProcess />}
-              {settings?.sections?.about !== false && (
-                <About onViewProjects={() => navigate("projects")} />
-              )}
-              {settings?.sections?.trainings !== false && <Trainings />}
-              {settings?.sections?.skills !== false && <Skills />}
-              {settings?.sections?.contact !== false && <Contact />}
-            </main>
-          </>
-        ) : view === "projects" ? (
-          <>
-            <Navbar
-              variant="projects"
-              showHomeButton
-              onNav={(id) => navigate("home", id)}
-              onHome={() => navigate("home", "home")}
-              onContact={() => navigate("home", "contact")}
-            />
-            <ProjectsArchive
-              projects={projects}
-              onBack={() => navigate("home", "work")}
-              onContact={() => navigate("home", "contact")}
-              onProject={(project, index) => {
-                setProjectIndex(index);
-                setSelectedProject(project);
-                navigate("case-study");
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <Navbar
-              variant="case-study"
-              showHomeButton
-              active="work"
-              onNav={(id) => navigate("home", id)}
-              onHome={() => navigate("home", "home")}
-              onContact={() => navigate("home", "contact")}
-            />
-            <CaseStudy
-              project={currentCaseStudyProject}
-              index={projectIndex}
-              onBack={() => {
-                if (previousView === "home") {
-                  navigate("home", "work");
-                } else {
-                  navigate("projects");
-                }
-              }}
-              onSelectProject={(nextIdx) => {
-                setProjectIndex(nextIdx);
-                setSelectedProject(projects[nextIdx]);
-              }}
-            />
-          </>
-        )}
+      <div style={{ opacity: transitioning ? 0 : 1, transition: "opacity 0.35s ease" }}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/admin" element={<HomePage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/archive" element={<Navigate to="/projects" replace />} />
+          <Route path="/project/:id" element={<CaseStudyPage />} />
+          <Route path="/case-study/:id" element={<CaseStudyPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </>
   );
@@ -448,7 +519,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <SiteProvider>
-        <PortfolioApp />
+        <BrowserRouter>
+          <PortfolioApp />
+        </BrowserRouter>
       </SiteProvider>
     </ThemeProvider>
   );
