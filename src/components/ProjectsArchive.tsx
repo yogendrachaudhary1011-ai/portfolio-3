@@ -20,11 +20,15 @@ const digitalImages = [
 
 export default function ProjectsArchive({
   projects,
+  activeFilter,
+  onFilterChange,
   onBack,
   onContact,
   onProject,
 }: {
   projects: Project[];
+  activeFilter?: "all" | "archive" | "beyond";
+  onFilterChange?: (filter: "all" | "archive" | "beyond") => void;
   onBack?: () => void;
   onContact: () => void;
   onProject: (project: Project, index: number) => void;
@@ -38,7 +42,19 @@ export default function ProjectsArchive({
   const showCta = (archiveConfig?.showCta !== false) && (settings?.sections?.archiveCta !== false);
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [activeSectionFilter, setActiveSectionFilter] = useState<"all" | "archive" | "beyond">("all");
+  const [internalFilter, setInternalFilter] = useState<"all" | "archive" | "beyond">(activeFilter ?? "all");
+
+  const activeSectionFilter = activeFilter ?? internalFilter;
+  const handleSelectFilter = (next: "all" | "archive" | "beyond") => {
+    setInternalFilter(next);
+    onFilterChange?.(next);
+  };
+
+  useEffect(() => {
+    if (activeFilter) {
+      setInternalFilter(activeFilter);
+    }
+  }, [activeFilter]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -78,7 +94,7 @@ export default function ProjectsArchive({
             <div className="inline-flex items-center rounded-full border border-[var(--hairline)] bg-[var(--chip)]/60 p-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => setActiveSectionFilter("all")}
+                onClick={() => handleSelectFilter("all")}
                 className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all active:scale-95 cursor-pointer select-none ${
                   activeSectionFilter === "all"
                     ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
@@ -89,7 +105,7 @@ export default function ProjectsArchive({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveSectionFilter("archive")}
+                onClick={() => handleSelectFilter("archive")}
                 className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all active:scale-95 cursor-pointer select-none flex items-center gap-1.5 ${
                   activeSectionFilter === "archive"
                     ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
@@ -103,7 +119,7 @@ export default function ProjectsArchive({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveSectionFilter("beyond")}
+                onClick={() => handleSelectFilter("beyond")}
                 className={`rounded-full px-3 py-1 text-[0.72rem] font-medium transition-all active:scale-95 cursor-pointer select-none flex items-center gap-1.5 ${
                   activeSectionFilter === "beyond"
                     ? "bg-[var(--card)] text-[var(--fg)] shadow-xs font-semibold"
@@ -168,6 +184,8 @@ export default function ProjectsArchive({
                   onMouseEnter={() => setHoveredIdx(originalIndex)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => onProject(p, originalIndex)}
+                  data-cursor="card"
+                  data-cursor-label="Case Study"
                   className="card-surface active-press-card group relative flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 py-6 sm:py-7 text-left transition-all duration-300 rounded-2xl px-5 sm:px-7 cursor-pointer overflow-hidden border border-[var(--card-border)] bg-[var(--card)] hover:border-[var(--accent)]/50 hover:shadow-[var(--shadow-lift)] shadow-xs select-none active:scale-[0.988] active:bg-[var(--chip)]/60"
                 >
                   {/* Origin-left expanding background wipe with subtle accent tint */}

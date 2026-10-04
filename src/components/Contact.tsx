@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Mail, Linkedin, Behance, External, Arrow, Github, Dribbble } from "../icons";
-import { Reveal, Tilt } from "./common";
+import { Reveal, Tilt, Magnetic } from "./common";
 import { useSite } from "../siteContext";
 import { sendMessageToCloud } from "../cloudStore";
 import { Loader2, CheckCircle2 } from "lucide-react";
@@ -147,34 +147,36 @@ export default function Contact() {
                   className="message-field mt-1.5 min-h-28 w-full resize-y rounded-lg px-3 py-2.5 text-sm outline-none"
                 />
               </label>
-              <button
-                type="submit"
-                disabled={status === "submitting"}
-                className={`btn-shine inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] px-6 py-3 text-[0.78rem] font-medium transition-all duration-200 active:scale-95 cursor-pointer ${
-                  status === "submitting"
-                    ? "opacity-60 cursor-not-allowed bg-[var(--chip)] text-[var(--muted)]"
-                    : status === "success"
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                    : "hover:bg-[var(--fg)] hover:text-[var(--bg)]"
-                }`}
-              >
-                {status === "submitting" ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
-                    <span>Saving to Database...</span>
-                  </>
-                ) : status === "success" ? (
-                  <>
-                    <CheckCircle2 className="size-4 text-emerald-400" />
-                    <span>Message Sent ✓</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Send Message</span>
-                    <Arrow className="size-4" />
-                  </>
-                )}
-              </button>
+              <Magnetic strength={0.25}>
+                <button
+                  type="submit"
+                  disabled={status === "submitting"}
+                  className={`btn-shine inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] px-6 py-3 text-[0.78rem] font-medium transition-all duration-200 active:scale-95 cursor-pointer ${
+                    status === "submitting"
+                      ? "opacity-60 cursor-not-allowed bg-[var(--chip)] text-[var(--muted)]"
+                      : status === "success"
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                      : "hover:bg-[var(--fg)] hover:text-[var(--bg)]"
+                  }`}
+                >
+                  {status === "submitting" ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
+                      <span>Saving to Database...</span>
+                    </>
+                  ) : status === "success" ? (
+                    <>
+                      <CheckCircle2 className="size-4 text-emerald-400" />
+                      <span>Message Sent ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Message</span>
+                      <Arrow className="size-4" />
+                    </>
+                  )}
+                </button>
+              </Magnetic>
               <div aria-live="polite" className="mt-3 min-h-5 text-xs">
                 {status === "success" ? (
                   <p className="text-emerald-400 font-medium">

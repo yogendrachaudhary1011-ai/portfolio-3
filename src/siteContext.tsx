@@ -499,8 +499,8 @@ export interface PortfolioSettings {
 }
 
 export const defaultSettings: PortfolioSettings = {
-  accent: "#a99dff",
-  accent2: "#d0a8ff",
+  accent: "#f2b705",
+  accent2: "#ff5500",
   background: "",
   radius: 14,
   sectionSpace: "clamp(6rem, 10vw, 8rem)",
@@ -583,6 +583,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         if (parsed.background === "#f5f4f8" || parsed.background === "#08080a" || parsed.background === "#0b0b0e") {
           parsed.background = "";
         }
+        if (parsed.accent === "#a99dff") {
+          parsed.accent = "#f2b705";
+          parsed.accent2 = "#ff5500";
+        }
         return {
           ...defaultSettings,
           ...parsed,
@@ -613,8 +617,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
   const applyCSSVariables = (nextSettings: PortfolioSettings) => {
     const root = document.documentElement;
-    root.style.setProperty("--accent", nextSettings.accent);
-    root.style.setProperty("--accent-2", nextSettings.accent2 || nextSettings.accent);
+    const resolvedAccent = nextSettings.accent === "#a99dff" ? "#f2b705" : nextSettings.accent;
+    const resolvedAccent2 = nextSettings.accent2 === "#d0a8ff" ? "#ff5500" : (nextSettings.accent2 || resolvedAccent);
+    root.style.setProperty("--accent", resolvedAccent);
+    root.style.setProperty("--accent-2", resolvedAccent2);
     if (
       nextSettings.background &&
       nextSettings.background !== "#f5f4f8" &&

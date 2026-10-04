@@ -39,3 +39,11 @@ This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin con
 - Use double quotes for strings containing apostrophes (`"We're here to help"`), or escape them in single-quoted strings. An unescaped apostrophe in a single-quoted string breaks the build.
 - Ensure JSX tags are closed and braces are balanced.
 - Export components as default exports.
+
+## Installed Skills
+
+- **Framer Motion Skill** (`.skills/framer-motion/SKILL.md`): Spring physics, layout transitions (`layoutId`), `AnimatePresence`, staggered reveals, and compositor-only motion budgets using `framer-motion` / `motion`.
+- **Frontend Design Skill** (`.skills/frontend-design/SKILL.md`): Universal design constitution enforcing anti-slop rules, zero-pill metadata discipline, 2+1 typography, and 60-30-10 color balance.
+- **UI/UX Pro Max Skill** (`.skills/ui-ux-pro-max/SKILL.md`): UX architecture, progressive disclosure, interactive 5-state completeness, WCAG accessibility, and conversion-focused hierarchy.
+- **Canvas Design Skill** (`.skills/canvas-design/SKILL.md`): High-DPI HTML5 `<canvas>` rendering, `requestAnimationFrame` lifecycle cleanup, pointer lerping physics, and interactive spatial canvas math.
+
