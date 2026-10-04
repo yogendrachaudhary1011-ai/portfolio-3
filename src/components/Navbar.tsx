@@ -223,6 +223,17 @@ export default function Navbar({
     };
   }, [variant, links]);
 
+  // Synchronize browser address bar with the actively viewed section
+  useEffect(() => {
+    if (variant === "home" && typeof window !== "undefined" && !isNavigatingRef.current) {
+      const targetHash = current && current !== "home" ? `#${current}` : "";
+      const currentHash = window.location.hash;
+      if (currentHash !== targetHash) {
+        window.history.replaceState(null, "", targetHash || window.location.pathname);
+      }
+    }
+  }, [current, variant]);
+
   // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (menuOpen) {

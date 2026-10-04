@@ -223,6 +223,9 @@ function HomePage() {
   const scrollTo = (id: string) => {
     if (id === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.location.hash) {
+        window.history.pushState(null, "", window.location.pathname);
+      }
       return;
     }
     const el = document.getElementById(id);
@@ -234,6 +237,7 @@ function HomePage() {
         top: Math.max(0, elementTop - navOffset),
         behavior: "smooth",
       });
+      window.history.pushState(null, "", `/#${id}`);
     }
   };
 
