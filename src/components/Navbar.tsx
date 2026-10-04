@@ -153,18 +153,28 @@ export default function Navbar({
     onActiveSectionChangeRef.current = onActiveSectionChange;
   }, [onActiveSectionChange]);
 
+  const lastReportedSectionRef = useRef<string>(current);
+  useEffect(() => {
+    if (active) {
+      lastReportedSectionRef.current = active;
+    }
+  }, [active]);
+
   // Unified deterministic scroll tracking for active section detection
   useEffect(() => {
     if (variant !== "home") return;
 
     let ticking = false;
 
-    const commitActiveSection = (nextId: string) => {
+    const commitActiveSection = (nextId: string, isUserScroll: boolean) => {
       setCurrent((prev) => (prev !== nextId ? nextId : prev));
-      onActiveSectionChangeRef.current?.(nextId);
+      if (isUserScroll && lastReportedSectionRef.current !== nextId) {
+        lastReportedSectionRef.current = nextId;
+        onActiveSectionChangeRef.current?.(nextId);
+      }
     };
 
-    const updateActiveSection = () => {
+    const updateActiveSection = (isUserScroll = true) => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
       setScrolled((prev) => {
         const isNowScrolled = scrollY > 20;
@@ -182,7 +192,7 @@ export default function Navbar({
       const docHeight = document.documentElement.scrollHeight;
       if (scrollBottom >= docHeight - 60 && links.length > 0) {
         const lastId = links[links.length - 1].id;
-        commitActiveSection(lastId);
+        commitActiveSection(lastId, isUserScroll);
         ticking = false;
         return;
       }
@@ -193,12 +203,12 @@ export default function Navbar({
         const homeRect = homeEl.getBoundingClientRect();
         // If the bottom of hero section is still well within view, home is definitively active
         if (homeRect.bottom > window.innerHeight * 0.45 || scrollY < 180) {
-          commitActiveSection("home");
+          commitActiveSection("home", isUserScroll);
           ticking = false;
           return;
         }
       } else if (scrollY < 180) {
-        commitActiveSection("home");
+        commitActiveSection("home", isUserScroll);
         ticking = false;
         return;
       }
@@ -216,18 +226,18 @@ export default function Navbar({
         }
       }
 
-      commitActiveSection(activeId);
+      commitActiveSection(activeId, isUserScroll);
       ticking = false;
     };
 
     const onScroll = () => {
       if (!ticking) {
-        requestAnimationFrame(updateActiveSection);
+        requestAnimationFrame(() => updateActiveSection(true));
         ticking = true;
       }
     };
 
-    updateActiveSection();
+    updateActiveSection(false);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
 
@@ -594,10 +604,13 @@ export default function Navbar({
             />
 
             {isHomeVisible && (
-              <button
-                ref={homeRef}
-                type="button"
-                onClick={handleHomeClick}
+              <a
+                ref={homeRef as unknown as React.RefObject<HTMLAnchorElement>}
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleHomeClick();
+                }}
                 aria-label="Home"
                 aria-current={isHomeActive ? "page" : undefined}
                 className={`relative z-10 grid size-8 place-items-center rounded-full transition-all duration-200 hover:text-[var(--fg)] active:scale-90 cursor-pointer ${
@@ -611,18 +624,30 @@ export default function Navbar({
                 }}
               >
                 <Home size={14} className="transition-transform duration-200" />
-              </button>
+              </a>
             )}
 
             {links.map((l, i) => {
               const isActive = current === l.id;
+              const hrefMap: Record<string, string> = {
+                work: "/work",
+                "what-i-can-do": "/capabilities",
+                process: "/process",
+                about: "/about",
+                trainings: "/experience",
+                skills: "/skills",
+                contact: "/contact",
+              };
+              const linkHref = hrefMap[l.id] || `/${l.id}`;
               return (
-                <button
+                <a
                   key={l.id}
+                  href={linkHref}
                   ref={(element) => {
-                    linkRefs.current[i] = element;
+                    linkRefs.current[i] = element as unknown as HTMLButtonElement;
                   }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     lockNavForScroll(l.id);
                     onNav?.(l.id);
                   }}
@@ -638,7 +663,7 @@ export default function Navbar({
                   }}
                 >
                   <span>{l.label}</span>
-                </button>
+                </a>
               );
             })}
           </div>
