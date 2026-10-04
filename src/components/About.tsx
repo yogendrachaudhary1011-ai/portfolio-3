@@ -89,7 +89,7 @@ export default function About({ onViewProjects }: AboutProps = {}) {
               >
                 {about.bioParagraph2}{" "}
                 <a
-                  href="/projects"
+                  href="#projects"
                   onClick={(e) => {
                     e.preventDefault();
                     if (onViewProjects) {

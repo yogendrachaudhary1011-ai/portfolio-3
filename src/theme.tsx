@@ -10,7 +10,7 @@ interface ThemeContextType {
 }
 
 const ThemeCtx = createContext<ThemeContextType>({
-  theme: "dark",
+  theme: "light",
   toggle: () => {},
   setTheme: () => {},
 });
@@ -20,10 +20,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(THEME_STORAGE_KEY);
       if (stored === "dark" || stored === "light") return stored;
+      if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        return "dark";
+      }
     } catch {
       // fallback
     }
-    return "dark";
+    return "light";
   });
 
   const setTheme = (next: Theme) => {

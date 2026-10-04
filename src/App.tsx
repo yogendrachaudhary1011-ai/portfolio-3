@@ -12,11 +12,9 @@ import Contact from "./components/Contact";
 import ProjectsArchive from "./components/ProjectsArchive";
 import CaseStudy from "./components/CaseStudy";
 import AdminPanel from "./components/AdminPanel";
-import MagneticCursor from "./components/MagneticCursor";
 import { Atmosphere, ScrollProgress } from "./components/Atmosphere";
 import { SiteProvider, useSite } from "./siteContext";
 import { type Project } from "./data";
-import { buildPageUrl, parseCurrentUrl, syncBrowserUrl } from "./router";
 
 /* ─── Intro splash ─────────────────────────────────────────────────── */
 function IntroScreen({ onDone }: { onDone: () => void }) {
@@ -218,30 +216,12 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 
 /* ─── Portfolio Content ─────────────────────────────────────────────── */
 function PortfolioApp() {
-  const { projects, settings, config } = useSite();
-
-  // Parse initial route from browser URL on first render
-  const initialRoute = useMemo(() => parseCurrentUrl(projects), []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [view, setView] = useState<"home" | "projects" | "case-study">(initialRoute.view);
-  const [previousView, setPreviousView] = useState<"home" | "projects">(
-    initialRoute.view === "projects" ? "projects" : "home"
-  );
-  const [projectIndex, setProjectIndex] = useState(initialRoute.projectIndex ?? 0);
-  const [archiveFilter, setArchiveFilter] = useState<"all" | "archive" | "beyond">(
-    initialRoute.archiveFilter ?? "all"
-  );
-  const [activeHomeSection, setActiveHomeSection] = useState<string>(
-    initialRoute.sectionId ?? "home"
-  );
+  const [view, setView] = useState<"home" | "projects" | "case-study">("home");
+  const [previousView, setPreviousView] = useState<"home" | "projects">("home");
+  const [projectIndex, setProjectIndex] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
-
   const [introVisible, setIntroVisible] = useState(() => {
     if (typeof window === "undefined") return true;
-    // Skip intro splash if user navigated directly to a deep page URL (e.g. /projects or /case-study/...)
-    if (window.location.pathname && window.location.pathname !== "/" && window.location.pathname !== "/index.html") {
-      return false;
-    }
     try {
       const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       return !prefersReduced;
@@ -250,64 +230,10 @@ function PortfolioApp() {
     }
   });
 
-  const [selectedProject, setSelectedProject] = useState<Project | null>(
-    projects[initialRoute.projectIndex ?? 0] ?? projects[0] ?? null
-  );
+  const { projects, settings } = useSite();
+  const [selectedProject, setSelectedProject] = useState<Project | null>(projects[0] ?? null);
 
-  // Re-resolve case study index if projects load asynchronously from Firestore and URL had a project slug
-  useEffect(() => {
-    if (!projects || projects.length === 0) return;
-    const parsed = parseCurrentUrl(projects);
-    if (parsed.view === "case-study" && parsed.projectIndex !== undefined) {
-      setProjectIndex(parsed.projectIndex);
-      setSelectedProject(projects[parsed.projectIndex] ?? projects[0] ?? null);
-    }
-  }, [projects]);
-
-  const currentCaseStudyProject =
-    (projects && projects[projectIndex]) ?? selectedProject ?? projects?.[0] ?? null;
-
-  // Keep document title and URL bar synchronized with the active page / section / project
-  const getPageTitle = useCallback(
-    (
-      targetView: "home" | "projects" | "case-study",
-      sectionId?: string,
-      projIdx?: number,
-      filter?: "all" | "archive" | "beyond"
-    ) => {
-      const baseName = config.hero?.marqueeName
-        ? config.hero.marqueeName
-            .toLowerCase()
-            .replace(/\b\w/g, (c) => c.toUpperCase())
-        : "Yogendra Chaudhary";
-
-      if (targetView === "projects") {
-        if (filter === "archive") return `Case Studies Archive · ${baseName}`;
-        if (filter === "beyond") return `Beyond the Brief · ${baseName}`;
-        return `Projects Archive · ${baseName}`;
-      }
-      if (targetView === "case-study") {
-        const proj = projects[projIdx ?? projectIndex];
-        return proj?.title ? `${proj.title} · ${baseName}` : `Case Study · ${baseName}`;
-      }
-      if (sectionId && sectionId !== "home") {
-        const sectionTitles: Record<string, string> = {
-          work: "Selected Work",
-          "what-i-can-do": "Capabilities",
-          capabilities: "Capabilities",
-          process: "Design Process",
-          about: "About",
-          trainings: "Experience",
-          skills: "Skills & Stack",
-          contact: "Contact",
-        };
-        const label = sectionTitles[sectionId] || "Portfolio";
-        return `${label} · ${baseName}`;
-      }
-      return `${baseName} — UI/UX Designer`;
-    },
-    [config.hero?.marqueeName, projects, projectIndex]
-  );
+  const currentCaseStudyProject = (projects && projects[projectIndex]) ?? selectedProject ?? projects?.[0] ?? null;
 
   const doneIntro = useCallback(() => {
     setIntroVisible(false);
@@ -324,135 +250,39 @@ function PortfolioApp() {
     };
   }, [introVisible]);
 
-  const scrollTo = useCallback(
-    (id: string, updateUrl = true) => {
-      const targetId = id || "home";
-      setActiveHomeSection(targetId);
-
-      if (updateUrl) {
-        const nextUrl = buildPageUrl({ view: "home", sectionId: targetId, projects });
-        const nextTitle = getPageUrlTitle("home", targetId);
-        syncBrowserUrl(nextUrl, { replace: false, title: nextTitle });
-      }
-
-      if (targetId === "home") {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-      const el = document.getElementById(targetId);
-      if (el) {
-        const isMobile = window.innerWidth < 768;
-        const navOffset = isMobile ? 64 : 76;
-        const elementTop =
-          el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
-        window.scrollTo({
-          top: Math.max(0, elementTop - navOffset),
-          behavior: "smooth",
-        });
-      }
-    },
-    [projects, getPageTitle] // eslint-disable-line react-hooks/exhaustive-deps
-  );
-
-  function getPageUrlTitle(
-    targetView: "home" | "projects" | "case-study",
-    sectionId?: string,
-    projIdx?: number,
-    filter?: "all" | "archive" | "beyond"
-  ) {
-    return getPageTitle(targetView, sectionId, projIdx, filter);
-  }
-
-  // Scroll to initial section if user loaded a direct section URL like /about or /contact
-  useEffect(() => {
-    if (initialRoute.openAdmin) {
-      window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("portfolio-open-admin"));
-      }, 300);
+  const scrollTo = (id: string) => {
+    if (id === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
     }
-    if (initialRoute.view === "home" && initialRoute.sectionId && initialRoute.sectionId !== "home") {
-      const timer = window.setTimeout(() => {
-        scrollTo(initialRoute.sectionId!, false);
-      }, 150);
-      return () => window.clearTimeout(timer);
+    const el = document.getElementById(id);
+    if (el) {
+      const isMobile = window.innerWidth < 768;
+      const navOffset = isMobile ? 64 : 76;
+      const elementTop = el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+      window.scrollTo({
+        top: Math.max(0, elementTop - navOffset),
+        behavior: "smooth",
+      });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
-  const navigate = useCallback(
-    (
-      next: "home" | "projects" | "case-study",
-      destination?: string,
-      options?: {
-        projectIdx?: number;
-        archiveTab?: "all" | "archive" | "beyond";
-        skipHistoryPush?: boolean;
-      }
-    ) => {
-      const resolvedProjIdx = options?.projectIdx ?? projectIndex;
-      const resolvedArchiveTab = options?.archiveTab ?? archiveFilter;
-      const targetSection = next === "home" ? destination || "home" : undefined;
-
-      if (!options?.skipHistoryPush) {
-        const nextUrl = buildPageUrl({
-          view: next,
-          sectionId: targetSection,
-          projectIndex: resolvedProjIdx,
-          projects,
-          archiveFilter: resolvedArchiveTab,
-        });
-        const nextTitle = getPageTitle(next, targetSection, resolvedProjIdx, resolvedArchiveTab);
-        syncBrowserUrl(nextUrl, { replace: false, title: nextTitle });
-      }
-
-      if (next === view) {
-        if (next === "home" && destination) {
-          scrollTo(destination, false);
-        }
-        return;
-      }
-
-      if (view === "home" || view === "projects") {
-        setPreviousView(view);
-      }
-
-      setTransitioning(true);
-      setTimeout(() => {
-        setView(next);
-        if (next === "home" && destination) {
-          setActiveHomeSection(destination);
-          window.setTimeout(() => scrollTo(destination, false), 60);
-        } else {
-          window.scrollTo(0, 0);
-        }
-        setTransitioning(false);
-      }, 400);
-    },
-    [view, projectIndex, archiveFilter, projects, getPageTitle, scrollTo]
-  );
-
-  // Handle browser Back / Forward buttons (popstate)
-  useEffect(() => {
-    const onPopState = () => {
-      const route = parseCurrentUrl(projects);
-      if (route.view === "case-study") {
-        const idx = route.projectIndex ?? 0;
-        setProjectIndex(idx);
-        setSelectedProject(projects[idx] ?? projects[0] ?? null);
-        navigate("case-study", undefined, { projectIdx: idx, skipHistoryPush: true });
-      } else if (route.view === "projects") {
-        const tab = route.archiveFilter ?? "all";
-        setArchiveFilter(tab);
-        navigate("projects", undefined, { archiveTab: tab, skipHistoryPush: true });
-      } else {
-        const section = route.sectionId || "home";
-        setActiveHomeSection(section);
-        navigate("home", section, { skipHistoryPush: true });
-      }
-    };
-
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [projects, navigate]);
+  const navigate = (next: "home" | "projects" | "case-study", destination?: string) => {
+    if (next === view) {
+      if (destination) scrollTo(destination);
+      return;
+    }
+    if (view === "home" || view === "projects") {
+      setPreviousView(view);
+    }
+    setTransitioning(true);
+    setTimeout(() => {
+      setView(next);
+      if (destination) window.setTimeout(() => scrollTo(destination), 60);
+      else window.scrollTo(0, 0);
+      setTransitioning(false);
+    }, 400);
+  };
 
   useEffect(() => {
     // Track keys pressed together or in sequence for Ctrl+Shift+A+D / Cmd+Shift+A+D
@@ -493,19 +323,9 @@ function PortfolioApp() {
     };
 
     const handleNavigate = (e: Event) => {
-      const customEvent = e as CustomEvent<{
-        view: "home" | "projects" | "case-study";
-        destination?: string;
-        projectIndex?: number;
-      }>;
+      const customEvent = e as CustomEvent<{ view: "home" | "projects" | "case-study"; destination?: string }>;
       if (customEvent.detail?.view) {
-        if (customEvent.detail.projectIndex !== undefined) {
-          setProjectIndex(customEvent.detail.projectIndex);
-          setSelectedProject(projects[customEvent.detail.projectIndex] ?? null);
-        }
-        navigate(customEvent.detail.view, customEvent.detail.destination, {
-          projectIdx: customEvent.detail.projectIndex,
-        });
+        navigate(customEvent.detail.view, customEvent.detail.destination);
       }
     };
 
@@ -519,24 +339,10 @@ function PortfolioApp() {
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("portfolio-navigate", handleNavigate);
     };
-  }, [navigate, projects]);
-
-  // Synchronize URL bar (replaceState) as user scrolls through Home sections
-  const handleActiveSectionChange = useCallback(
-    (sectionId: string) => {
-      setActiveHomeSection(sectionId);
-      if (view === "home" && !transitioning) {
-        const nextUrl = buildPageUrl({ view: "home", sectionId, projects });
-        const nextTitle = getPageTitle("home", sectionId);
-        syncBrowserUrl(nextUrl, { replace: true, title: nextTitle });
-      }
-    },
-    [view, transitioning, projects, getPageTitle]
-  );
+  }, []);
 
   return (
     <>
-      <MagneticCursor />
       {introVisible && <IntroScreen onDone={doneIntro} />}
       <Atmosphere />
       <ScrollProgress />
@@ -558,37 +364,27 @@ function PortfolioApp() {
             <Navbar
               variant="home"
               showHomeButton
-              active={activeHomeSection}
-              onActiveSectionChange={handleActiveSectionChange}
-              onNav={(id) => scrollTo(id, true)}
-              onHome={() => scrollTo("home", true)}
-              onContact={() => scrollTo("contact", true)}
+              onNav={scrollTo}
+              onHome={() => scrollTo("home")}
+              onContact={() => scrollTo("contact")}
             />
             <main>
               {settings?.sections?.hero !== false && <Hero />}
               {settings?.sections?.work !== false && (
                 <WorkGallery
                   projects={projects}
-                  onMore={() => {
-                    setArchiveFilter("all");
-                    navigate("projects", undefined, { archiveTab: "all" });
-                  }}
+                  onMore={() => navigate("projects")}
                   onProject={(index) => {
                     setProjectIndex(index);
                     setSelectedProject(projects[index]);
-                    navigate("case-study", undefined, { projectIdx: index });
+                    navigate("case-study");
                   }}
                 />
               )}
               {settings?.sections?.capabilities !== false && <Capabilities />}
               {settings?.sections?.process !== false && <MyProcess />}
               {settings?.sections?.about !== false && (
-                <About
-                  onViewProjects={() => {
-                    setArchiveFilter("all");
-                    navigate("projects", undefined, { archiveTab: "all" });
-                  }}
-                />
+                <About onViewProjects={() => navigate("projects")} />
               )}
               {settings?.sections?.trainings !== false && <Trainings />}
               {settings?.sections?.skills !== false && <Skills />}
@@ -606,23 +402,12 @@ function PortfolioApp() {
             />
             <ProjectsArchive
               projects={projects}
-              activeFilter={archiveFilter}
-              onFilterChange={(nextFilter) => {
-                setArchiveFilter(nextFilter);
-                const nextUrl = buildPageUrl({
-                  view: "projects",
-                  archiveFilter: nextFilter,
-                  projects,
-                });
-                const nextTitle = getPageTitle("projects", undefined, undefined, nextFilter);
-                syncBrowserUrl(nextUrl, { replace: false, title: nextTitle });
-              }}
               onBack={() => navigate("home", "work")}
               onContact={() => navigate("home", "contact")}
               onProject={(project, index) => {
                 setProjectIndex(index);
                 setSelectedProject(project);
-                navigate("case-study", undefined, { projectIdx: index });
+                navigate("case-study");
               }}
             />
           </>
@@ -643,19 +428,12 @@ function PortfolioApp() {
                 if (previousView === "home") {
                   navigate("home", "work");
                 } else {
-                  navigate("projects", undefined, { archiveTab: archiveFilter });
+                  navigate("projects");
                 }
               }}
               onSelectProject={(nextIdx) => {
                 setProjectIndex(nextIdx);
                 setSelectedProject(projects[nextIdx]);
-                const nextUrl = buildPageUrl({
-                  view: "case-study",
-                  projectIndex: nextIdx,
-                  projects,
-                });
-                const nextTitle = getPageTitle("case-study", undefined, nextIdx);
-                syncBrowserUrl(nextUrl, { replace: false, title: nextTitle });
               }}
             />
           </>

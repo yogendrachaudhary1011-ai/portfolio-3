@@ -13,17 +13,15 @@ const BASE = 1.3; // seconds
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
   return (
-    <Magnetic strength={0.25}>
-      <button
-        onClick={toggle}
-        aria-label="Toggle theme"
-        className="group grid size-10 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)] active:scale-95 sm:size-12 cursor-pointer"
-      >
-        <span className="transition-transform duration-500 group-hover:rotate-45">
-          {theme === "dark" ? <Moon className="size-4 sm:size-[18px]" /> : <Sun className="size-4 sm:size-[18px]" />}
-        </span>
-      </button>
-    </Magnetic>
+    <button
+      onClick={toggle}
+      aria-label="Toggle theme"
+      className="group grid size-10 place-items-center rounded-full text-[var(--muted)] transition-colors hover:text-[var(--fg)] active:scale-95 sm:size-12"
+    >
+      <span className="transition-transform duration-500 group-hover:rotate-45">
+        {theme === "dark" ? <Moon className="size-4 sm:size-[18px]" /> : <Sun className="size-4 sm:size-[18px]" />}
+      </span>
+    </button>
   );
 }
 
@@ -31,7 +29,6 @@ export default function Navbar({
   variant = "home",
   showHomeButton = false,
   active,
-  onActiveSectionChange,
   onNav,
   onHome,
   onContact,
@@ -39,7 +36,6 @@ export default function Navbar({
   variant?: "home" | "projects" | "case-study";
   showHomeButton?: boolean;
   active?: string;
-  onActiveSectionChange?: (id: string) => void;
   onNav?: (id: string) => void;
   onHome?: () => void;
   onContact?: () => void;
@@ -148,33 +144,13 @@ export default function Navbar({
     }
   }, [active]);
 
-  const onActiveSectionChangeRef = useRef(onActiveSectionChange);
-  useEffect(() => {
-    onActiveSectionChangeRef.current = onActiveSectionChange;
-  }, [onActiveSectionChange]);
-
-  const lastReportedSectionRef = useRef<string>(current);
-  useEffect(() => {
-    if (active) {
-      lastReportedSectionRef.current = active;
-    }
-  }, [active]);
-
   // Unified deterministic scroll tracking for active section detection
   useEffect(() => {
     if (variant !== "home") return;
 
     let ticking = false;
 
-    const commitActiveSection = (nextId: string, isUserScroll: boolean) => {
-      setCurrent((prev) => (prev !== nextId ? nextId : prev));
-      if (isUserScroll && lastReportedSectionRef.current !== nextId) {
-        lastReportedSectionRef.current = nextId;
-        onActiveSectionChangeRef.current?.(nextId);
-      }
-    };
-
-    const updateActiveSection = (isUserScroll = true) => {
+    const updateActiveSection = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
       setScrolled((prev) => {
         const isNowScrolled = scrollY > 20;
@@ -192,7 +168,7 @@ export default function Navbar({
       const docHeight = document.documentElement.scrollHeight;
       if (scrollBottom >= docHeight - 60 && links.length > 0) {
         const lastId = links[links.length - 1].id;
-        commitActiveSection(lastId, isUserScroll);
+        setCurrent((prev) => (prev !== lastId ? lastId : prev));
         ticking = false;
         return;
       }
@@ -203,12 +179,12 @@ export default function Navbar({
         const homeRect = homeEl.getBoundingClientRect();
         // If the bottom of hero section is still well within view, home is definitively active
         if (homeRect.bottom > window.innerHeight * 0.45 || scrollY < 180) {
-          commitActiveSection("home", isUserScroll);
+          setCurrent((prev) => (prev !== "home" ? "home" : prev));
           ticking = false;
           return;
         }
       } else if (scrollY < 180) {
-        commitActiveSection("home", isUserScroll);
+        setCurrent((prev) => (prev !== "home" ? "home" : prev));
         ticking = false;
         return;
       }
@@ -226,18 +202,18 @@ export default function Navbar({
         }
       }
 
-      commitActiveSection(activeId, isUserScroll);
+      setCurrent((prev) => (prev !== activeId ? activeId : prev));
       ticking = false;
     };
 
     const onScroll = () => {
       if (!ticking) {
-        requestAnimationFrame(() => updateActiveSection(true));
+        requestAnimationFrame(updateActiveSection);
         ticking = true;
       }
     };
 
-    updateActiveSection(false);
+    updateActiveSection();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
 
@@ -544,7 +520,7 @@ export default function Navbar({
         <div className="mt-6 flex flex-col gap-3 pt-3">
           {/* Main CTA */}
           <a
-            href="/contact"
+            href="#contact"
             onClick={handleContact}
             className="btn-shine flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--fg)] text-[0.84rem] font-medium text-[var(--bg)] shadow-md transition-all duration-150 active:scale-95 select-none cursor-pointer"
           >
@@ -604,13 +580,10 @@ export default function Navbar({
             />
 
             {isHomeVisible && (
-              <a
-                ref={homeRef as unknown as React.RefObject<HTMLAnchorElement>}
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleHomeClick();
-                }}
+              <button
+                ref={homeRef}
+                type="button"
+                onClick={handleHomeClick}
                 aria-label="Home"
                 aria-current={isHomeActive ? "page" : undefined}
                 className={`relative z-10 grid size-8 place-items-center rounded-full transition-all duration-200 hover:text-[var(--fg)] active:scale-90 cursor-pointer ${
@@ -624,30 +597,18 @@ export default function Navbar({
                 }}
               >
                 <Home size={14} className="transition-transform duration-200" />
-              </a>
+              </button>
             )}
 
             {links.map((l, i) => {
               const isActive = current === l.id;
-              const hrefMap: Record<string, string> = {
-                work: "/work",
-                "what-i-can-do": "/capabilities",
-                process: "/process",
-                about: "/about",
-                trainings: "/experience",
-                skills: "/skills",
-                contact: "/contact",
-              };
-              const linkHref = hrefMap[l.id] || `/${l.id}`;
               return (
-                <a
+                <button
                   key={l.id}
-                  href={linkHref}
                   ref={(element) => {
-                    linkRefs.current[i] = element as unknown as HTMLButtonElement;
+                    linkRefs.current[i] = element;
                   }}
-                  onClick={(e) => {
-                    e.preventDefault();
+                  onClick={() => {
                     lockNavForScroll(l.id);
                     onNav?.(l.id);
                   }}
@@ -663,7 +624,7 @@ export default function Navbar({
                   }}
                 >
                   <span>{l.label}</span>
-                </a>
+                </button>
               );
             })}
           </div>
@@ -697,7 +658,7 @@ export default function Navbar({
         <ThemeToggle />
         <Magnetic strength={0.22}>
           <a
-            href="/contact"
+            href="#contact"
             onClick={handleContact}
             className="btn-shine inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[var(--fg)] px-4 text-[0.78rem] font-medium text-[var(--bg)] transition-transform hover:scale-[1.02] active:scale-95 sm:min-h-12 sm:gap-2 sm:px-5 sm:text-[0.84rem]"
           >
