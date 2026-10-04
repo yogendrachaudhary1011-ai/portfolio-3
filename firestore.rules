@@ -2,50 +2,75 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isValidString(val, minLen, maxLen) {
-      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    // Global Safety Net: Default-deny all undefined collections and paths
+    match /{document=**} {
+      allow read, write: if false;
     }
 
+    // Common hardened validation primitives
     function isValidId(id) {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
     // Projects collection: case studies and visual stream
     match /projects/{projectId} {
-      allow read: if true;
-      allow write: if isValidId(projectId);
+      allow read: if isValidId(projectId);
+      allow write: if isValidId(projectId)
+                   && request.resource.data.size() < 1000000
+                   && (!('items' in request.resource.data) || request.resource.data.items is list)
+                   && (!('count' in request.resource.data) || request.resource.data.count is number);
     }
 
     // Site configuration collection: hero, about, capabilities, skills, etc.
     match /site_configs/{configId} {
-      allow read: if true;
-      allow write: if isValidId(configId);
+      allow read: if isValidId(configId);
+      allow write: if isValidId(configId)
+                   && request.resource.data.size() < 1000000;
     }
 
     // Site settings collection: visibility toggles, theme options
     match /site_settings/{settingsId} {
-      allow read: if true;
-      allow write: if isValidId(settingsId);
+      allow read: if isValidId(settingsId);
+      allow write: if isValidId(settingsId)
+                   && request.resource.data.size() < 100000;
     }
 
     // Uploaded images collection: persistent image assets for case studies and portfolio
+    // Protected against denial-of-wallet / storage bloat attacks with strict size bounds
     match /uploaded_images/{imageId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isValidId(imageId);
+      allow create, update: if isValidId(imageId)
+                            && request.resource.data.id is string
+                            && request.resource.data.id == imageId
+                            && request.resource.data.dataUrl is string
+                            && request.resource.data.dataUrl.size() > 0
+                            && request.resource.data.dataUrl.size() <= 1500000;
+      allow delete: if isValidId(imageId);
     }
 
-    // Visitor contact messages collection: allows visitors to submit messages and admin to read/manage
+    // Visitor contact messages collection:
+    // Strictly validated create, prevents ghost fields and malicious script payloads
     match /messages/{messageId} {
-      allow create: if request.resource.data.name is string
-                    && request.resource.data.email is string
-                    && request.resource.data.message is string;
-      allow read, update, delete: if true;
+      allow create: if isValidId(messageId)
+                    && request.resource.data.keys().hasAll(['id', 'name', 'email', 'message', 'sentAt'])
+                    && request.resource.data.keys().hasOnly(['id', 'name', 'email', 'message', 'sentAt', 'createdAt'])
+                    && isValidString(request.resource.data.name, 1, 100)
+                    && isValidString(request.resource.data.email, 5, 150)
+                    && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
+                    && isValidString(request.resource.data.message, 2, 5000);
+      allow read, delete: if isValidId(messageId);
+      allow update: if false; // Messages are strictly immutable once submitted
     }
 
     // Test connection document
     match /test/{docId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isValidId(docId) && docId == 'connection';
     }
   }
 }
+

@@ -22,7 +22,8 @@ export default function Contact() {
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", message: "", botTrap: "" });
+  const [lastSubmitTime, setLastSubmitTime] = useState<number>(0);
 
   const updateField = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -32,20 +33,63 @@ export default function Contact() {
     }
   };
 
+  const sanitizeText = (str: string) => {
+    return str
+      .replace(/[<>]/g, "")
+      .trim();
+  };
+
   const submitMessage = async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
+    // 1. Honeypot check: If bot filled the invisible field, silently discard
+    if (form.botTrap) {
+      setStatus("success");
+      return;
+    }
+
+    const cleanName = sanitizeText(form.name).slice(0, 80);
+    const cleanEmail = form.email.trim().toLowerCase().slice(0, 120);
+    const cleanMessage = sanitizeText(form.message).slice(0, 3000);
+
+    if (!cleanName || cleanName.length < 2) {
+      setStatus("error");
+      setErrorMessage("Please enter a valid name (at least 2 characters).");
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setStatus("error");
+      setErrorMessage("Please enter a valid email address.");
+      return;
+    }
+
+    if (!cleanMessage || cleanMessage.length < 5) {
+      setStatus("error");
+      setErrorMessage("Please provide a message with at least 5 characters.");
+      return;
+    }
+
+    // 2. Rate-limiting check: 15-second cooldown between submissions
+    const now = Date.now();
+    if (now - lastSubmitTime < 15000) {
+      const waitSec = Math.ceil((15000 - (now - lastSubmitTime)) / 1000);
+      setStatus("error");
+      setErrorMessage(`Please wait ${waitSec}s before sending another message.`);
+      return;
+    }
 
     setStatus("submitting");
     setErrorMessage("");
 
     try {
       await sendMessageToCloud({
-        name: form.name,
-        email: form.email,
-        message: form.message,
+        name: cleanName,
+        email: cleanEmail,
+        message: cleanMessage,
       });
 
-      setForm({ name: "", email: "", message: "" });
+      setLastSubmitTime(Date.now());
+      setForm({ name: "", email: "", message: "", botTrap: "" });
       setStatus("success");
       setTimeout(() => {
         setStatus("idle");
@@ -123,6 +167,17 @@ export default function Contact() {
                 <span className="size-2 animate-pulse rounded-full bg-[var(--accent)]" />
                 {contactConfig.formTitle || "Send Me a Message"}
               </p>
+              {/* Invisible Bot Trap (Honeypot) */}
+              <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, width: 0, pointerEvents: "none" }}>
+                <input
+                  type="text"
+                  name="user_anti_bot_check"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.botTrap}
+                  onChange={(e) => updateField("botTrap", e.target.value)}
+                />
+              </div>
               {["Full Name", "Email Address"].map((f) => (
                 <label key={f} className="mb-4 block">
                   <span className="label !text-[0.58rem]">{f}</span>
@@ -197,16 +252,8 @@ export default function Contact() {
 
       <footer className="mt-28 flex flex-col items-center justify-between gap-4 border-t border-[var(--hairline)] pt-8 text-[0.75rem] text-[var(--muted)] sm:flex-row">
         <span>{contactConfig.footerCopyright || "© 2026 Yogendra Chaudhary. All rights reserved."}</span>
-        <span className="inline-flex items-center font-mono">
-          <span>{(contactConfig.footerCredit || "Designed & crafted by Yogendra").replace(/\.+$/, "")}</span>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("portfolio-open-admin"))}
-            className="inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none ml-0.5"
-            aria-label="Admin panel"
-          >
-            <span className="size-1 rounded-full bg-current" />
-          </button>
+        <span className="font-mono">
+          {(contactConfig.footerCredit || "Designed & crafted by Yogendra")}
         </span>
       </footer>
     </section>

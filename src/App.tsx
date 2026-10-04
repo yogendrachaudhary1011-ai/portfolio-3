@@ -418,41 +418,6 @@ function PortfolioApp() {
   }, [location.pathname, location.hash]);
 
   useEffect(() => {
-    let lastAKeyTime = 0;
-    const pressedKeys = new Set<string>();
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      pressedKeys.add(key);
-
-      const hasModifier = e.ctrlKey || e.metaKey;
-      if (!hasModifier || !e.shiftKey) return;
-
-      const now = Date.now();
-      if (key === "a") {
-        lastAKeyTime = now;
-      }
-
-      const bothHeld = pressedKeys.has("a") && (pressedKeys.has("d") || key === "d");
-      const quickSequence = key === "d" && now - lastAKeyTime < 1500;
-
-      if (bothHeld || quickSequence) {
-        e.preventDefault();
-        lastAKeyTime = 0;
-        pressedKeys.clear();
-        window.dispatchEvent(new CustomEvent("portfolio-open-admin"));
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      pressedKeys.delete(e.key.toLowerCase());
-    };
-
-    const handleBlur = () => {
-      pressedKeys.clear();
-      lastAKeyTime = 0;
-    };
-
     const handleNavigate = (e: Event) => {
       const customEvent = e as CustomEvent<{ view: "home" | "projects" | "case-study"; destination?: string }>;
       const v = customEvent.detail?.view;
@@ -463,21 +428,15 @@ function PortfolioApp() {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("blur", handleBlur);
     window.addEventListener("portfolio-navigate", handleNavigate);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("blur", handleBlur);
       window.removeEventListener("portfolio-navigate", handleNavigate);
     };
   }, [navigate]);
 
-  // Handle direct navigation to /admin
+  // Handle direct navigation to /zanewick
   useEffect(() => {
-    if (location.pathname === "/admin") {
+    if (location.pathname === "/zanewick") {
       const timer = setTimeout(() => {
         window.dispatchEvent(new CustomEvent("portfolio-open-admin"));
       }, 60);
@@ -506,7 +465,8 @@ function PortfolioApp() {
       <div style={{ opacity: transitioning ? 0 : 1, transition: "opacity 0.35s ease" }}>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/admin" element={<HomePage />} />
+          <Route path="/zanewick" element={<HomePage />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/archive" element={<Navigate to="/projects" replace />} />
           <Route path="/project/:id" element={<CaseStudyPage />} />

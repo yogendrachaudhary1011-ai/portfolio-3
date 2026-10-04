@@ -356,19 +356,6 @@ export default function CaseStudy({
                 <p className="mt-2 text-sm text-[var(--muted)]">
                   {emptyDesc}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.dispatchEvent(
-                      new CustomEvent("portfolio-open-admin", {
-                        detail: { tab: "projects", projectIndex: index },
-                      })
-                    );
-                  }}
-                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
-                >
-                  {emptyButtonLabel}
-                </button>
               </div>
             </div>
           )}
@@ -425,23 +412,6 @@ export default function CaseStudy({
             >
               <ArrowUp className="size-3.5" />
               <span>{backToTopLabel}</span>
-            </button>
-
-            <span className="h-3 w-px bg-[var(--hairline)]" />
-
-            <button
-              type="button"
-              onClick={() =>
-                window.dispatchEvent(
-                  new CustomEvent("portfolio-open-admin", {
-                    detail: { tab: "caseStudy", projectIndex: index },
-                  })
-                )
-              }
-              className="inline-flex size-4 items-center justify-center rounded-full text-[var(--muted)]/40 focus:outline-none cursor-default select-none active:scale-75"
-              aria-label="Admin panel"
-            >
-              <span className="size-1 rounded-full bg-current" />
             </button>
           </div>
         </div>

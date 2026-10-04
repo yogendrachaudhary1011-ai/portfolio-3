@@ -436,13 +436,21 @@ export async function sendMessageToCloud(msg: {
   email: string;
   message: string;
 }): Promise<ContactMessage> {
+  const sanitizedName = msg.name.replace(/[<>]/g, "").trim().slice(0, 100);
+  const sanitizedEmail = msg.email.trim().toLowerCase().slice(0, 150);
+  const sanitizedMessage = msg.message.replace(/[<>]/g, "").trim().slice(0, 5000);
+
+  if (!sanitizedName || !sanitizedEmail || !sanitizedMessage) {
+    throw new Error("Invalid message parameters.");
+  }
+
   const messageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const now = new Date().toISOString();
   const messageData: ContactMessage = {
     id: messageId,
-    name: msg.name.trim(),
-    email: msg.email.trim(),
-    message: msg.message.trim(),
+    name: sanitizedName,
+    email: sanitizedEmail,
+    message: sanitizedMessage,
     sentAt: now,
   };
 
